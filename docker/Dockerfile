@@ -16,6 +16,7 @@ WORKDIR /opt/cxone
 
 COPY *.txt /opt/cxone
 COPY --from=cert /tmp/*.pem /opt/cxone/ssl/default/
+COPY docker/rabbitmq.list /etc/apt/sources.list.d/rabbitmq.list
 
 ENV SSL_CERT_PATH=/opt/cxone/ssl/default/ssl.cert.pem
 ENV SSL_CERT_KEY_PATH=/opt/cxone/ssl/default/key.private.pem
@@ -24,8 +25,18 @@ ENV CXONEFLOW_HOSTNAME=localhost
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata && \
-    apt-get install -y python3.12 python3-pip nginx git openssh-client bash gettext-base && \
+    apt-get install -y python3.12 python3-pip nginx git openssh-client bash gettext-base curl gnupg apt-transport-https && \
     pip install -r requirements.txt --no-cache-dir --break-system-packages && \
+    curl -1sLf https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA | gpg --dearmor | tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null && \
+    curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key | gpg --dearmor | tee /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null && \
+    curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key | gpg --dearmor | tee /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg > /dev/null && \
+    apt-get update && \
+    apt-get install -y erlang-base \
+    erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
+    erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
+    erlang-runtime-tools erlang-snmp erlang-ssl \
+    erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl && \
+    apt-get install rabbitmq-server -y --fix-missing && \
     apt-get autoremove -y && \
     apt-get clean && \
     rm requirements.txt && \
