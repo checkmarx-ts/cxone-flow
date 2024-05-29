@@ -8,7 +8,7 @@ from _agent import __agent__
 from flask import Flask, request, Response
 from orchestration import OrchestrationDispatch, BitBucketDataCenterOrchestrator, AzureDevOpsEnterpriseOrchestrator
 import json, logging, asyncio, os
-from config import CxOneFlowConfig, ConfigurationException
+from config import CxOneFlowConfig, ConfigurationException, get_config_path
 from time import perf_counter_ns
 from task_management import TaskManager
 import cxoneflow_logging as cof_logging
@@ -18,12 +18,6 @@ cof_logging.bootstrap()
 __app_name__ = __agent__
 
 __log = logging.getLogger(__app_name__)
-
-def get_config_path():
-    if "CONFIG_YAML_PATH" in os.environ.keys():
-        return os.environ['CONFIG_YAML_PATH']
-    else:
-        return "./config.yaml"
 
 try:
     CxOneFlowConfig.bootstrap(get_config_path())

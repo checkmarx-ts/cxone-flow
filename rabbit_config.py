@@ -1,13 +1,15 @@
 import asyncio, aio_pika, logging
 import cxoneflow_logging as cof_logging
+from config import CxOneFlowConfig, ConfigurationException, get_config_path
 
 cof_logging.bootstrap()
 
 __log = logging.getLogger("RabbitSetup")
 
 
-
 async def setup() -> None:
+    monikers = CxOneFlowConfig.get_service_monikers()
+    
     rmq = await aio_pika.connect_robust("amqp://localhost")
 
     async with rmq.channel() as channel:
@@ -32,4 +34,8 @@ async def setup() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(setup())
+    try:
+        CxOneFlowConfig.bootstrap(get_config_path())
+        asyncio.run(setup())
+    except ConfigurationException as ce:
+        __log.exception(ce)

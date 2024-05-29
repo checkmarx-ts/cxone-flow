@@ -14,6 +14,12 @@ from cxone_service import CxOneService
 from password_strength import PasswordPolicy
 from cxoneflow_logging import SecretRegistry
 
+def get_config_path():
+    if "CONFIG_YAML_PATH" in os.environ.keys():
+        return os.environ['CONFIG_YAML_PATH']
+    else:
+        return "./config.yaml"
+
 class ConfigurationException(Exception):
 
     @staticmethod
@@ -48,12 +54,24 @@ class RouteNotFoundException(Exception):
     pass
 
 class CxOneFlowConfig:
-
     __shared_secret_policy = PasswordPolicy.from_names(length=20, uppercase=3, numbers=3, special=2)
+
+    __cxone_service_tuple_index = 1
+    __scm_service_tuple_index = 2
+    __rabbit_service_tuple_index = 3
 
     @staticmethod
     def log():
         return logging.getLogger("CxOneFlowConfig")
+    
+    @staticmethod
+    def get_service_monikers():
+        return list(CxOneFlowConfig.__scm_config_tuples_by_service_moniker.keys())
+
+    @staticmethod
+    def retrieve_services_by_moniker(moniker):
+        service_tuple = CxOneFlowConfig.__scm_config_tuples_by_service_moniker[moniker]
+        return service_tuple[CxOneFlowConfig.__cxone_service_tuple_index], service_tuple[CxOneFlowConfig.__scm_service_tuple_index]
 
     @staticmethod
     def retrieve_services_by_route(clone_urls):
@@ -66,7 +84,7 @@ class CxOneFlowConfig:
         for url in it_list:
             for entry in CxOneFlowConfig.__ordered_scm_config_tuples:
                 if entry[0].match(url):
-                    return entry[1], entry[2]
+                    return entry[CxOneFlowConfig.__cxone_service_tuple_index], entry[CxOneFlowConfig.__scm_service_tuple_index]
 
         CxOneFlowConfig.log().error(f"No route matched for {clone_urls}")
         raise RouteNotFoundException(clone_urls)
@@ -198,6 +216,7 @@ class CxOneFlowConfig:
 
 
     __ordered_scm_config_tuples = []
+    __scm_config_tuples_by_service_moniker = {}
 
     __minimum_api_auth_keys = ['token', 'password']
     __basic_auth_keys = ['username', 'password']
@@ -297,7 +316,10 @@ class CxOneFlowConfig:
                
         scm_service = SCMService(service_moniker, api_session, scm_shared_secret, CxOneFlowConfig.__cloner_factory(cloner_factory, clone_auth_dict, clone_config_path))
       
-        CxOneFlowConfig.__ordered_scm_config_tuples.append((repo_matcher, cxone_service, scm_service))
+        scm_tuple = (repo_matcher, cxone_service, scm_service)
+
+        CxOneFlowConfig.__ordered_scm_config_tuples.append(scm_tuple)
+        CxOneFlowConfig.__scm_config_tuples_by_service_moniker[service_moniker] = scm_tuple
 
 
     __cloner_factories = {
