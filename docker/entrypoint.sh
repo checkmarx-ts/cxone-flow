@@ -8,11 +8,9 @@ do
     cat /opt/cxone/nginx/$f | envsubst '$SSL_CERT_PATH $SSL_CERT_KEY_PATH $CXONEFLOW_HOSTNAME' > /etc/nginx/sites-enabled/$f
 done
 
-
-nginx
-
 rabbitmq-server -detached
 rabbitmqctl await_startup
 
+nginx
 
 gunicorn --bind=127.0.0.1:5000 --name=CxOneFlow wsgi:app

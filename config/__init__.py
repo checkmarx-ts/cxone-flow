@@ -13,6 +13,9 @@ from api_utils import APISession
 from cxone_service import CxOneService
 from password_strength import PasswordPolicy
 from cxoneflow_logging import SecretRegistry
+from persist_service import WorkflowStateService
+from typing import Tuple
+
 
 def get_config_path():
     if "CONFIG_YAML_PATH" in os.environ.keys():
@@ -58,7 +61,7 @@ class CxOneFlowConfig:
 
     __cxone_service_tuple_index = 1
     __scm_service_tuple_index = 2
-    __rabbit_service_tuple_index = 3
+    __workflow_service_tuple_index = 3
 
     @staticmethod
     def log():
@@ -69,12 +72,14 @@ class CxOneFlowConfig:
         return list(CxOneFlowConfig.__scm_config_tuples_by_service_moniker.keys())
 
     @staticmethod
-    def retrieve_services_by_moniker(moniker):
+    def retrieve_services_by_moniker(moniker : str) -> Tuple[CxOneService,SCMService,WorkflowStateService]:
         service_tuple = CxOneFlowConfig.__scm_config_tuples_by_service_moniker[moniker]
-        return service_tuple[CxOneFlowConfig.__cxone_service_tuple_index], service_tuple[CxOneFlowConfig.__scm_service_tuple_index]
+        return service_tuple[CxOneFlowConfig.__cxone_service_tuple_index], service_tuple[CxOneFlowConfig.__scm_service_tuple_index], \
+            service_tuple[CxOneFlowConfig.__workflow_service_tuple_index]
+
 
     @staticmethod
-    def retrieve_services_by_route(clone_urls):
+    def retrieve_services_by_route(clone_urls : str) -> Tuple[CxOneService,SCMService,WorkflowStateService]:
 
         if type(clone_urls) is list:
             it_list = clone_urls
@@ -84,7 +89,8 @@ class CxOneFlowConfig:
         for url in it_list:
             for entry in CxOneFlowConfig.__ordered_scm_config_tuples:
                 if entry[0].match(url):
-                    return entry[CxOneFlowConfig.__cxone_service_tuple_index], entry[CxOneFlowConfig.__scm_service_tuple_index]
+                    return entry[CxOneFlowConfig.__cxone_service_tuple_index], entry[CxOneFlowConfig.__scm_service_tuple_index], \
+                    entry[CxOneFlowConfig.__workflow_service_tuple_index]
 
         CxOneFlowConfig.log().error(f"No route matched for {clone_urls}")
         raise RouteNotFoundException(clone_urls)
@@ -152,6 +158,21 @@ class CxOneFlowConfig:
             return default
         else:
             return config_dict[key]
+
+    @staticmethod
+    def __workflow_service_client_factory(config_path, **kwargs):
+        if kwargs is None or len(kwargs.keys()) == 0:
+            return WorkflowStateService("amqp://localhost:5672", None, None, True)
+        else:
+            amqp_url = CxOneFlowConfig.__get_value_for_key_or_fail(config_path, "amqp-url", kwargs)
+            amqp_user = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(kwargs, "amqp-user", None)
+            amqp_password = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(kwargs, "amqp-password", None)
+            ssl_verify = CxOneFlowConfig.__get_value_for_key_or_default("ssl-verify", kwargs, True)
+            if type(ssl_verify) is str:
+                ssl_verify = ssl_verify.lower() == "true"
+
+            return WorkflowStateService(amqp_url, amqp_user, amqp_password, ssl_verify)
+            
 
     @staticmethod
     def __cxone_client_factory(config_path, **kwargs):
@@ -281,6 +302,9 @@ class CxOneFlowConfig:
 
         cxone_client = CxOneFlowConfig.__cxone_client_factory(f"{config_path}/cxone", 
                                                             **(CxOneFlowConfig.__get_value_for_key_or_fail(config_path, 'cxone', config_dict)))
+        
+        workflow_service_client = CxOneFlowConfig.__workflow_service_client_factory(f"{config_path}/rabbit", 
+                                                                **(CxOneFlowConfig.__get_value_for_key_or_default('rabbit', config_dict, {})))
 
         scan_config_dict = CxOneFlowConfig.__get_value_for_key_or_default('scan-config', config_dict, {} )
 
@@ -315,8 +339,9 @@ class CxOneFlowConfig:
             clone_config_path = f"{config_path}/connection/api-auth"
                
         scm_service = SCMService(service_moniker, api_session, scm_shared_secret, CxOneFlowConfig.__cloner_factory(cloner_factory, clone_auth_dict, clone_config_path))
+
       
-        scm_tuple = (repo_matcher, cxone_service, scm_service)
+        scm_tuple = (repo_matcher, cxone_service, scm_service, workflow_service_client)
 
         CxOneFlowConfig.__ordered_scm_config_tuples.append(scm_tuple)
         CxOneFlowConfig.__scm_config_tuples_by_service_moniker[service_moniker] = scm_tuple
