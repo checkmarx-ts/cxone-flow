@@ -142,6 +142,8 @@ configuration keys for each SCM configuration list entry.
         \texttt{connection} & Yes & \makecell[l]{SCM connection parameters. This element\\is described in the section\\"\hyperref[sec:connection-element]{YAML Configuration Element: \texttt{connection}}"}\\
         \midrule
         \texttt{cxone} & Yes & \makecell[l]{The connection configuration for the CheckmarxOne API. This\\element is described in the section\\"\hyperref[sec:cxone-element]{YAML Configuration Element: \texttt{cxone}}"}\\
+        \midrule
+        \texttt{rabbit} & No & \makecell[l]{The connection configuration for an external RabbitMQ\\instance. This element is described in the section\\"\hyperref[sec:rabbit-element]{YAML Configuration Element: \texttt{rabbit}}"}\\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -198,6 +200,40 @@ describes the CheckmarxOne API connection parameters.
         \texttt{api-key} & No & N/A & \makecell[l]{If not defined, the \texttt{oauth} element must be defined.\\The value specifies a file name found under the path\\defined by \texttt{secret-root-path}.}\\
         \midrule
         \texttt{oauth} & No & N/A & \makecell[l]{If not defined, the \texttt{api-key} element must be defined.\\This contains two required elements \texttt{client-id}\\and \texttt{client-secret} where each value corresponds to\\a file name found under the path defined by\\\texttt{secret-root-path}. }\\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\paragraph{YAML Configuration Element: \texttt{rabbit} }\label{sec:rabbit-element}
+
+\noindent\\\\The \texttt{rabbit} element, described in Table \ref{tab:rabbit-section-keys}, 
+describes the RabbitMQ connection parameters.  This optional element is required only
+when \cxoneflow uses an external RabbitMQ element for workflow persistence and
+scaling.
+
+The \cxoneflow container runs an instance of RabbitMQ that is used to orchestrate background
+processing.  The internal instance is not publicly accessible.  Appendix \ref{sec:rabbitmq}
+details how an external RabbitMQ instance can be used to persist \cxoneflow workflows.  
+
+\begin{table}[h]
+    \caption{\texttt{rabbit} YAML Element}  
+    \label{tab:rabbit-section-keys}      
+    \begin{tabularx}{\textwidth}{lccl}
+        \toprule
+        \textbf{Key} & \textbf{Required} & \textbf{Default} & \textbf{Description}\\
+        \midrule
+        \texttt{amqp-url} & Yes & N/A & \makecell[l]{The AMQP/AMQPS URL for the RabbitMQ instance.}\\
+        \midrule
+        \texttt{amqp-user} & No & N/A & \makecell[l]{If the username is not included in the AMQP URL,
+        the\\provided value corresponds to a file name found under\\the path defined by
+        \texttt{secret-root-path}. }\\
+        \midrule
+        \texttt{amqp-password} & No & N/A & \makecell[l]{If the password is not included in the AMQP URL,
+        the\\provided value corresponds to a file name found under\\the path defined by
+        \texttt{secret-root-path}.}\\
+        \midrule
+        \texttt{ssl-verify} & No & True & \makecell[l]{If \texttt{False} and connecting to RabbitMQ
+        with an\\AMQPS URL, certificate validation is not performed.}\\
         \bottomrule
     \end{tabularx}
 \end{table}
