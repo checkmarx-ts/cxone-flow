@@ -5,3 +5,4 @@ password-strength
 jsonpath-ng
 Gunicorn
 requests
+aio-pika
