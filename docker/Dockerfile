@@ -16,7 +16,7 @@ WORKDIR /opt/cxone
 
 COPY *.txt /opt/cxone
 COPY --from=cert /tmp/*.pem /opt/cxone/ssl/default/
-COPY docker/rabbitmq.list /etc/apt/sources.list.d/rabbitmq.list
+COPY docker/rabbitmq/rabbitmq.list /etc/apt/sources.list.d/rabbitmq.list
 
 ENV SSL_CERT_PATH=/opt/cxone/ssl/default/ssl.cert.pem
 ENV SSL_CERT_KEY_PATH=/opt/cxone/ssl/default/key.private.pem
@@ -52,6 +52,9 @@ RUN mkdir -p /opt/cxone && \
     chown root:root /var/log/cxoneflow && \
     chmod 775 /var/log/cxoneflow
 
+
+COPY docker/rabbitmq/*.conf /opt/cxone/rabbitmq/
+ENV RABBITMQ_CONFIG_FILES=/opt/cxone/rabbitmq
 
 COPY *.py /opt/cxone/
 COPY docker/entrypoint.sh /opt/cxone
