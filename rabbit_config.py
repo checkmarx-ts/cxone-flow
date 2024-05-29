@@ -1,9 +1,14 @@
-import asyncio, aio_pika
+import asyncio, aio_pika, logging
+import cxoneflow_logging as cof_logging
+
+cof_logging.bootstrap()
+
+__log = logging.getLogger("RabbitSetup")
 
 
 
 async def setup() -> None:
-    rmq = await aio_pika.connect_robust("amqp://localhost", client_properties = {'name' : 'CXONEFLOW_CONFIG'})
+    rmq = await aio_pika.connect_robust("amqp://localhost")
 
     async with rmq.channel() as channel:
         scan_in_exchange = await channel.declare_exchange("Scan In", aio_pika.ExchangeType.FANOUT, durable=True)
