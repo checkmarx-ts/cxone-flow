@@ -141,7 +141,7 @@ class OrchestratorBase:
         await workflow_service.start_pr_scan_workflow(scanid)
         return scanid
 
-    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService):
+    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
         _, source_hash = await self._get_source_branch_and_hash()
         target_branch, _ = await self._get_target_branch_and_hash()
 

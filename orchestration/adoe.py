@@ -153,7 +153,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
         if len(existing_scans) > 0:
             # This is a scan tag update, not a scan.
-            return await OrchestratorBase._execute_pr_tag_update_workflow(self, cxone_service, scm_service)
+            return await OrchestratorBase._execute_pr_tag_update_workflow(self, cxone_service, scm_service, workflow_service)
         else:
             repo_details = await scm_service.exec("GET", f"{self.__collection}/{self._repo_project_key}/_apis/git/repositories/{self.__repository_id}")
 
