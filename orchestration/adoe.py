@@ -11,8 +11,8 @@ from pathlib import Path
 
 class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
-    __diag_subid = "00000000-0000-0000-0000-000000000000"
-    __subid_query = parse("$.subscriptionId")
+    __diag_id = "f844ec47-a9db-4511-8281-8b63f4eaf94e"
+    __diagid_query = parse("$.resourceContainers.account.id")
     __remoteurl_query = parse("$.resource.repository.remoteUrl")
     __repo_project_key_query = parse("$.resource.repository.project.name")
     __repo_slug_query = parse("$.resource.repository.name")
@@ -46,7 +46,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
         self.__json = json.loads(webhook_payload)
       
-        self.__isdiagnostic = AzureDevOpsEnterpriseOrchestrator.__diag_subid in [x.value for x in list(AzureDevOpsEnterpriseOrchestrator.__subid_query.find(self.__json))]
+        self.__isdiagnostic = AzureDevOpsEnterpriseOrchestrator.__diag_id in [x.value for x in list(AzureDevOpsEnterpriseOrchestrator.__diagid_query.find(self.__json))]
         if self.__isdiagnostic:
             return
 
