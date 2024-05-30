@@ -13,7 +13,7 @@ from api_utils import APISession
 from cxone_service import CxOneService
 from password_strength import PasswordPolicy
 from cxoneflow_logging import SecretRegistry
-from persist_service import WorkflowStateService
+from workflows import WorkflowStateService, PullRequestWorkflow
 from typing import Tuple
 
 
@@ -159,19 +159,38 @@ class CxOneFlowConfig:
         else:
             return config_dict[key]
 
-    @staticmethod
-    def __workflow_service_client_factory(config_path, **kwargs):
-        if kwargs is None or len(kwargs.keys()) == 0:
-            return WorkflowStateService("amqp://localhost:5672", None, None, True)
-        else:
-            amqp_url = CxOneFlowConfig.__get_value_for_key_or_fail(config_path, "amqp-url", kwargs)
-            amqp_user = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(kwargs, "amqp-user", None)
-            amqp_password = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(kwargs, "amqp-password", None)
-            ssl_verify = CxOneFlowConfig.__get_value_for_key_or_default("ssl-verify", kwargs, True)
-            if type(ssl_verify) is str:
-                ssl_verify = ssl_verify.lower() == "true"
 
-            return WorkflowStateService(amqp_url, amqp_user, amqp_password, ssl_verify)
+    __default_amqp_url = "amqp://localhost:5672"
+
+    @staticmethod
+    def __workflow_service_client_factory(config_path, moniker, **kwargs):
+        if kwargs is None or len(kwargs.keys()) == 0:
+            return WorkflowStateService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, PullRequestWorkflow())
+        else:
+
+            pr_workflow_dict = CxOneFlowConfig.__get_value_for_key_or_default("pull-request", kwargs, {})
+            scan_monitor_dict = CxOneFlowConfig.__get_value_for_key_or_default("scan-monitor", kwargs, {})
+
+            pr_workflow = PullRequestWorkflow(
+                CxOneFlowConfig.__get_value_for_key_or_default("enabled", pr_workflow_dict, False), \
+                int(CxOneFlowConfig.__get_value_for_key_or_default("poll-interval-seconds", scan_monitor_dict, 60)), \
+                int(CxOneFlowConfig.__get_value_for_key_or_default("poll-max-interval-seconds", scan_monitor_dict, 600)), \
+                int(CxOneFlowConfig.__get_value_for_key_or_default("poll-backoff-multiplier", scan_monitor_dict, 2)), \
+                int(CxOneFlowConfig.__get_value_for_key_or_default("scan-timeout-hours", scan_monitor_dict, 48)) \
+                )
+
+            amqp_dict = CxOneFlowConfig.__get_value_for_key_or_default("amqp", kwargs, None)
+
+            if not amqp_dict is None:
+                amqp_url = CxOneFlowConfig.__get_value_for_key_or_fail(config_path, "amqp-url", amqp_dict)
+                amqp_user = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(amqp_dict, "amqp-user", None)
+                amqp_password = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(amqp_dict, "amqp-password", None)
+                ssl_verify = CxOneFlowConfig.__get_value_for_key_or_default("ssl-verify", amqp_dict, True)
+                
+                return WorkflowStateService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, pr_workflow)
+            else:
+                return WorkflowStateService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, pr_workflow)
+
             
 
     @staticmethod
@@ -303,8 +322,8 @@ class CxOneFlowConfig:
         cxone_client = CxOneFlowConfig.__cxone_client_factory(f"{config_path}/cxone", 
                                                             **(CxOneFlowConfig.__get_value_for_key_or_fail(config_path, 'cxone', config_dict)))
         
-        workflow_service_client = CxOneFlowConfig.__workflow_service_client_factory(f"{config_path}/rabbit", 
-                                                                **(CxOneFlowConfig.__get_value_for_key_or_default('rabbit', config_dict, {})))
+        workflow_service_client = CxOneFlowConfig.__workflow_service_client_factory(f"{config_path}/feedback", service_moniker, 
+                                                                **(CxOneFlowConfig.__get_value_for_key_or_default('feedback', config_dict, {})))
 
         scan_config_dict = CxOneFlowConfig.__get_value_for_key_or_default('scan-config', config_dict, {} )
 

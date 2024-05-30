@@ -5,6 +5,7 @@ from _version import __version__
 from .exceptions import OrchestrationException
 from cxone_service import CxOneService
 from scm_services import SCMService, Cloner
+from workflows import WorkflowStateService
 
 class OrchestratorBase:
 
@@ -50,10 +51,10 @@ class OrchestratorBase:
         except:
             return None
 
-    async def execute(self, cxone_service: CxOneService, scm_service : SCMService):
+    async def execute(self, cxone_service: CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
         raise NotImplementedError("execute")
     
-    async def __exec_scan(self, cxone_service : CxOneService, scm_service : SCMService, tags):
+    async def __exec_scan(self, cxone_service : CxOneService, scm_service : SCMService, tags) -> str:
         protected_branches = await self._get_protected_branches(scm_service)
 
         target_branch, target_hash = await self._get_target_branch_and_hash()
@@ -96,7 +97,7 @@ class OrchestratorBase:
                         OrchestratorBase.log().debug(scan_submit)
                         OrchestratorBase.log().info(f"Scan id {scan_submit['id']} created for {clone_url}|{source_branch}|{source_hash}")
 
-                        return scan_submit
+                        return scan_submit['id']
                     except Exception as ex:
                         OrchestratorBase.log().error(f"{clone_url}:{source_branch}@{source_hash}: No scan created due to exception: {ex}")
                         OrchestratorBase.log().exception(ex)
@@ -104,7 +105,7 @@ class OrchestratorBase:
             OrchestratorBase.log().info(f"{clone_url}:{source_hash}:{source_branch} is not related to any protected branch: {protected_branches}")
 
 
-    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService):
+    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
         OrchestratorBase.log().debug("_execute_push_scan_workflow")
         
         _, hash = await self._get_source_branch_and_hash()
@@ -120,7 +121,7 @@ class OrchestratorBase:
 
 
 
-    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService):
+    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
 
         _, source_hash = await self._get_source_branch_and_hash()
         target_branch, _ = await self._get_target_branch_and_hash()
@@ -136,10 +137,9 @@ class OrchestratorBase:
             "service" : cxone_service.moniker
         }
 
-        scan = await self.__exec_scan(cxone_service, scm_service, scan_tags)
-
-        # TODO: Additional workflow with the scan id TBD
-        return scan
+        scanid = await self.__exec_scan(cxone_service, scm_service, scan_tags)
+        await workflow_service.start_pr_scan_workflow(scanid)
+        return scanid
 
     async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService):
         _, source_hash = await self._get_source_branch_and_hash()
