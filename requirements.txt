@@ -6,3 +6,4 @@ jsonpath-ng
 Gunicorn
 requests
 aio-pika
+dataclasses-json

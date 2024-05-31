@@ -383,6 +383,10 @@ class CxOneClient:
         url = CxOneClient.__join_query_dict(url, kwargs)
         return await self.__exec_request(requests.get, url)
 
+    async def get_scan(self, scanid):
+        url = urljoin(self.api_endpoint, f"scans/{scanid}")
+        return await self.__exec_request(requests.get, url)
+
     async def update_scan_tags(self, scan_id : str, payload : dict):
         url = urljoin(self.api_endpoint, f"scans/{scan_id}/tags")
         return await self.__exec_request(requests.put, url, json=payload)

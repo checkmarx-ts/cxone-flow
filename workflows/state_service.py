@@ -10,7 +10,10 @@ class WorkflowStateService:
 
     class __base_enum(Enum):
         def __str__(self):
-            return str(self.value)        
+            return str(self.value)   
+
+        def __repr__(self):
+            return str(self.value)   
 
     class ScanWorkflow(__base_enum):
         PR = "pr"
@@ -22,6 +25,7 @@ class WorkflowStateService:
     class ScanStates(__base_enum):
         AWAIT = "await"
         FEEDBACK = "feedback"
+        ANNOTATE = "annotate"
 
     EXCHANGE_SCAN_INPUT = "Scan In"
     EXCHANGE_SCAN_WAIT = "Scan Await"
@@ -32,9 +36,16 @@ class WorkflowStateService:
     QUEUE_SCAN_WAIT = "Awaited Scans"
     QUEUE_FEEDBACK_PR = "PR Feedback"
 
-    ROUTEKEY_POLL = "poll"
     ROUTEKEY_SCAN_WAIT = F"{ScanStates.AWAIT}.*.*"
     ROUTEKEY_FEEDBACK_PR = f"{ScanStates.FEEDBACK}.{FeedbackWorkflow.PR}.*"
+
+    @staticmethod
+    def get_poll_binding_topic(moniker):
+        return f"{WorkflowStateService.ScanStates.AWAIT}.*.{moniker}"
+
+    @staticmethod
+    def get_poll_queue_name(moniker):
+        return f"{WorkflowStateService.QUEUE_SCAN_POLLING}.{moniker}"
 
     
     @staticmethod

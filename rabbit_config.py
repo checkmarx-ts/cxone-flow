@@ -22,17 +22,16 @@ async def setup() -> None:
             scan_in_exchange = await channel.declare_exchange(WorkflowStateService.EXCHANGE_SCAN_INPUT, aio_pika.ExchangeType.FANOUT, durable=True)
             scan_await_exchange = await channel.declare_exchange(WorkflowStateService.EXCHANGE_SCAN_WAIT, aio_pika.ExchangeType.TOPIC, durable=True, internal=True)
             scan_feedback_exchange = await channel.declare_exchange(WorkflowStateService.EXCHANGE_SCAN_FEEDBACK, aio_pika.ExchangeType.TOPIC, durable=True, internal=True)
-            polling_delivery_exchange = await channel.declare_exchange(WorkflowStateService.EXCHANGE_SCAN_POLLING, aio_pika.ExchangeType.DIRECT, durable=True, internal=True)
+            polling_delivery_exchange = await channel.declare_exchange(WorkflowStateService.EXCHANGE_SCAN_POLLING, aio_pika.ExchangeType.TOPIC, durable=True, internal=True)
 
-            polling_scans_queue = await channel.declare_queue(WorkflowStateService.QUEUE_SCAN_POLLING, durable=True)
+            polling_scans_queue = await channel.declare_queue(WorkflowStateService.get_poll_queue_name(moniker), durable=True)
             awaited_scans_queue = await channel.declare_queue(WorkflowStateService.QUEUE_SCAN_WAIT, durable=True, \
                                     arguments = {
-                                        'x-dead-letter-exchange' : WorkflowStateService.EXCHANGE_SCAN_POLLING,
-                                        'x-dead-letter-routing-key' : WorkflowStateService.ROUTEKEY_POLL})
+                                        'x-dead-letter-exchange' : WorkflowStateService.EXCHANGE_SCAN_POLLING})
 
             pr_feedback_queue = await channel.declare_queue(WorkflowStateService.QUEUE_FEEDBACK_PR, durable=True)
             
-            await polling_scans_queue.bind(polling_delivery_exchange, WorkflowStateService.ROUTEKEY_POLL)
+            await polling_scans_queue.bind(polling_delivery_exchange, WorkflowStateService.get_poll_binding_topic(moniker))
             await awaited_scans_queue.bind(scan_await_exchange, WorkflowStateService.ROUTEKEY_SCAN_WAIT)
             await pr_feedback_queue.bind(scan_feedback_exchange, WorkflowStateService.ROUTEKEY_FEEDBACK_PR)
             await scan_await_exchange.bind(scan_in_exchange)

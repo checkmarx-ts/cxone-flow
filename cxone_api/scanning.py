@@ -1,3 +1,4 @@
+from jsonpath_ng import parse
 from .projects import ProjectRepoConfig
 from . import CxOneClient
 from .util import json_on_ok
@@ -80,3 +81,43 @@ class ScanInvoker:
             return None
 
         return upload_url
+
+class ScanInspector:
+
+    __status_query = parse("$.status")
+
+    __executing_states = ["Queued", "Running"]
+    __failed_states = ["Failed", "Canceled"]
+    __maybe_states = ["Partial"]
+    __success_states = ["Completed"]
+
+    def __init__(self, json : dict):
+        self.__json = json
+
+    @property
+    def json(self) -> dict:
+        return self.__json
+
+    @property
+    def executing(self):
+        executing_states = ScanInspector.__maybe_states + ScanInspector.__executing_states
+        return len([s for s in ScanInspector.__status_query.find(self.__json) if s in executing_states]) > 0
+
+    @property
+    def failed(self):
+        failed_states = ScanInspector.__failed_states
+        return len([s for s in ScanInspector.__status_query.find(self.__json) if s in failed_states]) > 0
+
+    @property
+    def successful(self):
+        success_states = ScanInspector.__success_states
+        return len([s for s in ScanInspector.__status_query.find(self.__json) if s in success_states]) > 0
+
+
+
+class ScanLoader:
+
+    @staticmethod
+    async def load(cxone_client : CxOneClient, scanid : str) -> ScanInspector:
+        scan = json_on_ok(await cxone_client.get_scan(scanid))
+        return ScanInspector(scan)
