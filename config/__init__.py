@@ -15,6 +15,20 @@ from password_strength import PasswordPolicy
 from cxoneflow_logging import SecretRegistry
 from workflows import WorkflowStateService, PullRequestWorkflow
 from typing import Tuple
+from multiprocessing import cpu_count
+
+
+def get_workers_count():
+    if "CXONEFLOW_WORKERS" not in os.environ.keys():
+        return int(cpu_count() / 2)
+    else:
+        return min(int(cpu_count() - 1), int(os.environ['CXONEFLOW_WORKERS']))
+
+def get_log_level():
+    if "LOG_LEVEL" not in os.environ.keys():
+        loglevel="INFO"
+    else:
+        loglevel=os.environ['LOG_LEVEL']
 
 
 def get_config_path():

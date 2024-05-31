@@ -1,11 +1,8 @@
-from multiprocessing import cpu_count
 from task_management import TaskManager
 import os
+from config import get_workers_count, get_log_level
 
-if "CXONEFLOW_WORKERS" not in os.environ.keys():
-    workers = int(cpu_count() / 2)
-else:
-    workers = min(int(cpu_count() - 1), int(os.environ['CXONEFLOW_WORKERS']))
+workers = get_workers_count()
 
 timeout = 90
 graceful_timeout=600
@@ -14,10 +11,7 @@ max_requests = 500
 
 accesslog = "/var/log/gunicorn/access.log"
 errorlog = "/var/log/gunicorn/error.log"
-if "LOG_LEVEL" not in os.environ.keys():
-    loglevel="INFO"
-else:
-    loglevel=os.environ['LOG_LEVEL']
+logLevel = get_log_level()
 
 
 def worker_exit(server, worker):
