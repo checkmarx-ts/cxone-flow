@@ -93,7 +93,7 @@ class CxOneFlowConfig:
 
 
     @staticmethod
-    def retrieve_services_by_route(clone_urls : str, , scm_config_key : str) -> Tuple[CxOneService,SCMService,WorkflowStateService]:
+    def retrieve_services_by_route(clone_urls : str, scm_config_key : str) -> Tuple[CxOneService,SCMService,WorkflowStateService]:
 
         if type(clone_urls) is list:
             it_list = clone_urls
@@ -136,8 +136,8 @@ class CxOneFlowConfig:
                         repo_matcher, cxone_service, scm_service, workflow_service_client = CxOneFlowConfig.__setup_scm(CxOneFlowConfig.__cloner_factories[scm], 
                                                                                                CxOneFlowConfig.__auth_factories[scm], repo_config_dict, f"/{scm}[{index}]")
                         
-						scm_tuple = (repo_matcher, cxone_service, scm_service, workflow_service_client)
-        				CxOneFlowConfig.__scm_config_tuples_by_service_moniker[service_moniker] = scm_tuple
+                        scm_tuple = (repo_matcher, cxone_service, scm_service, workflow_service_client)
+                        CxOneFlowConfig.__scm_config_tuples_by_service_moniker[scm_service.moniker] = scm_tuple
 						
                         if not scm in CxOneFlowConfig.__ordered_scm_config_tuples:
                             CxOneFlowConfig.__ordered_scm_config_tuples[scm] = [scm_tuple]
