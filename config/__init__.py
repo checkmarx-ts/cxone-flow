@@ -93,7 +93,7 @@ class CxOneFlowConfig:
 
 
     @staticmethod
-    def retrieve_services_by_route(clone_urls : str) -> Tuple[CxOneService,SCMService,WorkflowStateService]:
+    def retrieve_services_by_route(clone_urls : str, , scm_config_key : str) -> Tuple[CxOneService,SCMService,WorkflowStateService]:
 
         if type(clone_urls) is list:
             it_list = clone_urls
@@ -101,7 +101,7 @@ class CxOneFlowConfig:
             it_list = [clone_urls]
 
         for url in it_list:
-            for entry in CxOneFlowConfig.__ordered_scm_config_tuples:
+            for entry in CxOneFlowConfig.__ordered_scm_config_tuples[scm_config_key]:
                 if entry[0].match(url):
                     return entry[CxOneFlowConfig.__cxone_service_tuple_index], entry[CxOneFlowConfig.__scm_service_tuple_index], \
                     entry[CxOneFlowConfig.__workflow_service_tuple_index]
@@ -131,7 +131,19 @@ class CxOneFlowConfig:
                 if scm in CxOneFlowConfig.__raw.keys():
                     index = 0
                     for repo_config_dict in CxOneFlowConfig.__raw[scm]:
-                        CxOneFlowConfig.__setup_scm(CxOneFlowConfig.__cloner_factories[scm], CxOneFlowConfig.__auth_factories[scm], repo_config_dict, f"/{scm}[{index}]")
+					
+
+                        repo_matcher, cxone_service, scm_service, workflow_service_client = CxOneFlowConfig.__setup_scm(CxOneFlowConfig.__cloner_factories[scm], 
+                                                                                               CxOneFlowConfig.__auth_factories[scm], repo_config_dict, f"/{scm}[{index}]")
+                        
+						scm_tuple = (repo_matcher, cxone_service, scm_service, workflow_service_client)
+        				CxOneFlowConfig.__scm_config_tuples_by_service_moniker[service_moniker] = scm_tuple
+						
+                        if not scm in CxOneFlowConfig.__ordered_scm_config_tuples:
+                            CxOneFlowConfig.__ordered_scm_config_tuples[scm] = [scm_tuple]
+                        else:
+                            CxOneFlowConfig.__ordered_scm_config_tuples[scm].append(scm_tuple)
+
                         index += 1
         except Exception as ex:
             CxOneFlowConfig.log().exception(ex)
@@ -269,7 +281,7 @@ class CxOneFlowConfig:
         return None
 
 
-    __ordered_scm_config_tuples = []
+    __ordered_scm_config_tuples = {}
     __scm_config_tuples_by_service_moniker = {}
 
     __minimum_api_auth_keys = ['token', 'password']
@@ -373,11 +385,7 @@ class CxOneFlowConfig:
                
         scm_service = SCMService(service_moniker, api_session, scm_shared_secret, CxOneFlowConfig.__cloner_factory(cloner_factory, clone_auth_dict, clone_config_path))
 
-      
-        scm_tuple = (repo_matcher, cxone_service, scm_service, workflow_service_client)
-
-        CxOneFlowConfig.__ordered_scm_config_tuples.append(scm_tuple)
-        CxOneFlowConfig.__scm_config_tuples_by_service_moniker[service_moniker] = scm_tuple
+        return repo_matcher, cxone_service, scm_service, workflow_service_client
 
 
     __cloner_factories = {

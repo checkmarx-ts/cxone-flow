@@ -19,6 +19,10 @@ class OrchestratorBase:
         self.__headers = headers
 
     @property
+    def config_key(self):
+        raise NotImplementedError("config_key")
+
+    @property
     def _headers(self) -> dict:
         return self.__headers
 
