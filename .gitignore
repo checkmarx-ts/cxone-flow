@@ -4,6 +4,9 @@
 *.log
 !.github/**/*.yml
 
+# drawio
+**/*.bkp
+
 # secrets
 **/secrets
 run
