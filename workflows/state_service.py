@@ -17,11 +17,13 @@ class WorkflowStateService:
 
     EXCHANGE_SCAN_INPUT = "Scan In"
     EXCHANGE_SCAN_WAIT = "Scan Await"
+    EXCHANGE_SCAN_ANNOTATE = "Scan Annotate"
     EXCHANGE_SCAN_FEEDBACK = "Scan Feedback"
     EXCHANGE_SCAN_POLLING = "Scan Polling Delivery"
 
     QUEUE_SCAN_POLLING = "Polling Scans"
     QUEUE_SCAN_WAIT = "Awaited Scans"
+    QUEUE_SCAN_PR_ANNOTATE = "Annotating PR Scans"
     QUEUE_FEEDBACK_PR = "PR Feedback"
 
     ROUTEKEY_SCAN_WAIT = F"{ScanStates.AWAIT}.*.*"
@@ -35,6 +37,21 @@ class WorkflowStateService:
     def get_poll_queue_name(moniker):
         return f"{WorkflowStateService.QUEUE_SCAN_POLLING}.{moniker}"
 
+    @staticmethod
+    def get_pr_feedback_binding_topic(moniker):
+        return f"{ScanStates.FEEDBACK}.{ScanWorkflow.PR}.{moniker}"
+
+    @staticmethod
+    def get_pr_feedback_queue_name(moniker):
+        return f"{WorkflowStateService.QUEUE_FEEDBACK_PR}.{moniker}"
+
+    @staticmethod
+    def get_pr_annotate_binding_topic(moniker):
+        return f"{ScanStates.ANNOTATE}.{ScanWorkflow.PR}.{moniker}"
+
+    @staticmethod
+    def get_pr_annotate_queue_name(moniker):
+        return f"{WorkflowStateService.QUEUE_SCAN_PR_ANNOTATE}.{moniker}"
     
     @staticmethod
     def log():
@@ -50,8 +67,11 @@ class WorkflowStateService:
         self.__amqp_password = amqp_password
         self.__ssl_verify = ssl_verify
         self.__client = None
-        self.__pr_workflow = pr_workflow
         self.__service_moniker = moniker
+
+        self.__workflow_map = {
+            ScanWorkflow.PR : pr_workflow
+        }
 
         netloc = urllib.parse.urlparse(self.__amqp_url).netloc
 
@@ -79,18 +99,17 @@ class WorkflowStateService:
 
                     if not inspector.executing:
                         if inspector.successful:
-                            pass
-                            # This should be in the workflow class...
-                            # Scan success, publish new message with same workflow state topic set for feedback
-                            # ack this message
+                            WorkflowStateService.log().info(f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow.")
+                            await self.__workflow_map[swm.workflow].feedback_start(await self.mq_client(), swm.moniker, swm.scanid)
                         else:
-                            # This should be in the workflow class...
-                            # Log scan failure
-                            # Publish new message for annotation (new state)
-                            # ack this message
+                            WorkflowStateService.log().info(f"Scan failure for scan id {swm.scanid}, enqueuing annotation workflow.")
+                            # TODO: ScanInspector should provide failure state string for the annotation
+                            await self.__workflow_map[swm.workflow].annotation_start(await self.mq_client(), swm.moniker, swm.scanid, "TODO")
                             pass
 
                         requeue_on_finally = False
+                        await msg.ack()
+
                 except ResponseException as ex:
                     WorkflowStateService.log().exception(ex)
                     WorkflowStateService.log().error(f"Polling for scan id {swm.scanid} stopped due to exception.")
@@ -137,5 +156,8 @@ class WorkflowStateService:
     
 
     async def start_pr_scan_workflow(self, scanid : str) -> None:
-        await self.__pr_workflow.scan_start(await self.mq_client(), self.__service_moniker, scanid)
+        await self.__workflow_map[ScanWorkflow.PR].workflow_start(await self.mq_client(), self.__service_moniker, scanid)
+
+    async def start_pr_feedback(self, scanid : str):
+        await self.__workflow_map[ScanWorkflow.PR].feedback_start(await self.mq_client(), self.__service_moniker, scanid)
 

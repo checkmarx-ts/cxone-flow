@@ -1,11 +1,13 @@
 from ..scan_message import ScanMessage
 from dataclasses import dataclass
-from ... import ScanStates, ScanWorkflow
+from ..util import is_expired
+
 
 @dataclass(frozen=True)
 class ScanAwaitMessage(ScanMessage):
-    state: ScanStates
-    workflow: ScanWorkflow
+    drop_by: str
     schema: str = "v1"
 
+    def is_expired(self):
+        return is_expired(self.drop_by)
 
