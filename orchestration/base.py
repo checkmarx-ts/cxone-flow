@@ -5,7 +5,7 @@ from _version import __version__
 from .exceptions import OrchestrationException
 from cxone_service import CxOneService
 from scm_services import SCMService, Cloner
-from workflows import WorkflowStateService
+from workflows.state_service import WorkflowStateService
 
 class OrchestratorBase:
 

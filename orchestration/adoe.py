@@ -5,7 +5,7 @@ from cxone_api.util import CloneUrlParser
 import logging
 from cxone_service import CxOneService
 from scm_services import SCMService, Cloner
-from workflows import WorkflowStateService
+from workflows.state_service import WorkflowStateService
 from pathlib import Path
 
 

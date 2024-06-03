@@ -1,7 +1,7 @@
 import asyncio, aio_pika, logging
 import cxoneflow_logging as cof_logging
 from config import CxOneFlowConfig, ConfigurationException, get_config_path
-from workflows import WorkflowStateService
+from workflows.state_service import WorkflowStateService
 
 
 cof_logging.bootstrap()

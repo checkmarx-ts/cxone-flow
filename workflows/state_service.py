@@ -1,31 +1,19 @@
-import asyncio, aio_pika, logging
+import asyncio, aio_pika, logging, pamqp.commands
 from cxoneflow_logging import SecretRegistry
 from ssl import create_default_context, CERT_NONE
-from enum import Enum
 import urllib.parse
-from .workflow_base import WorkflowBase
+from datetime import timedelta
+from cxone_service import CxOneService
+from cxone_service import CxOneService
+from cxone_api.scanning import ScanLoader, ScanInspector
+from .messaging import ScanAwaitMessage
+from .workflow_base import AbstractWorkflow
+from . import ScanStates, ScanWorkflow, FeedbackWorkflow
+from cxone_api.exceptions import ResponseException
 
 
 class WorkflowStateService:
 
-    class __base_enum(Enum):
-        def __str__(self):
-            return str(self.value)   
-
-        def __repr__(self):
-            return str(self.value)   
-
-    class ScanWorkflow(__base_enum):
-        PR = "pr"
-        PUSH = "push"
-
-    class FeedbackWorkflow(__base_enum):
-        PR = "pr"
-
-    class ScanStates(__base_enum):
-        AWAIT = "await"
-        FEEDBACK = "feedback"
-        ANNOTATE = "annotate"
 
     EXCHANGE_SCAN_INPUT = "Scan In"
     EXCHANGE_SCAN_WAIT = "Scan Await"
@@ -41,7 +29,7 @@ class WorkflowStateService:
 
     @staticmethod
     def get_poll_binding_topic(moniker):
-        return f"{WorkflowStateService.ScanStates.AWAIT}.*.{moniker}"
+        return f"{ScanStates.AWAIT}.*.{moniker}"
 
     @staticmethod
     def get_poll_queue_name(moniker):
@@ -52,8 +40,11 @@ class WorkflowStateService:
     def log():
         return logging.getLogger("WorkflowStateService")
 
-    def __init__(self, moniker, amqp_url , amqp_user, amqp_password, ssl_verify, pr_workflow : WorkflowBase):
+    def __init__(self, moniker, amqp_url , amqp_user, amqp_password, ssl_verify, pr_workflow : AbstractWorkflow, max_interval_seconds : timedelta = 600, 
+                 backoff_scalar : int = 2):
         self.__lock = asyncio.Lock()
+        self.__max_interval = timedelta(seconds=max_interval_seconds)
+        self.__backoff = backoff_scalar
         self.__amqp_url = amqp_url
         self.__amqp_user = amqp_user
         self.__amqp_password = amqp_password
@@ -71,6 +62,59 @@ class WorkflowStateService:
     @property
     def use_ssl(self):
         return urllib.parse.urlparse(self.__amqp_url).scheme == "amqps"
+    
+    async def execute_poll_scan_workflow(self, msg : aio_pika.abc.AbstractIncomingMessage, cxone_service : CxOneService):
+
+        requeue_on_finally = True
+
+        swm = ScanAwaitMessage.from_binary(msg.body)
+
+        if swm.is_expired():
+            WorkflowStateService.log().warn(f"Scan id {swm.scanid} polling timeout expired at {swm.drop_by}. Polling for this scan has been stopped.")
+            await msg.ack()
+        else:
+            async with await (await self.mq_client()).channel() as write_channel:
+                try:
+                    inspector = await cxone_service.load_scan_inspector(swm.scanid)
+
+                    if not inspector.executing:
+                        if inspector.successful:
+                            pass
+                            # This should be in the workflow class...
+                            # Scan success, publish new message with same workflow state topic set for feedback
+                            # ack this message
+                        else:
+                            # This should be in the workflow class...
+                            # Log scan failure
+                            # Publish new message for annotation (new state)
+                            # ack this message
+                            pass
+
+                        requeue_on_finally = False
+                except ResponseException as ex:
+                    WorkflowStateService.log().exception(ex)
+                    WorkflowStateService.log().error(f"Polling for scan id {swm.scanid} stopped due to exception.")
+                    requeue_on_finally = False
+                    await msg.ack()
+                finally:
+                    if requeue_on_finally:
+                        exchange = await write_channel.get_exchange(WorkflowStateService.EXCHANGE_SCAN_INPUT)
+
+                        if exchange:
+                            orig_exp = int(msg.headers['x-death'][0]['original-expiration'])
+                            backoff=min(timedelta(milliseconds=orig_exp * self.__backoff), self.__max_interval)
+                            new_msg = aio_pika.Message(swm.to_binary(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                                                        expiration=backoff)
+
+                            result = await exchange.publish(new_msg, routing_key=msg.routing_key)
+
+                            if type(result) == pamqp.commands.Basic.Ack:
+                                WorkflowStateService.log().debug(f"Scan id {swm.scanid} poll message re-enqueued with delay {backoff.total_seconds()}s.")
+                                await msg.ack()
+                            else:
+                                WorkflowStateService.log().debug(f"Scan id {swm.scanid} failed to re-enqueue new poll message.")
+                                await msg.nack()
+
 
 
     async def mq_client(self) -> aio_pika.abc.AbstractRobustConnection:

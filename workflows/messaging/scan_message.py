@@ -1,4 +1,4 @@
-from . import BaseMessage
+from .base_message import BaseMessage
 from dataclasses import dataclass
 
 

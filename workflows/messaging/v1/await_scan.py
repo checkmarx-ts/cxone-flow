@@ -1,10 +1,11 @@
-from .. import ScanMessage
+from ..scan_message import ScanMessage
 from dataclasses import dataclass
-from ...state_service import WorkflowStateService
+from ... import ScanStates, ScanWorkflow
 
 @dataclass(frozen=True)
 class ScanAwaitMessage(ScanMessage):
-    state: WorkflowStateService.ScanStates
-    workflow: WorkflowStateService.ScanWorkflow
+    state: ScanStates
+    workflow: ScanWorkflow
     schema: str = "v1"
+
 

@@ -13,7 +13,8 @@ from api_utils import APISession
 from cxone_service import CxOneService
 from password_strength import PasswordPolicy
 from cxoneflow_logging import SecretRegistry
-from workflows import WorkflowStateService, PullRequestWorkflow
+from workflows.state_service import WorkflowStateService
+from workflows.pull_request import PullRequestWorkflow
 from typing import Tuple
 from multiprocessing import cpu_count
 
@@ -200,8 +201,6 @@ class CxOneFlowConfig:
             pr_workflow = PullRequestWorkflow(
                 CxOneFlowConfig.__get_value_for_key_or_default("enabled", pr_workflow_dict, False), \
                 int(CxOneFlowConfig.__get_value_for_key_or_default("poll-interval-seconds", scan_monitor_dict, 60)), \
-                int(CxOneFlowConfig.__get_value_for_key_or_default("poll-max-interval-seconds", scan_monitor_dict, 600)), \
-                int(CxOneFlowConfig.__get_value_for_key_or_default("poll-backoff-multiplier", scan_monitor_dict, 2)), \
                 int(CxOneFlowConfig.__get_value_for_key_or_default("scan-timeout-hours", scan_monitor_dict, 48)) \
                 )
 
@@ -213,7 +212,9 @@ class CxOneFlowConfig:
                 amqp_password = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(amqp_dict, "amqp-password", None)
                 ssl_verify = CxOneFlowConfig.__get_value_for_key_or_default("ssl-verify", amqp_dict, True)
                 
-                return WorkflowStateService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, pr_workflow)
+                return WorkflowStateService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, pr_workflow, \
+                                            int(CxOneFlowConfig.__get_value_for_key_or_default("poll-max-interval-seconds", scan_monitor_dict, 600)),\
+                                            int(CxOneFlowConfig.__get_value_for_key_or_default("poll-backoff-multiplier", scan_monitor_dict, 2)))
             else:
                 return WorkflowStateService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, pr_workflow)
 

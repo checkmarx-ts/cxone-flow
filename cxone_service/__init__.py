@@ -1,6 +1,6 @@
 from _agent import __agent__
 from _version import __version__
-from cxone_api.scanning import ScanInvoker
+from cxone_api.scanning import ScanInvoker, ScanInspector, ScanLoader
 from cxone_api.projects import ProjectRepoConfig
 from cxone_api import paged_api
 import logging
@@ -123,3 +123,6 @@ class CxOneService:
                 found_scans.append(scan['id'])
 
         return found_scans
+    
+    async def load_scan_inspector(self, scanid : str) -> ScanInspector:
+        return await ScanLoader.load(self.__client, scanid)

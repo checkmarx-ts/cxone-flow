@@ -6,7 +6,7 @@ from .exceptions import OrchestrationException
 import logging
 from cxone_service import CxOneService
 from scm_services import SCMService, Cloner
-from workflows import WorkflowStateService
+from workflows.state_service import WorkflowStateService
 
 
 class BitBucketDataCenterOrchestrator(OrchestratorBase):
