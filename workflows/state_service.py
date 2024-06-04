@@ -6,7 +6,8 @@ from datetime import timedelta
 from cxone_service import CxOneService
 from cxone_service import CxOneService
 from cxone_api.scanning import ScanLoader, ScanInspector
-from .messaging import ScanAwaitMessage, PRDetails
+from scm_services import SCMService
+from .messaging import ScanAwaitMessage, ScanAnnotationMessage, PRDetails
 from .workflow_base import AbstractWorkflow
 from . import ScanStates, ScanWorkflow, FeedbackWorkflow
 from cxone_api.exceptions import ResponseException
@@ -135,7 +136,18 @@ class WorkflowStateService:
                                                     password=self.__amqp_password if self.__amqp_password is not None else "guest", \
                                                     ssl_context=ctx)
         return self.__client
-    
+
+
+    async def execute_pr_annotate_workflow(self, msg : aio_pika.abc.AbstractIncomingMessage, cxone_service : CxOneService, scm_service : SCMService):
+        am = ScanAnnotationMessage.from_binary(msg.body)
+
+        inspector = await cxone_service.load_scan_inspector(am.scanid)
+
+        pr_details = PRDetails.from_dict(am.workflow_details)
+
+        await scm_service.exec_pr_annotate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id, am.annotation)
+
+        pass
 
     async def start_pr_scan_workflow(self, scanid : str, details : PRDetails) -> None:
         await self.__workflow_map[ScanWorkflow.PR].workflow_start(await self.mq_client(), self.__service_moniker, scanid, **(details.as_dict()))

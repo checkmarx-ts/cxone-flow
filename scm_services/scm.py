@@ -69,6 +69,12 @@ class SCMService:
                                                 data=body, \
                                                 auth=self.__session.auth, \
                                                 headers = extra_headers))
+    
+    async def exec_pr_feedback(self):
+        raise NotImplementedError("exec_pr_feedback")
+
+    async def exec_pr_annotate(self, organization, project, repo_slug, pr_number, annotation):
+        raise NotImplementedError("exec_pr_annotate")
    
    
 

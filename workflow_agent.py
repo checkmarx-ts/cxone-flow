@@ -2,7 +2,8 @@ import logging, asyncio, aio_pika, os
 import cxoneflow_logging as cof_logging
 from config import CxOneFlowConfig, ConfigurationException, get_config_path
 from workflows.state_service import WorkflowStateService
-from workflows.messaging import ScanAwaitMessage
+from workflows.messaging import ScanAwaitMessage, ScanAnnotationMessage
+from typing import Any, Callable, Awaitable
 
 cof_logging.bootstrap()
 
@@ -14,24 +15,33 @@ async def process_poll(msg : aio_pika.abc.AbstractIncomingMessage) -> None:
     cxone, _, wf = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
     await wf.execute_poll_scan_workflow(msg, cxone)
 
-async def poll_agent(moniker : str):
+
+async def process_annotate(msg : aio_pika.abc.AbstractIncomingMessage) -> None:
+    __log.debug(f"Reveived annotation message on channel {msg.channel.number}: {msg.info()}")
+    sm = ScanAnnotationMessage.from_binary(msg.body)
+    cxone, scm, wf = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
+    await wf.execute_pr_annotate_workflow(msg, cxone, scm)
+
+async def agent(coro : Callable[[aio_pika.abc.AbstractIncomingMessage], Awaitable[Any]], moniker : str, queue : str):
     _, _, wfs = CxOneFlowConfig.retrieve_services_by_moniker(moniker)
 
     async with (await wfs.mq_client()).channel() as channel:
         await channel.set_qos(prefetch_count=2)
-        q = await channel.get_queue(WorkflowStateService.QUEUE_SCAN_POLLING)
+        q = await channel.get_queue(queue)
 
-        await q.consume(process_poll, arguments = {
-            "moniker" : moniker}, consumer_tag = f"{moniker}.{os.getpid()}")
+        await q.consume(coro, arguments = {
+            "moniker" : moniker}, consumer_tag = f"{coro.__name__}.{moniker}.{os.getpid()}")
 
         while True:
             await asyncio.Future()
+
 
 async def spawn_agents():
 
     async with asyncio.TaskGroup() as g:
         for moniker in CxOneFlowConfig.get_service_monikers():
-            g.create_task(poll_agent(moniker))
+            g.create_task(agent(process_poll, moniker, WorkflowStateService.QUEUE_SCAN_POLLING))
+            g.create_task(agent(process_annotate, moniker, WorkflowStateService.QUEUE_SCAN_PR_ANNOTATE))
    
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ from scm_services import \
     adoe_cloner_factory, \
     adoe_api_auth_factory, \
     bbdc_api_auth_factory, \
-    SCMService
+    SCMService, ADOEService, BBDCService
 from api_utils import APISession
 from cxone_service import CxOneService
 from password_strength import PasswordPolicy
@@ -135,7 +135,9 @@ class CxOneFlowConfig:
 					
 
                         repo_matcher, cxone_service, scm_service, workflow_service_client = CxOneFlowConfig.__setup_scm(CxOneFlowConfig.__cloner_factories[scm], 
-                                                                                               CxOneFlowConfig.__auth_factories[scm], repo_config_dict, f"/{scm}[{index}]")
+                                                                                               CxOneFlowConfig.__auth_factories[scm], 
+                                                                                               CxOneFlowConfig.__scm_factories[scm],
+                                                                                               repo_config_dict, f"/{scm}[{index}]")
                         
                         scm_tuple = (repo_matcher, cxone_service, scm_service, workflow_service_client)
                         CxOneFlowConfig.__scm_config_tuples_by_service_moniker[scm_service.moniker] = scm_tuple
@@ -341,7 +343,7 @@ class CxOneFlowConfig:
         return retval
 
     @staticmethod
-    def __setup_scm(cloner_factory, api_auth_factory, config_dict, config_path):
+    def __setup_scm(cloner_factory, api_auth_factory, scm_class, config_dict, config_path):
         repo_matcher = re.compile(CxOneFlowConfig.__get_value_for_key_or_fail(config_path, 'repo-match', config_dict), re.IGNORECASE)
 
         service_moniker = CxOneFlowConfig.__get_value_for_key_or_fail(config_path, 'service-name', config_dict)
@@ -384,7 +386,7 @@ class CxOneFlowConfig:
             clone_auth_dict = api_auth_dict
             clone_config_path = f"{config_path}/connection/api-auth"
                
-        scm_service = SCMService(service_moniker, api_session, scm_shared_secret, CxOneFlowConfig.__cloner_factory(cloner_factory, clone_auth_dict, clone_config_path))
+        scm_service = scm_class(service_moniker, api_session, scm_shared_secret, CxOneFlowConfig.__cloner_factory(cloner_factory, clone_auth_dict, clone_config_path))
 
         return repo_matcher, cxone_service, scm_service, workflow_service_client
 
@@ -397,6 +399,9 @@ class CxOneFlowConfig:
         'bbdc' : bbdc_api_auth_factory,
         'adoe' : adoe_api_auth_factory }
         
+    __scm_factories = {
+        'bbdc' : BBDCService,
+        'adoe' : ADOEService }
 
         
 

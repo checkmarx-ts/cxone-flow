@@ -124,27 +124,27 @@ class ScanInspector:
 
     @property
     def executing(self):
-        if self.__root_status in ScanInspector.__executing_states:
+        if self.__root_status() in ScanInspector.__executing_states:
             return True
-        elif self.__root_status in ScanInspector.__maybe_states:
+        elif self.__root_status() in ScanInspector.__maybe_states:
             return len([s for s in self.__current_engine_states() if s in ScanInspector.__executing_states + ScanInspector.__maybe_states]) > 0
         
         return False
 
     @property
     def failed(self):
-        if self.__root_status in ScanInspector.__failed_states:
+        if self.__root_status() in ScanInspector.__failed_states:
             return True
 
         return False
 
     @property
     def successful(self):
-        if self.__root_status in ScanInspector.__success_states:
+        if self.__root_status() in ScanInspector.__success_states:
             return True
         elif self.executing:
             return False
-        elif self.__root_status in ScanInspector.__maybe_states:
+        elif self.__root_status() in ScanInspector.__maybe_states:
             maybe = [s for s in self.__current_engine_states() if s in ScanInspector.__maybe_states]
             success = [s for s in self.__current_engine_states() if s in ScanInspector.__success_states]
             return len(maybe) == 0 and len(success) > 0

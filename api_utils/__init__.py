@@ -3,11 +3,11 @@ from requests.auth import AuthBase,HTTPBasicAuth
 from .signatures import signature
 
 
-def auth_basic(username, password):
+def auth_basic(username, password) -> AuthBase:
     return HTTPBasicAuth(username, password)
 
 
-def auth_bearer(token):
+def auth_bearer(token) -> AuthBase:
     class HTTPBearerAuth(AuthBase):
         def __init__(self, token):
             AuthBase.__init__(self)
@@ -19,7 +19,7 @@ def auth_bearer(token):
     
     return HTTPBearerAuth(token)
 
-def verify_signature(signature_header, secret, body):
+def verify_signature(signature_header, secret, body) -> bool:
     (algorithm, hash) = signature_header.split("=")
 
     import hashlib
