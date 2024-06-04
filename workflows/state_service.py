@@ -85,8 +85,8 @@ class WorkflowStateService:
                                 await self.__workflow_map[swm.workflow].feedback_start(await self.mq_client(), swm.moniker, swm.scanid, **(swm.workflow_details))
                             else:
                                 WorkflowStateService.log().info(f"Scan failure for scan id {swm.scanid}, enqueuing annotation workflow.")
-                                # TODO: ScanInspector should provide failure state string for the annotation
-                                await self.__workflow_map[swm.workflow].annotation_start(await self.mq_client(), swm.moniker, swm.scanid, "TODO", **(swm.workflow_details))
+                                await self.__workflow_map[swm.workflow].annotation_start(await self.mq_client(), swm.moniker, swm.scanid, 
+                                                                                         inspector.state_msg, **(swm.workflow_details))
                     except BaseException as bex:
                         WorkflowStateService.log().exception(bex)
                     finally:
@@ -139,7 +139,10 @@ class WorkflowStateService:
 
     async def start_pr_scan_workflow(self, scanid : str, details : PRDetails) -> None:
         await self.__workflow_map[ScanWorkflow.PR].workflow_start(await self.mq_client(), self.__service_moniker, scanid, **(details.as_dict()))
+        await self.start_pr_annotation(scanid, f"Scan started with id {scanid}", details)
 
     async def start_pr_feedback(self, scanid : str, details : PRDetails):
         await self.__workflow_map[ScanWorkflow.PR].feedback_start(await self.mq_client(), self.__service_moniker, scanid, **(details.as_dict()))
 
+    async def start_pr_annotation(self, scanid : str, annotation : str, details : PRDetails):
+        await self.__workflow_map[ScanWorkflow.PR].annotation_start(await self.mq_client(), self.__service_moniker, scanid, annotation, **(details.as_dict()))
