@@ -23,35 +23,36 @@ class WorkflowStateService:
 
     QUEUE_SCAN_POLLING = "Polling Scans"
     QUEUE_SCAN_WAIT = "Awaited Scans"
-    QUEUE_SCAN_PR_ANNOTATE = "Annotating PR Scans"
+    QUEUE_SCAN_PR_ANNOTATE = "PR Annotating"
     QUEUE_FEEDBACK_PR = "PR Feedback"
 
-    ROUTEKEY_SCAN_WAIT = F"{ScanStates.AWAIT}.*.*"
+    ROUTEKEY_POLL_BINDING = F"{ScanStates.AWAIT}.*.*"
     ROUTEKEY_FEEDBACK_PR = f"{ScanStates.FEEDBACK}.{FeedbackWorkflow.PR}.*"
+    ROUTEKEY_ANNOTATE_PR = f"{ScanStates.ANNOTATE}.{FeedbackWorkflow.PR}.*"
 
-    @staticmethod
-    def get_poll_binding_topic(moniker):
-        return f"{ScanStates.AWAIT}.*.{moniker}"
+    # @staticmethod
+    # def get_poll_binding_topic(moniker):
+    #     return f"{ScanStates.AWAIT}.*.{moniker}"
 
-    @staticmethod
-    def get_poll_queue_name(moniker):
-        return f"{WorkflowStateService.QUEUE_SCAN_POLLING}.{moniker}"
+    # @staticmethod
+    # def get_poll_queue_name(moniker):
+    #     return f"{WorkflowStateService.QUEUE_SCAN_POLLING}.{moniker}"
 
-    @staticmethod
-    def get_pr_feedback_binding_topic(moniker):
-        return f"{ScanStates.FEEDBACK}.{ScanWorkflow.PR}.{moniker}"
+    # @staticmethod
+    # def get_pr_feedback_binding_topic(moniker):
+    #     return f"{ScanStates.FEEDBACK}.{ScanWorkflow.PR}.{moniker}"
 
-    @staticmethod
-    def get_pr_feedback_queue_name(moniker):
-        return f"{WorkflowStateService.QUEUE_FEEDBACK_PR}.{moniker}"
+    # @staticmethod
+    # def get_pr_feedback_queue_name(moniker):
+    #     return f"{WorkflowStateService.QUEUE_FEEDBACK_PR}.{moniker}"
 
-    @staticmethod
-    def get_pr_annotate_binding_topic(moniker):
-        return f"{ScanStates.ANNOTATE}.{ScanWorkflow.PR}.{moniker}"
+    # @staticmethod
+    # def get_pr_annotate_binding_topic(moniker):
+    #     return f"{ScanStates.ANNOTATE}.{ScanWorkflow.PR}.{moniker}"
 
-    @staticmethod
-    def get_pr_annotate_queue_name(moniker):
-        return f"{WorkflowStateService.QUEUE_SCAN_PR_ANNOTATE}.{moniker}"
+    # @staticmethod
+    # def get_pr_annotate_queue_name(moniker):
+    #     return f"{WorkflowStateService.QUEUE_SCAN_PR_ANNOTATE}.{moniker}"
     
     @staticmethod
     def log():
@@ -97,18 +98,21 @@ class WorkflowStateService:
                 try:
                     inspector = await cxone_service.load_scan_inspector(swm.scanid)
 
-                    if not inspector.executing:
-                        if inspector.successful:
-                            WorkflowStateService.log().info(f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow.")
-                            await self.__workflow_map[swm.workflow].feedback_start(await self.mq_client(), swm.moniker, swm.scanid)
-                        else:
-                            WorkflowStateService.log().info(f"Scan failure for scan id {swm.scanid}, enqueuing annotation workflow.")
-                            # TODO: ScanInspector should provide failure state string for the annotation
-                            await self.__workflow_map[swm.workflow].annotation_start(await self.mq_client(), swm.moniker, swm.scanid, "TODO")
-                            pass
-
+                    try:
                         requeue_on_finally = False
-                        await msg.ack()
+
+                        if not inspector.executing:
+                            if inspector.successful:
+                                WorkflowStateService.log().info(f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow.")
+                                await self.__workflow_map[swm.workflow].feedback_start(await self.mq_client(), swm.moniker, swm.scanid)
+                            else:
+                                WorkflowStateService.log().info(f"Scan failure for scan id {swm.scanid}, enqueuing annotation workflow.")
+                                # TODO: ScanInspector should provide failure state string for the annotation
+                                await self.__workflow_map[swm.workflow].annotation_start(await self.mq_client(), swm.moniker, swm.scanid, "TODO")
+                    except BaseException as bex:
+                        WorkflowStateService.log().exception(bex)
+                    finally:
+                            await msg.ack()
 
                 except ResponseException as ex:
                     WorkflowStateService.log().exception(ex)

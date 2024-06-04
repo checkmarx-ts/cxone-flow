@@ -17,11 +17,9 @@ async def process_poll(msg : aio_pika.abc.AbstractIncomingMessage) -> None:
 async def poll_agent(moniker : str):
     _, _, wfs = CxOneFlowConfig.retrieve_services_by_moniker(moniker)
 
-    qname = WorkflowStateService.get_poll_queue_name(moniker)
-
     async with (await wfs.mq_client()).channel() as channel:
         await channel.set_qos(prefetch_count=2)
-        q = await channel.get_queue(qname)
+        q = await channel.get_queue(WorkflowStateService.QUEUE_SCAN_POLLING)
 
         await q.consume(process_poll, arguments = {
             "moniker" : moniker}, consumer_tag = f"{moniker}.{os.getpid()}")

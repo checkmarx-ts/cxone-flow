@@ -3,7 +3,7 @@ from datetime import timedelta
 from .state_service import WorkflowStateService
 from . import ScanWorkflow, ScanStates
 from .workflow_base import AbstractWorkflow
-from .messaging import ScanAwaitMessage, ScanFeedbackMessage
+from .messaging import ScanAwaitMessage, ScanFeedbackMessage, ScanAnnotationMessage
 from .messaging.util import compute_drop_by_timestamp
 
 class PullRequestWorkflow(AbstractWorkflow):
@@ -25,7 +25,7 @@ class PullRequestWorkflow(AbstractWorkflow):
                                                     delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
 
     def __annotation_msg_factory(self, scanid : str, moniker : str, annotation : str) -> aio_pika.Message:
-        return aio_pika.Message(ScanFeedbackMessage(scanid=scanid, moniker=moniker, annotation=annotation, state=ScanStates.FEEDBACK,
+        return aio_pika.Message(ScanAnnotationMessage(scanid=scanid, moniker=moniker, annotation=annotation, state=ScanStates.ANNOTATE,
                                                     workflow=ScanWorkflow.PR).to_binary(), 
                                                     delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
     
@@ -45,27 +45,27 @@ class PullRequestWorkflow(AbstractWorkflow):
         else:
             PullRequestWorkflow.log().error(f"Unable to start {stub}")
 
-    async def __publish(self, mq_client : aio_pika.abc.AbstractRobustConnection, topic : str, body : bytearray, scanid : str, moniker : str):
-        async with mq_client.channel() as channel:
+    async def __publish(self, mq_client : aio_pika.abc.AbstractRobustConnection, topic : str, msg : aio_pika.abc.AbstractMessage, scanid : str, moniker : str):
+        async with await mq_client.channel() as channel:
             exchange = await channel.get_exchange(WorkflowStateService.EXCHANGE_SCAN_INPUT)
 
             if exchange:
-                PullRequestWorkflow.__log_publish_result(await exchange.publish(body, routing_key = topic),
+                PullRequestWorkflow.__log_publish_result(await exchange.publish(msg, routing_key = topic),
                                                          topic, scanid, moniker)
 
     async def workflow_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str):
         topic = f"{ScanStates.AWAIT}.{ScanWorkflow.PR}.{moniker}"
-        await self.__publish(mq_client, topic, self.__await_msg_factory(scanid, moniker).to_binary(), scanid, moniker)
+        await self.__publish(mq_client, topic, self.__await_msg_factory(scanid, moniker), scanid, moniker)
     
     async def is_enabled(self):
         return self.__enabled
 
     async def feedback_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str):
         topic = f"{ScanStates.FEEDBACK}.{ScanWorkflow.PR}.{moniker}"
-        await self.__publish(mq_client, topic, self.__feedback_msg_factory(scanid, moniker).to_binary(), scanid, moniker)
+        await self.__publish(mq_client, topic, self.__feedback_msg_factory(scanid, moniker), scanid, moniker)
         
     async def annotation_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str, annotation : str):
         topic = f"{ScanStates.ANNOTATE}.{ScanWorkflow.PR}.{moniker}"
-        await self.__publish(mq_client, topic, self.__annotation_msg_factory(scanid, moniker, annotation).to_binary(), scanid, moniker)
+        await self.__publish(mq_client, topic, self.__annotation_msg_factory(scanid, moniker, annotation), scanid, moniker)
 
 
