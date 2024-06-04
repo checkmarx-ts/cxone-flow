@@ -83,6 +83,10 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
         return self.__repo_key
 
     @property
+    def _repo_organization(self) -> str:
+        return self.__collection
+
+    @property
     def _repo_name(self):
         return self.__repo_slug
 

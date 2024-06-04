@@ -6,6 +6,7 @@ from .exceptions import OrchestrationException
 from cxone_service import CxOneService
 from scm_services import SCMService, Cloner
 from workflows.state_service import WorkflowStateService
+from workflows.messaging import PRDetails
 
 class OrchestratorBase:
 
@@ -142,7 +143,10 @@ class OrchestratorBase:
         }
 
         scanid = await self.__exec_scan(cxone_service, scm_service, scan_tags)
-        await workflow_service.start_pr_scan_workflow(scanid)
+        await workflow_service.start_pr_scan_workflow(scanid, 
+                                                      PRDetails(clone_url=self._repo_clone_url(scm_service.cloner), 
+                                                      repo_project=self._repo_project_key, repo_slug=self._repo_slug, 
+                                                      organization=self._repo_organization, pr_id=self._pr_id))
         return scanid
 
     async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
@@ -187,6 +191,10 @@ class OrchestratorBase:
     @property
     def _repo_project_key(self) -> str:
         raise NotImplementedError("_repo_project_key")
+
+    @property
+    def _repo_organization(self) -> str:
+        raise NotImplementedError("_repo_organization")
 
     @property
     def _repo_slug(self) -> str:

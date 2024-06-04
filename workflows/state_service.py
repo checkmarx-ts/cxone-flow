@@ -6,7 +6,7 @@ from datetime import timedelta
 from cxone_service import CxOneService
 from cxone_service import CxOneService
 from cxone_api.scanning import ScanLoader, ScanInspector
-from .messaging import ScanAwaitMessage
+from .messaging import ScanAwaitMessage, PRDetails
 from .workflow_base import AbstractWorkflow
 from . import ScanStates, ScanWorkflow, FeedbackWorkflow
 from cxone_api.exceptions import ResponseException
@@ -29,30 +29,6 @@ class WorkflowStateService:
     ROUTEKEY_POLL_BINDING = F"{ScanStates.AWAIT}.*.*"
     ROUTEKEY_FEEDBACK_PR = f"{ScanStates.FEEDBACK}.{FeedbackWorkflow.PR}.*"
     ROUTEKEY_ANNOTATE_PR = f"{ScanStates.ANNOTATE}.{FeedbackWorkflow.PR}.*"
-
-    # @staticmethod
-    # def get_poll_binding_topic(moniker):
-    #     return f"{ScanStates.AWAIT}.*.{moniker}"
-
-    # @staticmethod
-    # def get_poll_queue_name(moniker):
-    #     return f"{WorkflowStateService.QUEUE_SCAN_POLLING}.{moniker}"
-
-    # @staticmethod
-    # def get_pr_feedback_binding_topic(moniker):
-    #     return f"{ScanStates.FEEDBACK}.{ScanWorkflow.PR}.{moniker}"
-
-    # @staticmethod
-    # def get_pr_feedback_queue_name(moniker):
-    #     return f"{WorkflowStateService.QUEUE_FEEDBACK_PR}.{moniker}"
-
-    # @staticmethod
-    # def get_pr_annotate_binding_topic(moniker):
-    #     return f"{ScanStates.ANNOTATE}.{ScanWorkflow.PR}.{moniker}"
-
-    # @staticmethod
-    # def get_pr_annotate_queue_name(moniker):
-    #     return f"{WorkflowStateService.QUEUE_SCAN_PR_ANNOTATE}.{moniker}"
     
     @staticmethod
     def log():
@@ -99,16 +75,18 @@ class WorkflowStateService:
                     inspector = await cxone_service.load_scan_inspector(swm.scanid)
 
                     try:
-                        requeue_on_finally = False
 
                         if not inspector.executing:
+                            
+                            requeue_on_finally = False
+                            
                             if inspector.successful:
                                 WorkflowStateService.log().info(f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow.")
-                                await self.__workflow_map[swm.workflow].feedback_start(await self.mq_client(), swm.moniker, swm.scanid)
+                                await self.__workflow_map[swm.workflow].feedback_start(await self.mq_client(), swm.moniker, swm.scanid, **(swm.workflow_details))
                             else:
                                 WorkflowStateService.log().info(f"Scan failure for scan id {swm.scanid}, enqueuing annotation workflow.")
                                 # TODO: ScanInspector should provide failure state string for the annotation
-                                await self.__workflow_map[swm.workflow].annotation_start(await self.mq_client(), swm.moniker, swm.scanid, "TODO")
+                                await self.__workflow_map[swm.workflow].annotation_start(await self.mq_client(), swm.moniker, swm.scanid, "TODO", **(swm.workflow_details))
                     except BaseException as bex:
                         WorkflowStateService.log().exception(bex)
                     finally:
@@ -159,9 +137,9 @@ class WorkflowStateService:
         return self.__client
     
 
-    async def start_pr_scan_workflow(self, scanid : str) -> None:
-        await self.__workflow_map[ScanWorkflow.PR].workflow_start(await self.mq_client(), self.__service_moniker, scanid)
+    async def start_pr_scan_workflow(self, scanid : str, details : PRDetails) -> None:
+        await self.__workflow_map[ScanWorkflow.PR].workflow_start(await self.mq_client(), self.__service_moniker, scanid, **(details.as_dict()))
 
-    async def start_pr_feedback(self, scanid : str):
-        await self.__workflow_map[ScanWorkflow.PR].feedback_start(await self.mq_client(), self.__service_moniker, scanid)
+    async def start_pr_feedback(self, scanid : str, details : PRDetails):
+        await self.__workflow_map[ScanWorkflow.PR].feedback_start(await self.mq_client(), self.__service_moniker, scanid, **(details.as_dict()))
 

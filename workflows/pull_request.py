@@ -19,20 +19,20 @@ class PullRequestWorkflow(AbstractWorkflow):
         self.__interval = timedelta(seconds=interval_seconds)
         self.__scan_timeout = timedelta(hours=scan_timeout)
 
-    def __feedback_msg_factory(self, scanid : str, moniker : str) -> aio_pika.Message:
+    def __feedback_msg_factory(self, scanid : str, moniker : str, **kwargs) -> aio_pika.Message:
         return aio_pika.Message(ScanFeedbackMessage(scanid=scanid, moniker=moniker, state=ScanStates.FEEDBACK,
-                                                    workflow=ScanWorkflow.PR).to_binary(), 
+                                                    workflow=ScanWorkflow.PR, workflow_details=kwargs).to_binary(), 
                                                     delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
 
-    def __annotation_msg_factory(self, scanid : str, moniker : str, annotation : str) -> aio_pika.Message:
+    def __annotation_msg_factory(self, scanid : str, moniker : str, annotation : str, **kwargs) -> aio_pika.Message:
         return aio_pika.Message(ScanAnnotationMessage(scanid=scanid, moniker=moniker, annotation=annotation, state=ScanStates.ANNOTATE,
-                                                    workflow=ScanWorkflow.PR).to_binary(), 
+                                                    workflow=ScanWorkflow.PR, workflow_details=kwargs).to_binary(), 
                                                     delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
     
-    def __await_msg_factory(self, scanid : str, moniker : str) -> aio_pika.Message:
+    def __await_msg_factory(self, scanid : str, moniker : str, **kwargs) -> aio_pika.Message:
         
         return aio_pika.Message(ScanAwaitMessage(scanid=scanid, drop_by=compute_drop_by_timestamp(self.__scan_timeout), moniker=moniker, 
-                                                 state=ScanStates.AWAIT, 
+                                                 state=ScanStates.AWAIT, workflow_details=kwargs,
                                                  workflow=ScanWorkflow.PR).to_binary(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
                                                  expiration=self.__interval)
 
@@ -53,19 +53,19 @@ class PullRequestWorkflow(AbstractWorkflow):
                 PullRequestWorkflow.__log_publish_result(await exchange.publish(msg, routing_key = topic),
                                                          topic, scanid, moniker)
 
-    async def workflow_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str):
+    async def workflow_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str, **kwargs):
         topic = f"{ScanStates.AWAIT}.{ScanWorkflow.PR}.{moniker}"
-        await self.__publish(mq_client, topic, self.__await_msg_factory(scanid, moniker), scanid, moniker)
+        await self.__publish(mq_client, topic, self.__await_msg_factory(scanid, moniker, **kwargs), scanid, moniker)
     
     async def is_enabled(self):
         return self.__enabled
 
-    async def feedback_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str):
+    async def feedback_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str, **kwargs):
         topic = f"{ScanStates.FEEDBACK}.{ScanWorkflow.PR}.{moniker}"
-        await self.__publish(mq_client, topic, self.__feedback_msg_factory(scanid, moniker), scanid, moniker)
+        await self.__publish(mq_client, topic, self.__feedback_msg_factory(scanid, moniker, **kwargs), scanid, moniker)
         
-    async def annotation_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str, annotation : str):
+    async def annotation_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str, annotation : str, **kwargs):
         topic = f"{ScanStates.ANNOTATE}.{ScanWorkflow.PR}.{moniker}"
-        await self.__publish(mq_client, topic, self.__annotation_msg_factory(scanid, moniker, annotation), scanid, moniker)
+        await self.__publish(mq_client, topic, self.__annotation_msg_factory(scanid, moniker, annotation, **kwargs), scanid, moniker)
 
 

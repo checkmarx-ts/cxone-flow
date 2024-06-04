@@ -4,7 +4,9 @@ from .. import ScanStates, ScanWorkflow
 
 @dataclass(frozen=True)
 class ScanMessage(BaseMessage):
+    moniker: str
     scanid: str
     state: ScanStates
     workflow: ScanWorkflow
+    workflow_details : dict
 

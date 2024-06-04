@@ -204,6 +204,10 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
         return self.__repo_project_key
 
     @property
+    def _repo_organization(self) -> str:
+        return ""
+
+    @property
     def _repo_slug(self) -> str:
         return self.__repo_slug
 
