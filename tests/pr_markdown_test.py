@@ -6,7 +6,7 @@ class TestPRMarkdown(unittest.TestCase):
 
     __test_good_md = [
         PullRequestDecoration._PullRequestDecoration__header_begin,
-        PullRequestDecoration._PullRequestDecoration__cx_embed_img,
+        PullRequestDecoration._PullRequestDecoration__cx_embed_header_img,
         PullRequestDecoration._PullRequestDecoration__header_end,
         PullRequestDecoration._PullRequestDecoration__annotation_begin,
         "annotation",
@@ -18,7 +18,7 @@ class TestPRMarkdown(unittest.TestCase):
 
     __test_empty_md = [
         PullRequestDecoration._PullRequestDecoration__header_begin,
-        PullRequestDecoration._PullRequestDecoration__cx_embed_img,
+        PullRequestDecoration._PullRequestDecoration__cx_embed_header_img,
         PullRequestDecoration._PullRequestDecoration__header_end,
         PullRequestDecoration._PullRequestDecoration__annotation_begin,
         PullRequestDecoration._PullRequestDecoration__annotation_end,

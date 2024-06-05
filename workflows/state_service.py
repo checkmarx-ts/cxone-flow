@@ -7,7 +7,7 @@ from cxone_service import CxOneService
 from cxone_service import CxOneService
 from cxone_api.scanning import ScanLoader, ScanInspector
 from scm_services import SCMService
-from .messaging import ScanAwaitMessage, ScanAnnotationMessage, PRDetails
+from .messaging import ScanAwaitMessage, ScanAnnotationMessage, ScanFeedbackMessage, PRDetails
 from .workflow_base import AbstractWorkflow
 from . import ScanStates, ScanWorkflow, FeedbackWorkflow
 from cxone_api.exceptions import ResponseException
@@ -144,16 +144,19 @@ class WorkflowStateService:
         am = ScanAnnotationMessage.from_binary(msg.body)
         pr_details = PRDetails.from_dict(am.workflow_details)
 
-        inspector = await cxone_service.load_scan_inspector(am.scanid)
+        if await self.__workflow_map[ScanWorkflow.PR].is_enabled():
+            inspector = await cxone_service.load_scan_inspector(am.scanid)
 
-        if inspector is not None:
-            annotation = PullRequestAnnotation(cxone_service.display_link, inspector.project_id, am.scanid, am.annotation)
-            await scm_service.exec_pr_annotate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
-                                               am.scanid, md.markdown(annotation.content))
-            await msg.ack()
+            if inspector is not None:
+                annotation = PullRequestAnnotation(cxone_service.display_link, inspector.project_id, am.scanid, am.annotation)
+                await scm_service.exec_pr_annotate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
+                                                am.scanid, md.markdown(annotation.content))
+                await msg.ack()
+            else:
+                WorkflowStateService.log().error(f"Unable for load scan {am.scanid}")
+                await msg.nack()
         else:
-            WorkflowStateService.log().error(f"Unable for load scan {am.scanid}")
-            await msg.nack()
+            await msg.ack()
 
 
 

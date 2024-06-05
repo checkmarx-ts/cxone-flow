@@ -3,6 +3,12 @@ from pathlib import Path
 class PullRequestDecoration:
     __cx_embed_header_img = "![CheckmarxOne](https://camo.githubusercontent.com/450121ab9d772ac3f1186c2dde5608322249cba9183cd43b34ac7a71e71584b9/68747470733a2f2f63646e2e6173742e636865636b6d6172782e6e65742f696e746567726174696f6e732f6c6f676f2f436865636b6d6172782e706e67)"
 
+    __critical_emoji = ":fire:"
+    __high_emoji = ":red_circle:"
+    __medium_emoji = ":yellow_circle:"
+    __low_emoji = ":white_circle:"
+    __info_emoji = ":grey_question:"
+
     __comment = "[//]:#"
     __header_begin = __comment + "begin:header"
     __header_end = __comment + "end:header"
