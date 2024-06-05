@@ -92,7 +92,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
     @property
     def _repo_slug(self):
-        return urllib.parse.quote(self.__repo_slug)
+        return self.__repo_slug
     
     async def is_signature_valid(self, shared_secret):
         base64_payload = self._headers['Authorization'].split(" ")[-1:].pop()

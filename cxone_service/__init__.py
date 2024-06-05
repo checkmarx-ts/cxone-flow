@@ -36,6 +36,10 @@ class CxOneService:
     def moniker(self):
         return self.__moniker
     
+    @property
+    def display_link(self):
+        return self.__client.display_endpoint
+    
     @staticmethod
     def __get_json_or_fail(response):
         if not response.ok:

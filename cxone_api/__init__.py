@@ -73,9 +73,14 @@ AuthRegionEndpoints = {
 class CxOneApiEndpoint:
     def __init__(self, server, scheme=DEFAULT_SCHEME):
         self.__endpoint_url = urllib.parse.urlunsplit((scheme, server, "/api/", None, None))
+        self.__root_url = urllib.parse.urlunsplit((scheme, server, "/", None, None))
 
     def __str__(self):
         return str(self.__endpoint_url)
+    
+    @property
+    def display_endpoint(self):
+        return self.__root_url
 
 class ApiUS(CxOneApiEndpoint):
     def __init__(self):
@@ -204,11 +209,6 @@ class CxOneClient:
         self.__timeout = timeout
         self.__retries = retries
 
-        self.__auth_endpoint = tenant_auth_endpoint
-        self.__api_endpoint = api_endpoint
-        self.__timeout = timeout
-        self.__retries = retries
-
         self.__auth_result = None
 
 
@@ -248,7 +248,11 @@ class CxOneClient:
     @property
     def api_endpoint(self):
         return str(self.__api_endpoint)
-    
+
+    @property
+    def display_endpoint(self):
+        return str(self.__api_endpoint.display_endpoint)
+
     @property
     def admin_endpoint(self):
         return self.__auth_endpoint.admin_endpoint

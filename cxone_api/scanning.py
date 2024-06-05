@@ -88,6 +88,7 @@ class ScanInspector:
     __scan_engines_query = parse("$.engines")
     __status_details_query = parse("$.statusDetails")
 
+    __projectid_query = parse("$.projectId")
 
     __executing_states = ["Queued", "Running"]
     __failed_states = ["Failed", "Canceled"]
@@ -105,6 +106,10 @@ class ScanInspector:
 
     def __status_details(self):
         return ScanInspector.__status_details_query.find(self.__json)[0].value
+    
+    @property
+    def project_id(self):
+        return ScanInspector.__projectid_query.find(self.__json)[0].value
 
     def __current_engine_states(self):
         return_states = []

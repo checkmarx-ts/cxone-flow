@@ -1,4 +1,4 @@
-import asyncio, logging
+import asyncio, logging, urllib
 from requests import Request
 
 
@@ -11,9 +11,9 @@ class RetriesExhausted(Exception):
 
 class SCMService:
 
-    @staticmethod
-    def log():
-        return logging.getLogger("SCMService")
+    @classmethod
+    def log(clazz):
+        return logging.getLogger(clazz.__name__)
 
     def __init__(self, moniker, api_session, shared_secret, cloner):
         self.__session = api_session
@@ -58,7 +58,7 @@ class SCMService:
     
     def __form_url(self, path):
         base = self.__session.base_endpoint.rstrip("/")
-        suffix = path.lstrip("/")
+        suffix = urllib.parse.quote(path.lstrip("/"))
         return f"{base}/{suffix}"
     
     
@@ -73,7 +73,7 @@ class SCMService:
     async def exec_pr_feedback(self):
         raise NotImplementedError("exec_pr_feedback")
 
-    async def exec_pr_annotate(self, organization, project, repo_slug, pr_number, annotation):
+    async def exec_pr_annotate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, annotation : str):
         raise NotImplementedError("exec_pr_annotate")
    
    

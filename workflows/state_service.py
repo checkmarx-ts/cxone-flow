@@ -11,6 +11,8 @@ from .messaging import ScanAwaitMessage, ScanAnnotationMessage, PRDetails
 from .workflow_base import AbstractWorkflow
 from . import ScanStates, ScanWorkflow, FeedbackWorkflow
 from cxone_api.exceptions import ResponseException
+from .pr import PullRequestAnnotation
+import markdown as md
 
 
 class WorkflowStateService:
@@ -140,18 +142,24 @@ class WorkflowStateService:
 
     async def execute_pr_annotate_workflow(self, msg : aio_pika.abc.AbstractIncomingMessage, cxone_service : CxOneService, scm_service : SCMService):
         am = ScanAnnotationMessage.from_binary(msg.body)
+        pr_details = PRDetails.from_dict(am.workflow_details)
 
         inspector = await cxone_service.load_scan_inspector(am.scanid)
 
-        pr_details = PRDetails.from_dict(am.workflow_details)
+        if inspector is not None:
+            annotation = PullRequestAnnotation(cxone_service.display_link, inspector.project_id, am.scanid, am.annotation)
+            await scm_service.exec_pr_annotate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
+                                               am.scanid, md.markdown(annotation.content))
+            await msg.ack()
+        else:
+            WorkflowStateService.log().error(f"Unable for load scan {am.scanid}")
+            await msg.nack()
 
-        await scm_service.exec_pr_annotate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id, am.annotation)
 
-        pass
 
     async def start_pr_scan_workflow(self, scanid : str, details : PRDetails) -> None:
         await self.__workflow_map[ScanWorkflow.PR].workflow_start(await self.mq_client(), self.__service_moniker, scanid, **(details.as_dict()))
-        await self.start_pr_annotation(scanid, f"Scan started with id {scanid}", details)
+        await self.start_pr_annotation(scanid, "Scan started", details)
 
     async def start_pr_feedback(self, scanid : str, details : PRDetails):
         await self.__workflow_map[ScanWorkflow.PR].feedback_start(await self.mq_client(), self.__service_moniker, scanid, **(details.as_dict()))

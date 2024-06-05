@@ -1,18 +1,79 @@
+import json
 from .scm import SCMService
+from cxone_api.util import json_on_ok
+from typing import Union, Dict
+from datetime import datetime, UTC
 
 class ADOEService(SCMService):
 
-    async def exec_pr_annotate(self, organization, project, repo_slug, pr_number, annotation):
-        # Create thread
-        # POST https://dev.azure.com/{organization}/{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/threads?api-version=7.2-preview.1
-        # properties can be associated with the thread, maybe used?
+    __thread_prop_key = "cxoneflow"
+
+    @staticmethod
+    def __create_thread_props(scanid : str) -> dict:
+        return json.dumps({
+            "timestamp" : datetime.now(UTC).isoformat(),
+            "scanid" : scanid
+        })
+
+
+    async def __get_pr_thread(self, organization : str, project : str, repo_slug : str, pr_number : str) -> Union[None, Dict]:
+    
+        threads = json_on_ok(await self.exec("GET", path = f"{organization}/{project}/_apis/git/repositories/{repo_slug}/pullRequests/{pr_number}/threads", 
+                                             query = {"api-version": "7.0"}))
+
+        for thread in threads['value']:
+            if 'properties' in thread.keys() and thread['properties'] is not None and ADOEService.__thread_prop_key in thread['properties'].keys() \
+                and not bool(thread['isDeleted']):
+                return thread['id']
+
+        return None
+
+    async def __update_pr_thread(self, organization : str, project : str, repo_slug : str, pr_number : str, thread_id : str, annotation : str) -> Union[None, Dict]:
+        payload = {
+            "content" : annotation
+        }
+        
+        thread = json_on_ok(await self.exec("PATCH", 
+                                            path=f"{organization}/{project}/_apis/git/repositories/{repo_slug}/pullRequests/{pr_number}/threads/{thread_id}/comments/1",
+                                            query = {"api-version": "7.0"}, body=json.dumps(payload), extra_headers={"Content-Type" : "application/json"}))
+        
+        if thread is None:
+            ADOEService.log().error(f"Unable to update PR thread {thread_id}.")
+        else:
+            ADOEService.log().debug(f"PR thread {thread_id} updated on PR {pr_number}")
+    
+
+    async def __create_pr_thread(self, organization : str, project : str, repo_slug : str, pr_number : str, annotation : str, scanid : str):
+        payload = {
+            "comments" : [
+                {
+                    "parentCommentId" : 0,
+                    "content" : annotation,
+                    "commentType" : 1
+                }
+            ],
+            "status" : 1,
+            "properties" : {
+              ADOEService.__thread_prop_key : ADOEService.__create_thread_props(scanid)
+            }
+        }
+
+        thread = json_on_ok(await self.exec("POST", path=f"{organization}/{project}/_apis/git/repositories/{repo_slug}/pullRequests/{pr_number}/threads",
+                                            query = {"api-version": "7.0"}, body=json.dumps(payload), extra_headers={"Content-Type" : "application/json"}))
+        
+        if thread is None:
+            ADOEService.log().error(f"Unable to create PR thread for scan id {scanid}")
+        else:
+            ADOEService.log().debug(f"PR thread {thread['id']} created on PR {pr_number} for scan id {scanid}")
 
         
-        # List threads
-        # GET https://dev.azure.com/{organization}/{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/threads
-        # Filter on text comment types - may also be able to use properties?
-        # $..comments[?(@.commentType == 'text')]
 
-        # ![Hello World](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAAAUCAAAAAAVAxSkAAABrUlEQVQ4y+3TPUvDQBgH8OdDOGa+oUMgk2MpdHIIgpSUiqC0OKirgxYX8QVFRQRpBRF8KShqLbgIYkUEteCgFVuqUEVxEIkvJFhae3m8S2KbSkcFBw9yHP88+eXucgH8kQZ/jSm4VDaIy9RKCpKac9NKgU4uEJNwhHhK3qvPBVO8rxRWmFXPF+NSM1KVMbwriAMwhDgVcrxeMZm85GR0PhvGJAAmyozJsbsxgNEir4iEjIK0SYqGd8sOR3rJAGN2BCEkOxhxMhpd8Mk0CXtZacxi1hr20mI/rzgnxayoidevcGuHXTC/q6QuYSMt1jC+gBIiMg12v2vb5NlklChiWnhmFZpwvxDGzuUzV8kOg+N8UUvNBp64vy9q3UN7gDXhwWLY2nMC3zRDibfsY7wjEkY79CdMZhrxSqqzxf4ZRPXwzWJirMicDa5KwiPeARygHXKNMQHEy3rMopDR20XNZGbJzUtrwDC/KshlLDWyqdmhxZzCsdYmf2fWZPoxCEDyfIvdtNQH0PRkH6Q51g8rFO3Qzxh2LbItcDCOpmuOsV7ntNaERe3v/lP/zO8yn4N+yNPrekmPAAAAAElFTkSuQmCC)
-        raise NotImplementedError("exec_pr_annotate")
 
+
+    async def exec_pr_annotate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, annotation : str):
+        existing_thread = await self.__get_pr_thread(organization, project, repo_slug, pr_number)
+
+        if existing_thread is None:
+            await self.__create_pr_thread(organization, project, repo_slug, pr_number, annotation, scanid)
+        else:
+            await self.__update_pr_thread(organization, project, repo_slug, pr_number, existing_thread, annotation)
