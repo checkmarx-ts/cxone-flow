@@ -2,7 +2,7 @@ import logging, asyncio, aio_pika, os
 import cxoneflow_logging as cof_logging
 from config import CxOneFlowConfig, ConfigurationException, get_config_path
 from workflows.state_service import WorkflowStateService
-from workflows.messaging import ScanAwaitMessage, ScanAnnotationMessage
+from workflows.messaging import ScanAwaitMessage, ScanAnnotationMessage, ScanFeedbackMessage
 from typing import Any, Callable, Awaitable
 
 cof_logging.bootstrap()
@@ -21,10 +21,19 @@ async def process_poll(msg : aio_pika.abc.AbstractIncomingMessage) -> None:
 
 async def process_pr_annotate(msg : aio_pika.abc.AbstractIncomingMessage) -> None:
     try:
-        __log.debug(f"Reveived annotation message on channel {msg.channel.number}: {msg.info()}")
+        __log.debug(f"Reveived PR annotation message on channel {msg.channel.number}: {msg.info()}")
         sm = ScanAnnotationMessage.from_binary(msg.body)
         cxone, scm, wf = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
         await wf.execute_pr_annotate_workflow(msg, cxone, scm)
+    except BaseException as ex:
+        __log.exception(ex)
+
+async def process_pr_feedback(msg : aio_pika.abc.AbstractIncomingMessage) -> None:
+    try:
+        __log.debug(f"Reveived PR feedback message on channel {msg.channel.number}: {msg.info()}")
+        sm = ScanFeedbackMessage.from_binary(msg.body)
+        cxone, scm, wf = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
+        await wf.execute_pr_feedback_workflow(msg, cxone, scm)
     except BaseException as ex:
         __log.exception(ex)
 
@@ -47,7 +56,8 @@ async def spawn_agents():
     async with asyncio.TaskGroup() as g:
         for moniker in CxOneFlowConfig.get_service_monikers():
             g.create_task(agent(process_poll, moniker, WorkflowStateService.QUEUE_SCAN_POLLING))
-            g.create_task(agent(process_pr_annotate, moniker, WorkflowStateService.QUEUE_SCAN_PR_ANNOTATE))
+            g.create_task(agent(process_pr_annotate, moniker, WorkflowStateService.QUEUE_ANNOTATE_PR))
+            g.create_task(agent(process_pr_feedback, moniker, WorkflowStateService.QUEUE_FEEDBACK_PR))
    
 
 if __name__ == '__main__':

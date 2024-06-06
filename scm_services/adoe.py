@@ -70,10 +70,10 @@ class ADOEService(SCMService):
 
 
 
-    async def exec_pr_annotate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, annotation : str):
+    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, content : str):
         existing_thread = await self.__get_pr_thread(organization, project, repo_slug, pr_number)
 
         if existing_thread is None:
-            await self.__create_pr_thread(organization, project, repo_slug, pr_number, annotation, scanid)
+            await self.__create_pr_thread(organization, project, repo_slug, pr_number, content, scanid)
         else:
-            await self.__update_pr_thread(organization, project, repo_slug, pr_number, existing_thread, annotation)
+            await self.__update_pr_thread(organization, project, repo_slug, pr_number, existing_thread, content)

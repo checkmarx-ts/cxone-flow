@@ -3,7 +3,8 @@ from _version import __version__
 from cxone_api.scanning import ScanInvoker, ScanInspector, ScanLoader
 from cxone_api.projects import ProjectRepoConfig
 from cxone_api import paged_api
-import logging
+import logging,asyncio
+from datetime import datetime
 
 class CxOneException(Exception):
     pass
@@ -17,6 +18,9 @@ class CxOneService:
     PR_STATE_TAG = "pr-state"
 
     UPDATABLE_SCANS_STATUSES = ["Completed", "Failed", "Partial"]
+
+    __report_poll_delay_seconds = 30
+    __report_generate_timeout_seconds = 600
 
 
     @staticmethod
@@ -130,3 +134,36 @@ class CxOneService:
     
     async def load_scan_inspector(self, scanid : str) -> ScanInspector:
         return await ScanLoader.load(self.__client, scanid)
+    
+    async def retrieve_report(self, projectid : str, scanid : str) -> dict:
+
+        create_payload = {
+            "reportName" : "improved-scan-report",
+            "fileFormat" : "json",
+            "reportType" : "cli",
+            "data" : {
+                "scanId" : scanid,
+                "projectId" : projectid
+            }
+        }
+
+        report_response = CxOneService.__get_json_or_fail(await self.__client.create_report(**create_payload))
+
+        if not 'reportId' in report_response.keys():
+            raise CxOneException(f"Malformed response creating a report for scan id {scanid} in project {projectid}")
+        else:
+            reportid = report_response['reportId']
+            CxOneService.log().debug(f"Report Id {reportid} created for scan id {scanid}")
+
+            wait_start = datetime.now()
+
+            while await asyncio.sleep(CxOneService.__report_poll_delay_seconds, 
+                                      (datetime.now() - wait_start).total_seconds() < CxOneService.__report_generate_timeout_seconds):
+                
+                gen_status = CxOneService.__get_json_or_fail(await self.__client.get_report_generation_status(reportid, returnUrl=False))
+
+                if not 'status' in gen_status.keys():
+                    raise CxOneException(f"Malformed response obtaining report generation status for report id {reportid}")
+                else:
+                    if 'completed' == gen_status['status']:
+                        return CxOneService.__get_json_or_fail(await self.__client.download_report(reportid))

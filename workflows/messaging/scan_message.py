@@ -6,6 +6,7 @@ from .. import ScanStates, ScanWorkflow
 class ScanMessage(BaseMessage):
     moniker: str
     scanid: str
+    projectid : str
     state: ScanStates
     workflow: ScanWorkflow
     workflow_details : dict

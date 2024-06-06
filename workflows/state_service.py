@@ -5,15 +5,14 @@ import urllib.parse
 from datetime import timedelta
 from cxone_service import CxOneService
 from cxone_service import CxOneService
-from cxone_api.scanning import ScanLoader, ScanInspector
 from scm_services import SCMService
 from .messaging import ScanAwaitMessage, ScanAnnotationMessage, ScanFeedbackMessage, PRDetails
 from .workflow_base import AbstractWorkflow
 from . import ScanStates, ScanWorkflow, FeedbackWorkflow
 from cxone_api.exceptions import ResponseException
-from .pr import PullRequestAnnotation
+from .pr import PullRequestAnnotation, PullRequestFeedback
 import markdown as md
-
+from cxone_service import CxOneException
 
 class WorkflowStateService:
 
@@ -26,7 +25,7 @@ class WorkflowStateService:
 
     QUEUE_SCAN_POLLING = "Polling Scans"
     QUEUE_SCAN_WAIT = "Awaited Scans"
-    QUEUE_SCAN_PR_ANNOTATE = "PR Annotating"
+    QUEUE_ANNOTATE_PR = "PR Annotating"
     QUEUE_FEEDBACK_PR = "PR Feedback"
 
     ROUTEKEY_POLL_BINDING = F"{ScanStates.AWAIT}.*.*"
@@ -77,23 +76,21 @@ class WorkflowStateService:
                 try:
                     inspector = await cxone_service.load_scan_inspector(swm.scanid)
 
-                    try:
-
-                        if not inspector.executing:
-                            
+                    if not inspector.executing:
+                        try:
                             requeue_on_finally = False
                             
                             if inspector.successful:
                                 WorkflowStateService.log().info(f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow.")
-                                await self.__workflow_map[swm.workflow].feedback_start(await self.mq_client(), swm.moniker, swm.scanid, **(swm.workflow_details))
+                                await self.__workflow_map[swm.workflow].feedback_start(await self.mq_client(), swm.moniker, swm.projectid, swm.scanid, **(swm.workflow_details))
                             else:
                                 WorkflowStateService.log().info(f"Scan failure for scan id {swm.scanid}, enqueuing annotation workflow.")
-                                await self.__workflow_map[swm.workflow].annotation_start(await self.mq_client(), swm.moniker, swm.scanid, 
-                                                                                         inspector.state_msg, **(swm.workflow_details))
-                    except BaseException as bex:
-                        WorkflowStateService.log().exception(bex)
-                    finally:
-                            await msg.ack()
+                                await self.__workflow_map[swm.workflow].annotation_start(await self.mq_client(), swm.moniker, swm.projectid, swm.scanid, 
+                                                                                        inspector.state_msg, **(swm.workflow_details))
+                        except BaseException as bex:
+                            WorkflowStateService.log().exception(bex)
+                        finally:
+                                await msg.ack()
 
                 except ResponseException as ex:
                     WorkflowStateService.log().exception(ex)
@@ -149,7 +146,7 @@ class WorkflowStateService:
 
             if inspector is not None:
                 annotation = PullRequestAnnotation(cxone_service.display_link, inspector.project_id, am.scanid, am.annotation)
-                await scm_service.exec_pr_annotate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
+                await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
                                                 am.scanid, md.markdown(annotation.content))
                 await msg.ack()
             else:
@@ -158,14 +155,28 @@ class WorkflowStateService:
         else:
             await msg.ack()
 
+    async def execute_pr_feedback_workflow(self, msg : aio_pika.abc.AbstractIncomingMessage, cxone_service : CxOneService, scm_service : SCMService):
+        am = ScanFeedbackMessage.from_binary(msg.body)
+        pr_details = PRDetails.from_dict(am.workflow_details)
+        try:
+            report = await cxone_service.retrieve_report(am.projectid, am.scanid)
+            if report is None:
+                await msg.nack()
+            else:
+                feedback = PullRequestFeedback(cxone_service.display_link, report)
+                await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
+                                                am.scanid, md.markdown(feedback.content))
+        except CxOneException as ex:
+            WorkflowStateService.log().exception(ex)
+            await msg.nack()
 
+    async def start_pr_scan_workflow(self, projectid : str, scanid : str, details : PRDetails) -> None:
+        await self.__workflow_map[ScanWorkflow.PR].workflow_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))
+        await self.start_pr_annotation(projectid, scanid, "Scan started", details)
 
-    async def start_pr_scan_workflow(self, scanid : str, details : PRDetails) -> None:
-        await self.__workflow_map[ScanWorkflow.PR].workflow_start(await self.mq_client(), self.__service_moniker, scanid, **(details.as_dict()))
-        await self.start_pr_annotation(scanid, "Scan started", details)
+    async def start_pr_feedback(self, projectid : str, scanid : str, details : PRDetails):
+        await self.__workflow_map[ScanWorkflow.PR].feedback_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))
 
-    async def start_pr_feedback(self, scanid : str, details : PRDetails):
-        await self.__workflow_map[ScanWorkflow.PR].feedback_start(await self.mq_client(), self.__service_moniker, scanid, **(details.as_dict()))
+    async def start_pr_annotation(self, projectid : str, scanid : str, annotation : str, details : PRDetails):
+        await self.__workflow_map[ScanWorkflow.PR].annotation_start(await self.mq_client(), self.__service_moniker, projectid, scanid, annotation, **(details.as_dict()))
 
-    async def start_pr_annotation(self, scanid : str, annotation : str, details : PRDetails):
-        await self.__workflow_map[ScanWorkflow.PR].annotation_start(await self.mq_client(), self.__service_moniker, scanid, annotation, **(details.as_dict()))

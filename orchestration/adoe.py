@@ -7,7 +7,7 @@ from cxone_service import CxOneService
 from scm_services import SCMService, Cloner
 from workflows.state_service import WorkflowStateService
 from pathlib import Path
-
+from cxone_api.scanning import ScanInspector
 
 class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
@@ -136,7 +136,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
         return await OrchestratorBase._execute_push_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
-    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
         if await self.__is_pr_draft():
             AzureDevOpsEnterpriseOrchestrator.log().info(f"Skipping draft PR {AzureDevOpsEnterpriseOrchestrator.__pr_self_link_query.find(self.__json)[0].value}")
             return

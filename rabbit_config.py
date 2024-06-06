@@ -54,7 +54,7 @@ async def setup() -> None:
             # Scan State: Annotation
             # Available workflows:
             # * PR - Pull request annotation to indicate scan progress. 
-            pr_annotate_queue = await channel.declare_queue(WorkflowStateService.QUEUE_SCAN_PR_ANNOTATE, durable=True)
+            pr_annotate_queue = await channel.declare_queue(WorkflowStateService.QUEUE_ANNOTATE_PR, durable=True)
             await pr_annotate_queue.bind(scan_annotate_exchange, WorkflowStateService.ROUTEKEY_ANNOTATE_PR)
 
 

@@ -469,5 +469,15 @@ class CxOneClient:
         url = urljoin(self.api_endpoint, f"repos-manager/getscmdtobyid?scmId={scmId}")
         return await self.__exec_request(requests.get, url)
 
+    async def create_report(self, **kwargs):
+        url = urljoin(self.api_endpoint, f"reports")
+        return await self.__exec_request(requests.post, url, json=kwargs)
 
+    async def get_report_generation_status(self, reportid : str, **kwargs):
+        url = urljoin(self.api_endpoint, f"reports/{reportid}")
+        url = CxOneClient.__join_query_dict(url, kwargs)
+        return await self.__exec_request(requests.get, url)
 
+    async def download_report(self, reportid : str):
+        url = urljoin(self.api_endpoint, f"reports/{reportid}/download")
+        return await self.__exec_request(requests.get, url)

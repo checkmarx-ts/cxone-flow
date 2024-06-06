@@ -7,7 +7,7 @@ import logging
 from cxone_service import CxOneService
 from scm_services import SCMService, Cloner
 from workflows.state_service import WorkflowStateService
-
+from cxone_api.scanning import ScanInspector
 
 class BitBucketDataCenterOrchestrator(OrchestratorBase):
 
@@ -133,7 +133,7 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
         else:
             self.__pr_status = "/".join(statuses)
 
-    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
         if await self.__is_pr_draft():
             BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.__json)[0].value}")
             return

@@ -86,3 +86,6 @@ class PullRequestAnnotation(PullRequestDecoration):
         super().__init__()
         self.add_to_annotation(f"{annotation}: {PullRequestDecoration.scan_link(display_url, project_id, scanid)}")
 
+class PullRequestFeedback(PullRequestDecoration):
+    def __init__(self, display_url : str, enhanced_report : dict):
+        super().__init__()

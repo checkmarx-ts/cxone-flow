@@ -2,16 +2,16 @@ import aio_pika
 
 
 class AbstractWorkflow:
-    async def workflow_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str, **kwargs):
+    async def workflow_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, **kwargs):
         raise NotImplementedError("workflow_start")
    
     async def is_enabled(self):
         raise NotImplementedError("is_enabled")
     
-    async def feedback_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str, **kwargs):
+    async def feedback_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, **kwargs):
         raise NotImplementedError("feedback_start")
         
-    async def annotation_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, scanid : str, annotation : str, **kwargs):
+    async def annotation_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, annotation : str, **kwargs):
         raise NotImplementedError("annotation_start")
     
 
