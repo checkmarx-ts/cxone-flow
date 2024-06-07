@@ -165,13 +165,16 @@ class WorkflowStateService:
         am = ScanFeedbackMessage.from_binary(msg.body)
         pr_details = PRDetails.from_dict(am.workflow_details)
         try:
-            report = await cxone_service.retrieve_report(am.projectid, am.scanid)
-            if report is None:
-                await msg.nack()
+            if await self.__workflow_map[ScanWorkflow.PR].is_enabled():
+                report = await cxone_service.retrieve_report(am.projectid, am.scanid)
+                if report is None:
+                    await msg.nack()
+                else:
+                    feedback = PullRequestFeedback(self.__workflow_map[ScanWorkflow.PR].excluded_severities, self.__workflow_map[ScanWorkflow.PR].excluded_states, cxone_service.display_link, am.projectid, am.scanid, report, scm_service.create_code_permalink, pr_details)
+                    await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
+                                                    am.scanid, md.markdown(feedback.content, extensions=['tables']))
+                    await msg.ack()
             else:
-                feedback = PullRequestFeedback(cxone_service.display_link, am.projectid, am.scanid, report, scm_service.create_code_permalink, pr_details)
-                await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
-                                                am.scanid, md.markdown(feedback.content, extensions=['tables']))
                 await msg.ack()
         except CxOneException as ex:
             WorkflowStateService.log().exception(ex)

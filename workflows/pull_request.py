@@ -1,10 +1,11 @@
 import aio_pika, logging, pamqp.commands, pamqp.base
 from datetime import timedelta
 from .state_service import WorkflowStateService
-from . import ScanWorkflow, ScanStates
+from . import ScanWorkflow, ScanStates, ResultSeverity, ResultStates
 from .workflow_base import AbstractWorkflow
 from .messaging import ScanAwaitMessage, ScanFeedbackMessage, ScanAnnotationMessage
 from .messaging.util import compute_drop_by_timestamp
+from typing import List
 
 class PullRequestWorkflow(AbstractWorkflow):
 
@@ -14,10 +15,22 @@ class PullRequestWorkflow(AbstractWorkflow):
         return logging.getLogger("PullRequestWorkflow")
 
 
-    def __init__(self, enabled : bool = False, interval_seconds : int = 90, scan_timeout : int = 48):
+    def __init__(self, excluded_severities : List[ResultSeverity] = [], excluded_states : List[ResultStates] = [], 
+                 enabled : bool = False, interval_seconds : int = 90, scan_timeout : int = 48):
         self.__enabled = enabled
+        self.__excluded_states = excluded_states
+        self.__excluded_severities = excluded_severities
         self.__interval = timedelta(seconds=interval_seconds)
         self.__scan_timeout = timedelta(hours=scan_timeout)
+
+    @property
+    def excluded_severities(self) -> List[ResultSeverity]:
+        return self.__excluded_severities
+
+    @property
+    def excluded_states(self) -> List[ResultStates]:
+        return self.__excluded_states
+
 
     def __feedback_msg_factory(self, projectid : str, scanid : str, moniker : str, **kwargs) -> aio_pika.Message:
         return aio_pika.Message(ScanFeedbackMessage(projectid=projectid, scanid=scanid, moniker=moniker, state=ScanStates.FEEDBACK,

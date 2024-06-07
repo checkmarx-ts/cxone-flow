@@ -8,4 +8,4 @@ requests
 aio-pika
 dataclasses-json
 markdown
-
+aenum

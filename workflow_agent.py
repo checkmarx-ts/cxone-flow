@@ -63,9 +63,9 @@ async def spawn_agents():
 if __name__ == '__main__':
     try:
         CxOneFlowConfig.bootstrap(get_config_path())
+        asyncio.run(spawn_agents())
     except ConfigurationException as ce:
         __log.exception(ce)
 
-    asyncio.run(spawn_agents())
 
 

@@ -1,7 +1,8 @@
 from pathlib import Path
 from jsonpath_ng import parse
 from workflows.messaging import PRDetails
-from typing import Callable
+from typing import Callable, List, Type
+from . import ResultSeverity, ResultStates
 
 
 class PullRequestDecoration:
@@ -131,10 +132,20 @@ class PullRequestFeedback(PullRequestDecoration):
 
     __scanner_stat_query = parse("$.scanInformation.scannerStatus[*]")
 
-    def __init__(self, display_url : str,  project_id : str, scanid : str, enhanced_report : dict, code_permalink_func : Callable, pr_details : PRDetails):
+    @staticmethod
+    def __test_in_enum(clazz : Type, value : str, exclusions : List[Type]):
+        try:
+            return clazz(value) in exclusions
+        except ValueError:
+            return False
+
+    def __init__(self, excluded_severities : List[ResultSeverity], excluded_states : List[ResultStates], display_url : str,  
+                 project_id : str, scanid : str, enhanced_report : dict, code_permalink_func : Callable, pr_details : PRDetails):
         super().__init__()
         self.__enhanced_report = enhanced_report
         self.__permalink = code_permalink_func
+        self.__excluded_severities = excluded_severities
+        self.__excluded_states = excluded_states
 
         self.__add_annotation_section(display_url, project_id, scanid)
         self.__add_sast_details(pr_details)
@@ -146,64 +157,79 @@ class PullRequestFeedback(PullRequestDecoration):
         title_added = False
         for resolved in PullRequestFeedback.__resolved_results_query.find(self.__enhanced_report):
             for vuln in resolved.value['resolvedVulnerabilities']:
-                if not title_added:
-                    self.start_resolved_detail_section()
-                    title_added = True
 
                 for result in vuln['resolvedResults']:
-                    self.add_resolved_detail(PullRequestDecoration.severity_indicator(result['severity']),
-                                            vuln['vulnerabilityName'], 
-                                            PullRequestDecoration.link(vuln['vulnerabilityLink'], "View"))
+                    if not PullRequestFeedback.__test_in_enum(ResultSeverity, result['severity'], self.__excluded_severities):
+
+                        if not title_added:
+                            self.start_resolved_detail_section()
+                            title_added = True
+
+                        self.add_resolved_detail(PullRequestDecoration.severity_indicator(result['severity']),
+                                                vuln['vulnerabilityName'], 
+                                                PullRequestDecoration.link(vuln['vulnerabilityLink'], "View"))
 
     def __add_iac_details(self, pr_details):
         title_added = False
         for result in PullRequestFeedback.__iac_results_query.find(self.__enhanced_report):
             x = result.value
-            if not title_added:
-                self.start_iac_detail_section()
-                title_added = True
 
             for query in x['queries']:
                 for result in query['resultsList']:
-                    self.add_iac_detail(PullRequestDecoration.severity_indicator(result['severity']), x['name'],
-                                        f"`{result['fileName']}`{PullRequestDecoration.link(self.__permalink(pr_details.organization, 
-                                    pr_details.repo_project, pr_details.repo_slug, pr_details.source_branch, 
-                                    result['fileName'], 1), "view")}", query['queryName'], 
-                                        PullRequestDecoration.link(result['resultViewerLink'], "Risk Details"))
+                    if not (PullRequestFeedback.__test_in_enum(ResultStates, result['state'], self.__excluded_states) or 
+                        PullRequestFeedback.__test_in_enum(ResultSeverity, result['severity'], self.__excluded_severities)):
+
+                        if not title_added:
+                            self.start_iac_detail_section()
+                            title_added = True
+
+                        self.add_iac_detail(PullRequestDecoration.severity_indicator(result['severity']), x['name'],
+                                            f"`{result['fileName']}`{PullRequestDecoration.link(self.__permalink(pr_details.organization, 
+                                        pr_details.repo_project, pr_details.repo_slug, pr_details.source_branch, 
+                                        result['fileName'], 1), "view")}", query['queryName'], 
+                                            PullRequestDecoration.link(result['resultViewerLink'], "Risk Details"))
 
     def __add_sca_details(self, display_url, project_id, scanid):
         title_added = False
         for result in PullRequestFeedback.__sca_results_query.find(self.__enhanced_report):
             x = result.value
 
-            if not title_added:
-                self.start_sca_detail_section()
-                title_added = True
             
             for category in x['packageCategory']:
                 for cat_result in category['categoryResults']:
-                    self.add_sca_detail(PullRequestDecoration.severity_indicator(cat_result['severity']),
-                                        x['packageName'], x['packageVersion'], 
-                                        PullRequestDecoration.sca_result_link(display_url, project_id, scanid, "Risk Details", 
-                                                                              cat_result['cve'], x['packageId']))
+                    if not (PullRequestFeedback.__test_in_enum(ResultStates, cat_result['state'], self.__excluded_states) or 
+                        PullRequestFeedback.__test_in_enum(ResultSeverity, cat_result['severity'], self.__excluded_severities)):
+
+                        if not title_added:
+                            self.start_sca_detail_section()
+                            title_added = True
+
+                        self.add_sca_detail(PullRequestDecoration.severity_indicator(cat_result['severity']),
+                                            x['packageName'], x['packageVersion'], 
+                                            PullRequestDecoration.sca_result_link(display_url, project_id, scanid, "Risk Details", 
+                                                                                cat_result['cve'], x['packageId']))
 
 
     def __add_sast_details(self, pr_details):
         title_added = False
         for result in PullRequestFeedback.__sast_results_query.find(self.__enhanced_report):
-            if not title_added:
-                self.start_sast_detail_section()
-                title_added = True
 
             x = result.value
             describe_link = PullRequestDecoration.link(x['queryDescriptionLink'], x['queryName'])
             for vuln in x['vulnerabilities']:
-                self.add_sast_detail(PullRequestDecoration.severity_indicator(vuln['severity']), describe_link, 
-                                f"`{vuln['sourceFileName']}`;{PullRequestDecoration.link(self.__permalink(pr_details.organization, 
-                                    pr_details.repo_project, pr_details.repo_slug, pr_details.source_branch, 
-                                    vuln['sourceFileName'], vuln['sourceLine']), 
-                                    vuln['sourceLine'])}", 
-                                    PullRequestDecoration.link(vuln['resultViewerLink'], "Attack Vector"))
+                if not (PullRequestFeedback.__test_in_enum(ResultStates, vuln['state'], self.__excluded_states) or 
+                        PullRequestFeedback.__test_in_enum(ResultSeverity, vuln['severity'], self.__excluded_severities)):
+
+                    if not title_added:
+                        self.start_sast_detail_section()
+                        title_added = True
+
+                    self.add_sast_detail(PullRequestDecoration.severity_indicator(vuln['severity']), describe_link, 
+                                    f"`{vuln['sourceFileName']}`;{PullRequestDecoration.link(self.__permalink(pr_details.organization, 
+                                        pr_details.repo_project, pr_details.repo_slug, pr_details.source_branch, 
+                                        vuln['sourceFileName'], vuln['sourceLine']), 
+                                        vuln['sourceLine'])}", 
+                                        PullRequestDecoration.link(vuln['resultViewerLink'], "Attack Vector"))
 
     def __add_annotation_section(self, display_url, project_id, scanid):
         self.add_to_annotation(f"**Results for Scan ID {PullRequestDecoration.scan_link(display_url, project_id, scanid)}**")

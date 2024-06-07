@@ -15,6 +15,7 @@ from password_strength import PasswordPolicy
 from cxoneflow_logging import SecretRegistry
 from workflows.state_service import WorkflowStateService
 from workflows.pull_request import PullRequestWorkflow
+from workflows import ResultSeverity, ResultStates
 from typing import Tuple
 from multiprocessing import cpu_count
 
@@ -200,7 +201,20 @@ class CxOneFlowConfig:
             pr_workflow_dict = CxOneFlowConfig.__get_value_for_key_or_default("pull-request", kwargs, {})
             scan_monitor_dict = CxOneFlowConfig.__get_value_for_key_or_default("scan-monitor", kwargs, {})
 
-            pr_workflow = PullRequestWorkflow(
+            exclusions_dict = CxOneFlowConfig.__get_value_for_key_or_default("exclusions", kwargs, {})
+            excluded_states = excluded_severities = []
+
+            try:
+                excluded_states = [ResultStates(state) for state in CxOneFlowConfig.__get_value_for_key_or_default("state", exclusions_dict, [])]
+            except ValueError as ve:
+                raise ConfigurationException(f"{config_path}/exclusions/state {ve}: must be one of {ResultStates.names()}")
+
+            try:
+                excluded_severities = [ResultSeverity(sev) for sev in CxOneFlowConfig.__get_value_for_key_or_default("severity", exclusions_dict, [])]
+            except ValueError as ve:
+                raise ConfigurationException(f"{config_path}/exclusions/severity {ve}: must be one of {ResultSeverity.names()}")
+
+            pr_workflow = PullRequestWorkflow(excluded_severities, excluded_states,
                 CxOneFlowConfig.__get_value_for_key_or_default("enabled", pr_workflow_dict, False), \
                 int(CxOneFlowConfig.__get_value_for_key_or_default("poll-interval-seconds", scan_monitor_dict, 60)), \
                 int(CxOneFlowConfig.__get_value_for_key_or_default("scan-timeout-hours", scan_monitor_dict, 48)) \
