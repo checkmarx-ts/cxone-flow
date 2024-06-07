@@ -129,7 +129,7 @@ class OrchestratorBase:
 
     async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
 
-        _, source_hash = await self._get_source_branch_and_hash()
+        source_branch, source_hash = await self._get_source_branch_and_hash()
         target_branch, _ = await self._get_target_branch_and_hash()
 
         scan_tags = {
@@ -147,7 +147,8 @@ class OrchestratorBase:
         await workflow_service.start_pr_scan_workflow(inspector.project_id, inspector.scan_id, 
                                                       PRDetails(clone_url=self._repo_clone_url(scm_service.cloner), 
                                                       repo_project=self._repo_project_key, repo_slug=self._repo_slug, 
-                                                      organization=self._repo_organization, pr_id=self._pr_id))
+                                                      organization=self._repo_organization, pr_id=self._pr_id,
+                                                      source_branch=source_branch, target_branch=target_branch))
         return inspector
 
     async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):

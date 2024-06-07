@@ -56,15 +56,16 @@ class SCMService:
 
         raise RetriesExhausted(f"Retries exhausted for {prepStr}")
     
-    def __form_url(self, path):
+    def _form_url(self, url_path, **kwargs):
         base = self.__session.base_endpoint.rstrip("/")
-        suffix = urllib.parse.quote(path.lstrip("/"))
-        return f"{base}/{suffix}"
+        suffix = urllib.parse.quote(url_path.lstrip("/"))
+        args = [f"{x}={urllib.parse.quote(str(kwargs[x]))}" for x in kwargs.keys()]
+        return f"{base}/{suffix}{"?" if len(args) > 0 else ""}{"&".join(args)}"
     
     
     async def exec(self, method, path, query=None, body=None, extra_headers=None):
         return await self.__exec_request(Request(method=method, \
-                                                url = self.__form_url(path), \
+                                                url = self._form_url(path), \
                                                 params=query, \
                                                 data=body, \
                                                 auth=self.__session.auth, \
@@ -74,6 +75,8 @@ class SCMService:
     async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, content : str):
         raise NotImplementedError("exec_pr_decorate")
    
+    def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
+        raise NotImplementedError("create_code_permalink")
    
 
 

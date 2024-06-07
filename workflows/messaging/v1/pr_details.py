@@ -8,4 +8,6 @@ class PRDetails(BaseMessage):
     repo_slug : str
     pr_id : str
     organization : str
+    source_branch : str
+    target_branch : str
     schema : str = "v1"

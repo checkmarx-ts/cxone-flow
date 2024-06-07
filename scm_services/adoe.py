@@ -70,10 +70,16 @@ class ADOEService(SCMService):
 
 
 
-    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, content : str):
+    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, 
+                               scanid : str, content : str):
         existing_thread = await self.__get_pr_thread(organization, project, repo_slug, pr_number)
 
         if existing_thread is None:
             await self.__create_pr_thread(organization, project, repo_slug, pr_number, content, scanid)
         else:
             await self.__update_pr_thread(organization, project, repo_slug, pr_number, existing_thread, content)
+
+
+    def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
+        return self._form_url(f"{organization}/{project}/_git/{repo_slug}", path=code_path, version=f"GB{branch}", 
+                              line=code_line, lineEnd=code_line, lineStartColumn=0, lineEndColumn=1024, lineStyle="plain", _a="contents")
