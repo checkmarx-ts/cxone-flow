@@ -11,7 +11,7 @@ __log = logging.getLogger("WorkflowAgent")
 
 async def process_poll(msg : aio_pika.abc.AbstractIncomingMessage) -> None:
     try:
-        __log.debug(f"Reveived scan polling message on channel {msg.channel.number}: {msg.info()}")
+        __log.debug(f"Received scan polling message on channel {msg.channel.number}: {msg.info()}")
         sm = ScanAwaitMessage.from_binary(msg.body)
         cxone, _, wf = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
         await wf.execute_poll_scan_workflow(msg, cxone)
@@ -21,7 +21,7 @@ async def process_poll(msg : aio_pika.abc.AbstractIncomingMessage) -> None:
 
 async def process_pr_annotate(msg : aio_pika.abc.AbstractIncomingMessage) -> None:
     try:
-        __log.debug(f"Reveived PR annotation message on channel {msg.channel.number}: {msg.info()}")
+        __log.debug(f"Received PR annotation message on channel {msg.channel.number}: {msg.info()}")
         sm = ScanAnnotationMessage.from_binary(msg.body)
         cxone, scm, wf = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
         await wf.execute_pr_annotate_workflow(msg, cxone, scm)
@@ -30,7 +30,7 @@ async def process_pr_annotate(msg : aio_pika.abc.AbstractIncomingMessage) -> Non
 
 async def process_pr_feedback(msg : aio_pika.abc.AbstractIncomingMessage) -> None:
     try:
-        __log.debug(f"Reveived PR feedback message on channel {msg.channel.number}: {msg.info()}")
+        __log.debug(f"Received PR feedback message on channel {msg.channel.number}: {msg.info()}")
         sm = ScanFeedbackMessage.from_binary(msg.body)
         cxone, scm, wf = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
         await wf.execute_pr_feedback_workflow(msg, cxone, scm)

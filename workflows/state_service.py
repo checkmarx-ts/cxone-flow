@@ -141,19 +141,25 @@ class WorkflowStateService:
         am = ScanAnnotationMessage.from_binary(msg.body)
         pr_details = PRDetails.from_dict(am.workflow_details)
 
-        if await self.__workflow_map[ScanWorkflow.PR].is_enabled():
-            inspector = await cxone_service.load_scan_inspector(am.scanid)
+        try:
+            if await self.__workflow_map[ScanWorkflow.PR].is_enabled():
+                inspector = await cxone_service.load_scan_inspector(am.scanid)
 
-            if inspector is not None:
-                annotation = PullRequestAnnotation(cxone_service.display_link, inspector.project_id, am.scanid, am.annotation)
-                await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
-                                                am.scanid, md.markdown(annotation.content, extensions=['tables']))
-                await msg.ack()
+                if inspector is not None:
+                    annotation = PullRequestAnnotation(cxone_service.display_link, inspector.project_id, am.scanid, am.annotation)
+                    await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
+                                                    am.scanid, md.markdown(annotation.content, extensions=['tables']))
+                    await msg.ack()
+                else:
+                    WorkflowStateService.log().error(f"Unable for load scan {am.scanid}")
+                    await msg.nack()
             else:
-                WorkflowStateService.log().error(f"Unable for load scan {am.scanid}")
-                await msg.nack()
-        else:
+                await msg.ack()
+        except BaseException as bex:
+            WorkflowStateService.log().error("Unrecoverable exception, aborting PR annotation.")
+            WorkflowStateService.log().exception(bex)
             await msg.ack()
+
 
     async def execute_pr_feedback_workflow(self, msg : aio_pika.abc.AbstractIncomingMessage, cxone_service : CxOneService, scm_service : SCMService):
         am = ScanFeedbackMessage.from_binary(msg.body)
@@ -166,10 +172,15 @@ class WorkflowStateService:
                 feedback = PullRequestFeedback(cxone_service.display_link, am.projectid, am.scanid, report, scm_service.create_code_permalink, pr_details)
                 await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
                                                 am.scanid, md.markdown(feedback.content, extensions=['tables']))
-                # await msg.ack()
+                await msg.ack()
         except CxOneException as ex:
             WorkflowStateService.log().exception(ex)
             await msg.nack()
+        except BaseException as bex:
+            WorkflowStateService.log().error("Unrecoverable exception, aborting PR feedback.")
+            WorkflowStateService.log().exception(bex)
+            await msg.ack()
+
 
     async def start_pr_scan_workflow(self, projectid : str, scanid : str, details : PRDetails) -> None:
         await self.__workflow_map[ScanWorkflow.PR].workflow_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))
