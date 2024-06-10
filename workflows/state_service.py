@@ -11,7 +11,6 @@ from .workflow_base import AbstractWorkflow
 from . import ScanStates, ScanWorkflow, FeedbackWorkflow
 from cxone_api.exceptions import ResponseException
 from .pr import PullRequestAnnotation, PullRequestFeedback
-import markdown as md
 from cxone_service import CxOneException
 
 class WorkflowStateService:
@@ -148,7 +147,7 @@ class WorkflowStateService:
                 if inspector is not None:
                     annotation = PullRequestAnnotation(cxone_service.display_link, inspector.project_id, am.scanid, am.annotation)
                     await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
-                                                    am.scanid, md.markdown(annotation.content, extensions=['tables']))
+                                                    am.scanid, annotation.content)
                     await msg.ack()
                 else:
                     WorkflowStateService.log().error(f"Unable for load scan {am.scanid}")
@@ -172,7 +171,7 @@ class WorkflowStateService:
                 else:
                     feedback = PullRequestFeedback(self.__workflow_map[ScanWorkflow.PR].excluded_severities, self.__workflow_map[ScanWorkflow.PR].excluded_states, cxone_service.display_link, am.projectid, am.scanid, report, scm_service.create_code_permalink, pr_details)
                     await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
-                                                    am.scanid, md.markdown(feedback.content, extensions=['tables']))
+                                                    am.scanid, feedback.content)
                     await msg.ack()
             else:
                 await msg.ack()

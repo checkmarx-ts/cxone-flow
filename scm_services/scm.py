@@ -72,7 +72,7 @@ class SCMService:
                                                 headers = extra_headers))
     
 
-    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, content : str):
+    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, markdown : str):
         raise NotImplementedError("exec_pr_decorate")
    
     def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
