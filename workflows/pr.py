@@ -3,12 +3,18 @@ from jsonpath_ng import parse
 from workflows.messaging import PRDetails
 from typing import Callable, List, Type
 from . import ResultSeverity, ResultStates
+import re
 
 
 class PullRequestDecoration:
     __cx_embed_header_img = "![CheckmarxOne](https://camo.githubusercontent.com/450121ab9d772ac3f1186c2dde5608322249cba9183cd43b34ac7a71e71584b9/68747470733a2f2f63646e2e6173742e636865636b6d6172782e6e65742f696e746567726174696f6e732f6c6f676f2f436865636b6d6172782e706e67)"
 
     __comment = "[//]:#"
+
+    __identifier = __comment + "cxoneflow"
+
+    __comment_match = re.compile(f"\\[//\\]:#cxoneflow")
+
     __header_begin = __comment + "begin:header"
     __header_end = __comment + "end:header"
 
@@ -29,9 +35,14 @@ class PullRequestDecoration:
         "informational" : "INFO"
     }
 
+    @staticmethod
+    def matches_identifier(text : str):
+        return PullRequestDecoration.__comment_match.match(text.replace("\n", ""))
+
 
     def __init__(self):
         self.__elements = {
+            PullRequestDecoration.__identifier : [PullRequestDecoration.__identifier],
             PullRequestDecoration.__header_begin : [],
             PullRequestDecoration.__header_end : None,
             PullRequestDecoration.__annotation_begin : [],
@@ -167,7 +178,7 @@ class PullRequestFeedback(PullRequestDecoration):
 
                         self.add_resolved_detail(PullRequestDecoration.severity_indicator(result['severity']),
                                                 vuln['vulnerabilityName'], 
-                                                PullRequestDecoration.link(vuln['vulnerabilityLink'], "View"))
+                                                PullRequestDecoration.link(result['vulnerabilityLink'], "View"))
 
     def __add_iac_details(self, pr_details):
         title_added = False

@@ -56,11 +56,11 @@ class SCMService:
 
         raise RetriesExhausted(f"Retries exhausted for {prepStr}")
     
-    def _form_url(self, url_path, **kwargs):
+    def _form_url(self, url_path, anchor=None, **kwargs):
         base = self.__session.base_endpoint.rstrip("/")
         suffix = urllib.parse.quote(url_path.lstrip("/"))
         args = [f"{x}={urllib.parse.quote(str(kwargs[x]))}" for x in kwargs.keys()]
-        return f"{base}/{suffix}{"?" if len(args) > 0 else ""}{"&".join(args)}"
+        return f"{base}/{suffix}{"?" if len(args) > 0 else ""}{"&".join(args)}{f"#{anchor}" if anchor is not None else ""}"
     
     
     async def exec(self, method, path, query=None, body=None, extra_headers=None):
