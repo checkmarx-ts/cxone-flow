@@ -52,8 +52,18 @@ async def adoe_webhook_endpoint():
     __log.info("Received hook for Azure DevOps Enterprise")
     __log.debug(f"adoe webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     try:
-        TaskManager.in_background(OrchestrationDispatch.execute(AzureDevOpsEnterpriseOrchestrator(request.headers, request.data)))
-        return Response(status=204)
+        orch = AzureDevOpsEnterpriseOrchestrator(request.headers, request.data);
+
+        if not orch.is_diagnostic:
+            TaskManager.in_background(OrchestrationDispatch.execute(orch))
+            return Response(status=204)
+        else:
+            # ADO's test payload can't be matched against a route since it is "fabrikammed". 
+            # Test all the services to see if any use the shared secret.
+            for service in CxOneFlowConfig.retrieve_scm_services(orch.config_key):
+                if await orch.is_signature_valid(service.shared_secret):
+                    return Response(status=200)
+            return Response(status=401)
     except Exception as ex:
         __log.exception(ex)
         return Response(status=400)

@@ -16,7 +16,7 @@ from cxoneflow_logging import SecretRegistry
 from workflows.state_service import WorkflowStateService
 from workflows.pull_request import PullRequestWorkflow
 from workflows import ResultSeverity, ResultStates
-from typing import Tuple
+from typing import Tuple, List
 from multiprocessing import cpu_count
 
 
@@ -93,6 +93,10 @@ class CxOneFlowConfig:
         return service_tuple[CxOneFlowConfig.__cxone_service_tuple_index], service_tuple[CxOneFlowConfig.__scm_service_tuple_index], \
             service_tuple[CxOneFlowConfig.__workflow_service_tuple_index]
 
+
+    @staticmethod
+    def retrieve_scm_services(scm_config_key : str) -> List[SCMService]:
+        return [entry[CxOneFlowConfig.__scm_service_tuple_index] for entry in CxOneFlowConfig.__ordered_scm_config_tuples[scm_config_key]]
 
     @staticmethod
     def retrieve_services_by_route(clone_urls : str, scm_config_key : str) -> Tuple[CxOneService,SCMService,WorkflowStateService]:
@@ -369,9 +373,9 @@ class CxOneFlowConfig:
         scan_config_dict = CxOneFlowConfig.__get_value_for_key_or_default('scan-config', config_dict, {} )
 
         cxone_service = CxOneService(service_moniker, cxone_client, \
-                                     CxOneFlowConfig.__get_value_for_key_or_default('default-scan-engines', scan_config_dict, None), \
-                                     CxOneFlowConfig.__get_value_for_key_or_default('default-scan-tags', scan_config_dict, None), \
-                                     CxOneFlowConfig.__get_value_for_key_or_default('default-project-tags', scan_config_dict, None), \
+                                     CxOneFlowConfig.__get_value_for_key_or_default('default-scan-engines', scan_config_dict, {}), \
+                                     CxOneFlowConfig.__get_value_for_key_or_default('default-scan-tags', scan_config_dict, {}), \
+                                     CxOneFlowConfig.__get_value_for_key_or_default('default-project-tags', scan_config_dict, {}), \
                                      )
 
         connection_config_dict = CxOneFlowConfig.__get_value_for_key_or_fail(config_path, 'connection', config_dict)

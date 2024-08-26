@@ -113,9 +113,6 @@ class CxOneService:
 
         project_config = await ProjectRepoConfig.from_project_json(self.__client, project_json)
 
-        # TODO: method that takes the repoconfig and default engines, forms
-        # a proper dictionary with the configs from each engine combined with the project
-        # engine configs.
         scan__filter_cfg = await ScanFilterConfig.from_project_id(self.__client, project_id)
         engine_config = scan__filter_cfg.compute_filters_with_defaults(self.__default_engine_config)
 

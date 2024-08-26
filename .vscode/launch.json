@@ -9,7 +9,10 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "env" : {
+                "LOG_LEVEL" : "DEBUG"
+            }
         },
         {
             "name": "Python Debugger: Flask",
@@ -19,7 +22,7 @@
             "env": {
                 "FLASK_APP": "wsgi.py",
                 "FLASK_DEBUG": "1",
-                "LOG_LEVEL" : "DEBUG"
+                "LOG_LEVEL" : "DEBUG",
             },
             "args": [
                 "run",
