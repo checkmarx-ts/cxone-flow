@@ -115,7 +115,7 @@ class PullRequestDecoration:
 
 
     @property
-    def content(self):
+    def full_content(self):
         content = []
 
         self.__elements[PullRequestDecoration.__header_begin] = [PullRequestDecoration.__cx_embed_header_img]
