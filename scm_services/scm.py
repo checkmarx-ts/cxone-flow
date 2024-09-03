@@ -43,7 +43,7 @@ class SCMService:
             response = await asyncio.to_thread(self.__session.send, prepared_request)
             
             logStr = f"{response.status_code}: {response.reason} {prepStr}"
-            SCMService.log().debug(f"Response: {logStr} #{tryCount}")
+            SCMService.log().debug(f"Response #{tryCount}: {logStr} : {response.text}")
 
             if not response.ok:
                 if response.status_code in [401, 403]:
@@ -72,7 +72,7 @@ class SCMService:
                                                 headers = extra_headers))
     
 
-    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, markdown : str):
+    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, summary_markdown : str):
         raise NotImplementedError("exec_pr_decorate")
    
     def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):

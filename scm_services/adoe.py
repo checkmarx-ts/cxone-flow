@@ -8,6 +8,8 @@ import markdown as md
 
 class ADOEService(SCMService):
 
+    __max_content_chars = 150000
+
     __thread_prop_key = "cxoneflow"
 
     @staticmethod
@@ -73,10 +75,13 @@ class ADOEService(SCMService):
 
 
     async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, 
-                               scanid : str, markdown : str):
+                               scanid : str, full_markdown : str, summary_markdown : str):
         existing_thread = await self.__get_pr_thread(organization, project, repo_slug, pr_number)
 
-        content = md.markdown(markdown, extensions=['tables'])
+        content = md.markdown(full_markdown, extensions=['tables'])
+
+        if len(content) > ADOEService.__max_content_chars:
+            content = md.markdown(summary_markdown, extensions=['tables'])
 
         if existing_thread is None:
             await self.__create_pr_thread(organization, project, repo_slug, pr_number, content, scanid)

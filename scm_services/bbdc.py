@@ -4,6 +4,8 @@ import json
 from workflows.pr import PullRequestDecoration
 
 class BBDCService(SCMService):
+    __max_content_chars = 32000
+
     # comment "threadResolved" must be false to be updated.
     # permittedOperations.editable should also be true
     # text property should be markdown
@@ -73,13 +75,15 @@ class BBDCService(SCMService):
                                         return int(comment['id']), int(comment['version'])
         return None, None
 
-    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, markdown : str):
+    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, summary_markdown : str):
         id, version = await self.__find_existing_comment(project, repo_slug, pr_number)
 
+        content = full_markdown if len(full_markdown) <= BBDCService.__max_content_chars else summary_markdown
+
         if id is None and version is None:
-            id, version = await self.__add_comment(project, repo_slug, pr_number, markdown)
+            id, version = await self.__add_comment(project, repo_slug, pr_number, content)
         else:
-            await self.__update_comment(project, repo_slug, pr_number, id, version, markdown)
+            await self.__update_comment(project, repo_slug, pr_number, id, version, content)
 
         SCMService.log().debug(f"Comment {id} version {version} modified on PR {pr_number}")
    

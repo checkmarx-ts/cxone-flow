@@ -1,7 +1,7 @@
 from pathlib import Path
 from jsonpath_ng import parse
 from workflows.messaging import PRDetails
-from typing import Callable, List, Type
+from typing import Callable, List, Type, Dict
 from . import ResultSeverity, ResultStates
 import re
 
@@ -20,6 +20,9 @@ class PullRequestDecoration:
 
     __annotation_begin = __comment + "begin:ann"
     __annotation_end = __comment + "end:ann"
+
+    __summary_begin = __comment + "begin:summary"
+    __summary_end = __comment + "end:summary"
 
     __details_begin = __comment + "begin:details"
     __details_end = __comment + "end:details"
@@ -43,10 +46,12 @@ class PullRequestDecoration:
     def __init__(self):
         self.__elements = {
             PullRequestDecoration.__identifier : [PullRequestDecoration.__identifier],
-            PullRequestDecoration.__header_begin : [],
+            PullRequestDecoration.__header_begin : [PullRequestDecoration.__cx_embed_header_img],
             PullRequestDecoration.__header_end : None,
             PullRequestDecoration.__annotation_begin : [],
             PullRequestDecoration.__annotation_end : None,
+            PullRequestDecoration.__summary_begin : [],
+            PullRequestDecoration.__summary_end : None,
             PullRequestDecoration.__details_begin : [],
             PullRequestDecoration.__details_end : None,
         }
@@ -113,20 +118,54 @@ class PullRequestDecoration:
         self.__elements[PullRequestDecoration.__details_begin].append("| Severity | Name | Checkmarx Insight |")
         self.__elements[PullRequestDecoration.__details_begin].append("| - | - | - |")
 
+    def start_summary_section(self, excluded_severities : List[ResultSeverity]):
+        sev_header = " | ".join([x.value if not x in excluded_severities else \
+          f"<s>{x.value}</s>" for x in ResultSeverity])
 
-    @property
-    def full_content(self):
+        self.__elements[PullRequestDecoration.__summary_begin].append("\n")
+        self.__elements[PullRequestDecoration.__summary_begin].append("# Summary of Vulnerabilities")
+        self.__elements[PullRequestDecoration.__summary_begin].append("\n")
+        self.__elements[PullRequestDecoration.__summary_begin].append(f"| Engine | {sev_header} |")
+        self.__elements[PullRequestDecoration.__summary_begin].append(f"{"|--".join("" for x in ResultSeverity)}|--|--|")
+        
+        pass
+
+    def add_summary_entry(self, engine: str, counts_by_sev : Dict[ResultSeverity, str]):
+        sev_part = "|".join([ str(counts_by_sev[sev]) for sev in ResultSeverity])
+        self.__elements[PullRequestDecoration.__summary_begin].append(f"|{engine}|{sev_part}|")
+
+
+
+    def __get_content(self, keys : List[str]) -> str:
         content = []
 
-        self.__elements[PullRequestDecoration.__header_begin] = [PullRequestDecoration.__cx_embed_header_img]
-
-        for k in self.__elements.keys():
+        for k in keys:
             content.append("\n")
             if self.__elements[k] is not None:
                 for item in self.__elements[k]:
                     content.append(item)
         
         return "\n".join(content)
+
+    @property
+    def summary_content(self):
+        return self.__get_content([x for x in self.__elements.keys() if x not in 
+          [PullRequestDecoration.__details_begin, PullRequestDecoration.__details_end]])
+
+    @property
+    def full_content(self):
+        return self.__get_content(self.__elements.keys())
+        # content = []
+
+        # # self.__elements[PullRequestDecoration.__header_begin] = [PullRequestDecoration.__cx_embed_header_img]
+
+        # for k in self.__elements.keys():
+        #     content.append("\n")
+        #     if self.__elements[k] is not None:
+        #         for item in self.__elements[k]:
+        #             content.append(item)
+        
+        # return "\n".join(content)
 
 
 
@@ -137,8 +176,14 @@ class PullRequestAnnotation(PullRequestDecoration):
 
 class PullRequestFeedback(PullRequestDecoration):
     __sast_results_query = parse("$.scanResults.resultsList[*]")
+    __sast_results_summary_query = parse("$.scanResults.severitiesBreakdown[*]")
+
     __sca_results_query = parse("$.scaScanResults.packages[*]")
+    __sca_results_summary_query = parse("$.scaScanResults.severitiesBreakdown[*]")
+
     __iac_results_query = parse("$.iacScanResults.technology[*]")
+    __iac_results_summary_query = parse("$.iacScanResults.severitiesBreakdown[*]")
+
     __resolved_results_query = parse("$.resolvedVulnerabilities")
 
     __scanner_stat_query = parse("$.scanInformation.scannerStatus[*]")
@@ -159,6 +204,7 @@ class PullRequestFeedback(PullRequestDecoration):
         self.__excluded_states = excluded_states
 
         self.__add_annotation_section(display_url, project_id, scanid)
+        self.__add_summary_section()
         self.__add_sast_details(pr_details)
         self.__add_sca_details(display_url, project_id, scanid)
         self.__add_iac_details(pr_details)
@@ -242,11 +288,46 @@ class PullRequestFeedback(PullRequestDecoration):
                                         vuln['sourceLine'])}", 
                                         PullRequestDecoration.link(vuln['resultViewerLink'], "Attack Vector"))
 
+    @staticmethod
+    def __translate_engine_status(status_string : str) -> str:
+        match status_string:
+            case "Completed":
+                return "&#x2705"
+
+            case _:
+                return "&#x274c"
+
     def __add_annotation_section(self, display_url, project_id, scanid):
         self.add_to_annotation(f"**Results for Scan ID {PullRequestDecoration.scan_link(display_url, project_id, scanid)}**")
-        self.add_to_annotation("# Scanners")
-        self.add_to_annotation("| Engine | Status |")
-        self.add_to_annotation("| - | - |")
+
+        status_content = ""
         for engine_status in PullRequestFeedback.__scanner_stat_query.find(self.__enhanced_report):
-            x = engine_status.value
-            self.add_to_annotation(f"| {x['name']} | {x['status']} |")
+            stat = f"{PullRequestFeedback.__translate_engine_status(engine_status.value['status'])}&nbsp;<b>{engine_status.value['name']}</b>"
+            status_content = f"{status_content}{stat}&nbsp;&nbsp;"
+
+        self.add_to_annotation(f"\n{status_content}")
+    
+    @staticmethod
+    def __init_result_count_map() -> Dict[ResultSeverity, str]:
+        return {k:"N/A" for k in ResultSeverity}
+
+    def __add_engine_summary(self, engine : str, severitiesBreakdown : List[Dict[str, any]]):
+        counts = PullRequestFeedback.__init_result_count_map()
+
+        for entry in severitiesBreakdown:
+            counts[ResultSeverity(entry.value['level'])] = str(entry.value['value'])
+
+        self.add_summary_entry(engine, counts)
+        
+
+    def __add_summary_section(self):
+        self.start_summary_section(self.__excluded_severities)
+
+        sast_severitiesBreakdown = PullRequestFeedback.__sast_results_summary_query.find(self.__enhanced_report)
+        self.__add_engine_summary("SAST", sast_severitiesBreakdown)
+
+        sca_severitiesBreakdown = PullRequestFeedback.__sca_results_summary_query.find(self.__enhanced_report)
+        self.__add_engine_summary("SCA", sca_severitiesBreakdown)
+
+        iac_severitiesBreakdown = PullRequestFeedback.__iac_results_summary_query.find(self.__enhanced_report)
+        self.__add_engine_summary("IaC", iac_severitiesBreakdown)

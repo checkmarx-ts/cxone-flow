@@ -224,6 +224,9 @@ class CxOneFlowConfig:
 
             amqp_dict = CxOneFlowConfig.__get_value_for_key_or_default("amqp", kwargs, None)
 
+            max_poll_interval = int(CxOneFlowConfig.__get_value_for_key_or_default("poll-max-interval-seconds", scan_monitor_dict, 600))
+            poll_backoff = int(CxOneFlowConfig.__get_value_for_key_or_default("poll-backoff-multiplier", scan_monitor_dict, 2))
+
             if not amqp_dict is None:
                 amqp_url = CxOneFlowConfig.__get_value_for_key_or_fail(config_path, "amqp-url", amqp_dict)
                 amqp_user = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(amqp_dict, "amqp-user", None)
@@ -231,10 +234,10 @@ class CxOneFlowConfig:
                 ssl_verify = CxOneFlowConfig.__get_value_for_key_or_default("ssl-verify", amqp_dict, True)
                 
                 return WorkflowStateService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, pr_workflow, \
-                                            int(CxOneFlowConfig.__get_value_for_key_or_default("poll-max-interval-seconds", scan_monitor_dict, 600)),\
-                                            int(CxOneFlowConfig.__get_value_for_key_or_default("poll-backoff-multiplier", scan_monitor_dict, 2)))
+                                            max_poll_interval, poll_backoff)
             else:
-                return WorkflowStateService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, pr_workflow)
+                return WorkflowStateService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, pr_workflow, \
+                                            max_poll_interval, poll_backoff)
 
             
 
