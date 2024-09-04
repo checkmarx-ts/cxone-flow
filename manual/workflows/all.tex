@@ -104,22 +104,51 @@ as described in Section \ref{sec:exclusions-element}.  If the results of a parti
 engine are not included in the Improved Scan Report, they are not available for
 publication in the feedback output.
 
-\subsection{Result Summaries}
+\subsection{Pull Request Comment Contents}
 
-This section describes the result summaries that can appear in a pull-request
-comment when the pull-request feedback output is generated.
+Each source control system will impose a maximum size for content written in
+a pull request comment.  Since scans can produce an unpredictable number of
+results for each engine scanned, it is possible that a full itemized
+summary of results in a pull request comment will exceed the maximum comment
+size.  \cxoneflow will write the full itemized summary of results if the
+content size is less than the maximum comment content size.  In the event that
+the maximum comment content size would be exceeded, a simple count of
+vulnerabilities by severity and engine is written as the comment content.
+
+This section describes the data written in the pull request comment content.
+
 
 \subsubsection{Header}
 
 An example header of the pull-request comment is shown in Figure
-\ref{fig:pr-header-section}.  It contains a link to the scan with a list of engines
-that were requested for the scan.
-
+\ref{fig:pr-header-section}.  It contains a link to the scan
+and an indicator of the scan status of the selected engines.  An indicator
+of a red "X" next to an engine indicates the scan status of anything other
+than successful completion of the scan running on that engine.
 
 \begin{figure}[ht]
     \includegraphics[width=\textwidth]{graphics/pr-header.png}
     \caption{Pull-Request Comment Header}
     \label{fig:pr-header-section}
+\end{figure}
+
+\subsubsection{Summary of Vulnerabilities}
+
+An example summary of vulnerability counts by severity and engine 
+is shown in Figure \ref{fig:pr-summary}.  The calculated counts will not
+include vulnerabilities marked as "Not Exploitable".  Severities that
+are configured for exclusions, as documented in Section
+\ref{sec:exclusions-element}, are not included in the table.
+
+The counts for SCA scans only reflect the reported vulnerabilities in the
+Risks tab of the SCA results viewer.  The count will differ from the summary
+of SCA results shown when selecting a scan in Scan History; the scan
+history view shows a combined count of all categories of SCA results.
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/pr-summary.png}
+    \caption{Pull-Request Summary Count by Severity and Engine}
+    \label{fig:pr-summary}
 \end{figure}
 
 
