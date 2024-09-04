@@ -1,5 +1,6 @@
 from pathlib import Path
 from jsonpath_ng import parse
+from jsonpath_ng.ext import parser
 from workflows.messaging import PRDetails
 from typing import Callable, List, Type, Dict
 from . import ResultSeverity, ResultStates
@@ -163,13 +164,10 @@ class PullRequestAnnotation(PullRequestDecoration):
 
 class PullRequestFeedback(PullRequestDecoration):
     __sast_results_query = parse("$.scanResults.resultsList[*]")
-    __sast_results_summary_query = parse("$.scanResults.severitiesBreakdown[*]")
 
     __sca_results_query = parse("$.scaScanResults.packages[*]")
-    __sca_results_summary_query = parse("$.scaScanResults.severitiesBreakdown[*]")
 
     __iac_results_query = parse("$.iacScanResults.technology[*]")
-    __iac_results_summary_query = parse("$.iacScanResults.severitiesBreakdown[*]")
 
     __resolved_results_query = parse("$.resolvedVulnerabilities")
 
@@ -305,21 +303,52 @@ class PullRequestFeedback(PullRequestDecoration):
             counts[ResultSeverity(entry.value['level'])] = str(entry.value['value'])
 
         self.add_summary_entry(engine, counts, included_severities)
+
+
+    def __get_result_count_map(self, query_gen : Callable[[str], str]) -> Dict[ResultSeverity, str]:
+        counts = PullRequestFeedback.__init_result_count_map()
+        sev_incl = PullRequestFeedback.__included_severities(self.__excluded_severities)
+
+        for sev in sev_incl:
+            for sev_value in sev.values:
+                query = parser.parse(query_gen(sev_value))
+                found = query.find(self.__enhanced_report)
+                if len(found) > 0:
+                    counts[sev] = str(len(found))
+                    break
+        
+        return counts
+
+    def __add_sast_summary(self):
+        sev_incl = PullRequestFeedback.__included_severities(self.__excluded_severities)
+
+        self.add_summary_entry("SAST", 
+          self.__get_result_count_map(
+              lambda sev_value:  f"$.scanResults.resultsList[*].vulnerabilities[?(@.state!='Not Exploitable' & @.severity=='{sev_value}')]"), sev_incl)
+
+    def __add_sca_summary(self):
+        sev_incl = PullRequestFeedback.__included_severities(self.__excluded_severities)
+
+        self.add_summary_entry("SCA", 
+          self.__get_result_count_map(
+              lambda sev_value:  f"$.scaScanResults.packages[*].packageCategory[*].categoryResults[?(@.state!='Not Exploitable' & @.severity=='{sev_value}')]"),
+              sev_incl)
+
+    def __add_iac_summary(self):
+        sev_incl = PullRequestFeedback.__included_severities(self.__excluded_severities)
+
+        self.add_summary_entry("IaC", 
+          self.__get_result_count_map(
+              lambda sev_value:  f"$.iacScanResults.technology[*].queries[*].resultsList[?(@.state!='Not Exploitable' & @.severity=='{sev_value}')]"),
+              sev_incl)
         
     @staticmethod
     def __included_severities(excluded_severities : List[ResultSeverity]) -> List[ResultSeverity]:
         return [x for x in ResultSeverity if x not in excluded_severities]
 
     def __add_summary_section(self):
-        sev_incl = PullRequestFeedback.__included_severities(self.__excluded_severities)
 
-        self.start_summary_section(sev_incl)
-
-        sast_severitiesBreakdown = PullRequestFeedback.__sast_results_summary_query.find(self.__enhanced_report)
-        self.__add_engine_summary("SAST", sast_severitiesBreakdown, sev_incl)
-
-        sca_severitiesBreakdown = PullRequestFeedback.__sca_results_summary_query.find(self.__enhanced_report)
-        self.__add_engine_summary("SCA", sca_severitiesBreakdown, sev_incl)
-
-        iac_severitiesBreakdown = PullRequestFeedback.__iac_results_summary_query.find(self.__enhanced_report)
-        self.__add_engine_summary("IaC", iac_severitiesBreakdown, sev_incl)
+        self.start_summary_section(PullRequestFeedback.__included_severities(self.__excluded_severities))
+        self.__add_sast_summary()
+        self.__add_sca_summary()
+        self.__add_iac_summary()
