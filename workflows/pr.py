@@ -277,17 +277,17 @@ class PullRequestFeedback(PullRequestDecoration):
     def __translate_engine_status(status_string : str) -> str:
         match status_string:
             case "Completed":
-                return "&#x2705"
+                return "&#x2705;"
 
             case _:
-                return "&#x274c"
+                return "&#x274c;"
 
     def __add_annotation_section(self, display_url : str, project_id : str, scanid : str, pr_details : PRDetails):
         self.add_to_annotation(f"**Results for Scan ID {PullRequestDecoration.scan_link(display_url, project_id, scanid, pr_details.source_branch)}**")
 
         status_content = ""
         for engine_status in PullRequestFeedback.__scanner_stat_query.find(self.__enhanced_report):
-            stat = f"{PullRequestFeedback.__translate_engine_status(engine_status.value['status'])}&nbsp;<b>{engine_status.value['name']}</b>"
+            stat = f"{PullRequestFeedback.__translate_engine_status(engine_status.value['status'])}&nbsp;**{engine_status.value['name']}**"
             status_content = f"{status_content}{stat}&nbsp;&nbsp;"
 
         self.add_to_annotation(f"\n{status_content}")
