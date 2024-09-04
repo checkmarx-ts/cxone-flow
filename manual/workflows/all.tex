@@ -138,7 +138,10 @@ An example summary of vulnerability counts by severity and engine
 is shown in Figure \ref{fig:pr-summary}.  The calculated counts will not
 include vulnerabilities marked as "Not Exploitable".  Severities that
 are configured for exclusions, as documented in Section
-\ref{sec:exclusions-element}, are not included in the table.
+\ref{sec:exclusions-element}, are not included in the table.  When no 
+vulnerabilities of a given severity with a status other than 
+"Not Exploitable" are found, the count is indicated by "N/R" (none reported).
+
 
 The counts for SCA scans only reflect the reported vulnerabilities in the
 Risks tab of the SCA results viewer.  The count will differ from the summary
