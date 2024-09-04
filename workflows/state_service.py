@@ -145,7 +145,7 @@ class WorkflowStateService:
                 inspector = await cxone_service.load_scan_inspector(am.scanid)
 
                 if inspector is not None:
-                    annotation = PullRequestAnnotation(cxone_service.display_link, inspector.project_id, am.scanid, am.annotation)
+                    annotation = PullRequestAnnotation(cxone_service.display_link, inspector.project_id, am.scanid, am.annotation, pr_details.source_branch)
                     await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
                                                     am.scanid, annotation.full_content, annotation.summary_content)
                     await msg.ack()
@@ -169,7 +169,9 @@ class WorkflowStateService:
                 if report is None:
                     await msg.nack()
                 else:
-                    feedback = PullRequestFeedback(self.__workflow_map[ScanWorkflow.PR].excluded_severities, self.__workflow_map[ScanWorkflow.PR].excluded_states, cxone_service.display_link, am.projectid, am.scanid, report, scm_service.create_code_permalink, pr_details)
+                    feedback = PullRequestFeedback(self.__workflow_map[ScanWorkflow.PR].excluded_severities, 
+                        self.__workflow_map[ScanWorkflow.PR].excluded_states, cxone_service.display_link, am.projectid, am.scanid, report, 
+                        scm_service.create_code_permalink, pr_details)
                     await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
                                                     am.scanid, feedback.full_content, feedback.summary_content)
                     await msg.ack()

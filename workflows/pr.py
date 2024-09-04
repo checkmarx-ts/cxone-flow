@@ -57,8 +57,8 @@ class PullRequestDecoration:
         }
 
     @staticmethod
-    def scan_link(display_url : str, project_id : str, scanid : str):
-        return f"[{scanid}]({display_url}{Path("projects") / Path(project_id) / Path(f"scans?id={scanid}&filter_by_Scan_Id={scanid}")})"
+    def scan_link(display_url : str, project_id : str, scanid : str, branch : str):
+        return f"[{scanid}]({display_url}{Path("projects") / Path(project_id) / Path(f"scans?id={scanid}&filter_by_Scan_Id={scanid}&branch={branch}")})"
 
     @staticmethod
     def sca_result_link(display_url : str, project_id : str, scanid : str, title : str, cve : str, package_id : str):
@@ -118,20 +118,19 @@ class PullRequestDecoration:
         self.__elements[PullRequestDecoration.__details_begin].append("| Severity | Name | Checkmarx Insight |")
         self.__elements[PullRequestDecoration.__details_begin].append("| - | - | - |")
 
-    def start_summary_section(self, excluded_severities : List[ResultSeverity]):
-        sev_header = " | ".join([x.value if not x in excluded_severities else \
-          f"<s>{x.value}</s>" for x in ResultSeverity])
+
+    def start_summary_section(self, included_severities : List[ResultSeverity]):
+        sev_header = " | ".join([x.value for x in included_severities])
 
         self.__elements[PullRequestDecoration.__summary_begin].append("\n")
         self.__elements[PullRequestDecoration.__summary_begin].append("# Summary of Vulnerabilities")
         self.__elements[PullRequestDecoration.__summary_begin].append("\n")
         self.__elements[PullRequestDecoration.__summary_begin].append(f"| Engine | {sev_header} |")
-        self.__elements[PullRequestDecoration.__summary_begin].append(f"{"|--".join("" for x in ResultSeverity)}|--|--|")
+        self.__elements[PullRequestDecoration.__summary_begin].append(f"{"|--".join("" for x in included_severities)}|--|--|")
         
-        pass
 
-    def add_summary_entry(self, engine: str, counts_by_sev : Dict[ResultSeverity, str]):
-        sev_part = "|".join([ str(counts_by_sev[sev]) for sev in ResultSeverity])
+    def add_summary_entry(self, engine: str, counts_by_sev : Dict[ResultSeverity, str], included_severities : List[ResultSeverity]):
+        sev_part = "|".join([ str(counts_by_sev[sev]) for sev in included_severities])
         self.__elements[PullRequestDecoration.__summary_begin].append(f"|{engine}|{sev_part}|")
 
 
@@ -155,24 +154,12 @@ class PullRequestDecoration:
     @property
     def full_content(self):
         return self.__get_content(self.__elements.keys())
-        # content = []
-
-        # # self.__elements[PullRequestDecoration.__header_begin] = [PullRequestDecoration.__cx_embed_header_img]
-
-        # for k in self.__elements.keys():
-        #     content.append("\n")
-        #     if self.__elements[k] is not None:
-        #         for item in self.__elements[k]:
-        #             content.append(item)
-        
-        # return "\n".join(content)
-
 
 
 class PullRequestAnnotation(PullRequestDecoration):
-    def __init__(self, display_url : str, project_id : str, scanid : str, annotation : str):
+    def __init__(self, display_url : str, project_id : str, scanid : str, annotation : str, branch : str):
         super().__init__()
-        self.add_to_annotation(f"{annotation}: {PullRequestDecoration.scan_link(display_url, project_id, scanid)}")
+        self.add_to_annotation(f"{annotation}: {PullRequestDecoration.scan_link(display_url, project_id, scanid, branch)}")
 
 class PullRequestFeedback(PullRequestDecoration):
     __sast_results_query = parse("$.scanResults.resultsList[*]")
@@ -203,7 +190,7 @@ class PullRequestFeedback(PullRequestDecoration):
         self.__excluded_severities = excluded_severities
         self.__excluded_states = excluded_states
 
-        self.__add_annotation_section(display_url, project_id, scanid)
+        self.__add_annotation_section(display_url, project_id, scanid, pr_details)
         self.__add_summary_section()
         self.__add_sast_details(pr_details)
         self.__add_sca_details(display_url, project_id, scanid)
@@ -297,8 +284,8 @@ class PullRequestFeedback(PullRequestDecoration):
             case _:
                 return "&#x274c"
 
-    def __add_annotation_section(self, display_url, project_id, scanid):
-        self.add_to_annotation(f"**Results for Scan ID {PullRequestDecoration.scan_link(display_url, project_id, scanid)}**")
+    def __add_annotation_section(self, display_url : str, project_id : str, scanid : str, pr_details : PRDetails):
+        self.add_to_annotation(f"**Results for Scan ID {PullRequestDecoration.scan_link(display_url, project_id, scanid, pr_details.source_branch)}**")
 
         status_content = ""
         for engine_status in PullRequestFeedback.__scanner_stat_query.find(self.__enhanced_report):
@@ -309,25 +296,30 @@ class PullRequestFeedback(PullRequestDecoration):
     
     @staticmethod
     def __init_result_count_map() -> Dict[ResultSeverity, str]:
-        return {k:"N/A" for k in ResultSeverity}
+        return {k:"N/R" for k in ResultSeverity}
 
-    def __add_engine_summary(self, engine : str, severitiesBreakdown : List[Dict[str, any]]):
+    def __add_engine_summary(self, engine : str, severitiesBreakdown : List[Dict[str, any]], included_severities : List[ResultSeverity]):
         counts = PullRequestFeedback.__init_result_count_map()
 
         for entry in severitiesBreakdown:
             counts[ResultSeverity(entry.value['level'])] = str(entry.value['value'])
 
-        self.add_summary_entry(engine, counts)
+        self.add_summary_entry(engine, counts, included_severities)
         
+    @staticmethod
+    def __included_severities(excluded_severities : List[ResultSeverity]) -> List[ResultSeverity]:
+        return [x for x in ResultSeverity if x not in excluded_severities]
 
     def __add_summary_section(self):
-        self.start_summary_section(self.__excluded_severities)
+        sev_incl = PullRequestFeedback.__included_severities(self.__excluded_severities)
+
+        self.start_summary_section(sev_incl)
 
         sast_severitiesBreakdown = PullRequestFeedback.__sast_results_summary_query.find(self.__enhanced_report)
-        self.__add_engine_summary("SAST", sast_severitiesBreakdown)
+        self.__add_engine_summary("SAST", sast_severitiesBreakdown, sev_incl)
 
         sca_severitiesBreakdown = PullRequestFeedback.__sca_results_summary_query.find(self.__enhanced_report)
-        self.__add_engine_summary("SCA", sca_severitiesBreakdown)
+        self.__add_engine_summary("SCA", sca_severitiesBreakdown, sev_incl)
 
         iac_severitiesBreakdown = PullRequestFeedback.__iac_results_summary_query.find(self.__enhanced_report)
-        self.__add_engine_summary("IaC", iac_severitiesBreakdown)
+        self.__add_engine_summary("IaC", iac_severitiesBreakdown, sev_incl)
