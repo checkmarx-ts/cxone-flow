@@ -23,6 +23,7 @@
                 "FLASK_APP": "wsgi.py",
                 "FLASK_DEBUG": "1",
                 "LOG_LEVEL" : "DEBUG",
+                "ENABLE_DUMP" : "1"
             },
             "args": [
                 "run",

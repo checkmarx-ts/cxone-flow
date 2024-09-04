@@ -30,8 +30,11 @@ TaskManager.bootstrap()
 
 app = Flask(__app_name__)
 
-@app.get("/ping")
+@app.route("/ping", methods=['GET', 'POST'])
 async def ping():
+    if request.method != "GET" and "ENABLE_DUMP" in os.environ.keys():
+        content = json.dumps(request.json) if request.content_type == "application/json" else request.data
+        __log.debug(f"ping webhook: headers: [{request.headers}] body: [{content}]")
     return Response("pong", status=200)
 
 
