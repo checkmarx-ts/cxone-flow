@@ -39,6 +39,17 @@ def get_config_path():
     else:
         return "./config.yaml"
 
+def get_default_ssl_verify_value():
+    if 'REQUESTS_CA_BUNDLE' in os.environ.keys():
+        return os.environ['REQUESTS_CA_BUNDLE']
+    
+    ubuntu_default = "/etc/ssl/certs/ca-certificates.crt"
+    if os.path.exists(ubuntu_default):
+        return ubuntu_default
+
+    return True
+   
+
 class ConfigurationException(Exception):
 
     @staticmethod
@@ -231,7 +242,7 @@ class CxOneFlowConfig:
                 amqp_url = CxOneFlowConfig.__get_value_for_key_or_fail(config_path, "amqp-url", amqp_dict)
                 amqp_user = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(amqp_dict, "amqp-user", None)
                 amqp_password = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(amqp_dict, "amqp-password", None)
-                ssl_verify = CxOneFlowConfig.__get_value_for_key_or_default("ssl-verify", amqp_dict, True)
+                ssl_verify = CxOneFlowConfig.__get_value_for_key_or_default("ssl-verify", amqp_dict, get_default_ssl_verify_value())
                 
                 return WorkflowStateService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, pr_workflow, \
                                             max_poll_interval, poll_backoff)
@@ -282,7 +293,7 @@ class CxOneFlowConfig:
                 CxOneFlowConfig.__get_value_for_key_or_default('timeout-seconds', kwargs, 60), \
                 CxOneFlowConfig.__get_value_for_key_or_default('retries', kwargs, 3), \
                 CxOneFlowConfig.__get_value_for_key_or_default('proxies', kwargs, None), \
-                CxOneFlowConfig.__get_value_for_key_or_default('ssl-verify', kwargs, True) \
+                CxOneFlowConfig.__get_value_for_key_or_default('ssl-verify', kwargs, get_default_ssl_verify_value()) \
                 )
         elif 'oauth' in kwargs.keys():
             oauth_params = CxOneFlowConfig.__get_value_for_key_or_fail(config_path, 'oauth', kwargs)
@@ -297,7 +308,7 @@ class CxOneFlowConfig:
                 CxOneFlowConfig.__get_value_for_key_or_default('timeout-seconds', kwargs, 60), \
                 CxOneFlowConfig.__get_value_for_key_or_default('retries', kwargs, 3), \
                 CxOneFlowConfig.__get_value_for_key_or_default('proxies', kwargs, None), \
-                CxOneFlowConfig.__get_value_for_key_or_default('ssl-verify', kwargs, True) \
+                CxOneFlowConfig.__get_value_for_key_or_default('ssl-verify', kwargs, get_default_ssl_verify_value()) \
                 )
 
         return None
@@ -391,7 +402,7 @@ class CxOneFlowConfig:
                                  CxOneFlowConfig.__get_value_for_key_or_default('timeout-seconds', connection_config_dict, 60), \
                                  CxOneFlowConfig.__get_value_for_key_or_default('retries', connection_config_dict, 3), \
                                  CxOneFlowConfig.__get_value_for_key_or_default('proxies', connection_config_dict, None), \
-                                 CxOneFlowConfig.__get_value_for_key_or_default('ssl-verify', connection_config_dict, True), \
+                                 CxOneFlowConfig.__get_value_for_key_or_default('ssl-verify', connection_config_dict, get_default_ssl_verify_value()), \
                                 )
         
         scm_shared_secret = CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(f"{config_path}/connection", 'shared-secret', connection_config_dict)
