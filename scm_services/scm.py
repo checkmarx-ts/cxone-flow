@@ -41,7 +41,7 @@ class SCMService:
         # This can probably be done a better way later.  This is
         # to handle cases where the pooled connections don't detect
         # unclean closes until trying to use the connection again.
-        for exceptCount in range(0, 100):
+        for exceptCount in range(0, 30):
             try:
                 for tryCount in range(0, self.__session.retries):
                     
