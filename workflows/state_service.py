@@ -12,6 +12,7 @@ from . import ScanStates, ScanWorkflow, FeedbackWorkflow
 from cxone_api.exceptions import ResponseException
 from .pr import PullRequestAnnotation, PullRequestFeedback
 from cxone_service import CxOneException
+import os
 
 class WorkflowStateService:
 
@@ -124,10 +125,17 @@ class WorkflowStateService:
                 WorkflowStateService.log().debug(f"Creating AMQP connection to: {self.__amqp_url}")
                 ctx = None
 
-                if self.use_ssl and not self.__ssl_verify:
-                    ctx = create_default_context()
-                    ctx.check_hostname = False
-                    ctx.verify_mode = CERT_NONE
+                if isinstance(self.__ssl_verify, bool):
+                    if not self.__ssl_verify and self.use_ssl:
+                        ctx = create_default_context()
+                        ctx.check_hostname = False
+                        ctx.verify_mode = CERT_NONE
+                elif self.use_ssl:
+                    if os.path.isfile(self.__ssl_verify):
+                        ctx = create_default_context(cafile=self.__ssl_verify)
+                    elif os.path.isdir(self.__ssl_verify):
+                        ctx = create_default_context(capath=self.__ssl_verify)
+
 
                 self.__client = await aio_pika.connect_robust(self.__amqp_url, \
                                                     login=self.__amqp_user if self.__amqp_user is not None else "guest", \
