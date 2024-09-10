@@ -1,5 +1,6 @@
-import asyncio, logging, urllib
+import asyncio, logging, urllib, sys
 from requests import Request
+
 
 
 class SCMAuthException(Exception):
@@ -37,22 +38,34 @@ class SCMService:
         prepared_request = self.__session.prepare_request(request)
         prepStr = f"[{prepared_request.method} {prepared_request.url}]"
 
-        for tryCount in range(0, self.__session.retries):
-            
-            SCMService.log().debug(f"Executing: {prepStr} #{tryCount}")
-            response = await asyncio.to_thread(self.__session.send, prepared_request)
-            
-            logStr = f"{response.status_code}: {response.reason} {prepStr}"
-            SCMService.log().debug(f"Response #{tryCount}: {logStr} : {response.text}")
+        # This can probably be done a better way later.  This is
+        # to handle cases where the pooled connections don't detect
+        # unclean closes until trying to use the connection again.
+        for exceptCount in range(0, 100):
+            try:
+                for tryCount in range(0, self.__session.retries):
+                    
+                    SCMService.log().debug(f"Executing: {prepStr} #{tryCount}")
+                    response = await asyncio.to_thread(self.__session.send, prepared_request)
+                    
+                    logStr = f"{response.status_code}: {response.reason} {prepStr}"
+                    SCMService.log().debug(f"Response #{tryCount}: {logStr} : {response.text}")
 
-            if not response.ok:
-                if response.status_code in [401, 403]:
-                    SCMService.log().error(f"{prepStr} : Raising authorization exception, not retrying.")
-                    raise SCMAuthException(logStr)
-                else:
-                    SCMService.log().error(f"{logStr} : Attempt {tryCount}")
-            else:
-                return response
+                    if not response.ok:
+                        if response.status_code in [401, 403]:
+                            SCMService.log().error(f"{prepStr} : Raising authorization exception, not retrying.")
+                            raise SCMAuthException(logStr)
+                        else:
+                            SCMService.log().error(f"{logStr} : Attempt {tryCount}")
+                            await asyncio.sleep(1)
+                    else:
+                        return response
+                
+                break
+
+            except:
+                SCMService.log().error(f"{sys.exc_info()} : Exception {exceptCount} for {prepStr}")
+                await asyncio.sleep(1)
 
         raise RetriesExhausted(f"Retries exhausted for {prepStr}")
     
