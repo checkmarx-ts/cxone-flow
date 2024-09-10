@@ -7,7 +7,6 @@ secret-root-path: /run/secrets
 my-connection-params: &common-connection-params
     timeout-seconds: 60
     retries: 3
-    ssl-verify: True
     proxies:
         http: http://proxy.corp.com:8080
         https: http://proxy.corp.com:8080
@@ -69,7 +68,6 @@ secret-root-path: /run/secrets
 my-connection-params: &common-connection-params
     timeout-seconds: 60
     retries: 3
-    ssl-verify: True
     proxies:
     http: http://proxy.corp.com:8080
     https: http://proxy.corp.com:8080

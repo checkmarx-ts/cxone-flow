@@ -27,6 +27,20 @@ import custom CA certificates when using \cxoneflow.
 -v $(pwd)/custom-ca.pem:/usr/local/share/ca-certificates/custom-ca.crt
 \end{code}
 
+\subsubsection{The \texttt{ssl-verify} Option}\label{sec:ssl-verify-general}
+
+In the configuration YAML documentation, all of the \texttt{connection}
+elements contain an optional \texttt{ssl-verify} setting.  This option
+is generally useful to turn off SSL verification by setting it to \texttt{False}.
+This can also be used to control which CA bundle is used for verification.
+
+\noindent\\Omitting the \texttt{ssl-verify} setting should be sufficient for
+most deployment cases.  If omitted, the container execution will use the default CA bundle
+where any custom CAs are added as described in Section \ref{sec:self-signed-certs}.
+The \texttt{ssl-verify} option can be set to an explicit path on the container
+if there is a need to use a CA bundle other than the one provided by the OS.
+
+
 \subsubsection{Configuring SSL for the \cxoneflow Endpoint}
 
 To make the \cxoneflow endpoint use SSL for communication, obtain an SSL certificate public/private key pair
@@ -198,7 +212,7 @@ describes the CheckmarxOne API connection parameters.
         \midrule
         \texttt{retries} & No & 3 & \makecell[l]{The number of retries when the request fails.}\\
         \midrule
-        \texttt{ssl-verify} & No & True & \makecell[l]{If False, server SSL certificates are not validated.}\\
+        \texttt{ssl-verify} & No & OS Bundle & \makecell[l]{See discussion in Section \ref{sec:ssl-verify-general}}\\
         \midrule
         \texttt{proxies} & No & N/A & \makecell[l]{A dictionary of \texttt{<scheme>:<url>} pairs to use a proxy\\server for requests. See: \href{https://requests.readthedocs.io/en/latest/user/advanced/\#proxies}{Python "requests" proxies}.}\\
         \midrule
@@ -274,8 +288,7 @@ integration scenarios.
         the\\provided value corresponds to a file name found under\\the path defined by
         \texttt{secret-root-path}.}\\
         \midrule
-        \texttt{ssl-verify} & No & True & \makecell[l]{If \texttt{False} and connecting to
-        the AMQP endpoint with an\\AMQPS URL, certificate validation is not performed.}\\
+        \texttt{ssl-verify} & No & OS Bundle & \makecell[l]{See discussion in Section \ref{sec:ssl-verify-general}}\\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -409,7 +422,7 @@ describes the SCM connection parameters used for API access and cloning.
         \midrule
         \texttt{retries} & No & 3 & \makecell[l]{The number of retries when the request fails.}\\
         \midrule
-        \texttt{ssl-verify} & No & True & \makecell[l]{If False, server SSL certificates are not validated.}\\
+        \texttt{ssl-verify} & No & OS Bundle & \makecell[l]{See discussion in Section \ref{sec:ssl-verify-general}}\\
         \midrule
         \texttt{proxies} & No & N/A & \makecell[l]{A dictionary of \texttt{<scheme>:<url>} pairs to use a proxy\\server for requests. See: \href{https://requests.readthedocs.io/en/latest/user/advanced/\#proxies}{Python "requests" proxies}.}\\
         \midrule
