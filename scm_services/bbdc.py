@@ -6,28 +6,6 @@ from workflows.pr import PullRequestDecoration
 class BBDCService(SCMService):
     __max_content_chars = 32000
 
-    # comment "threadResolved" must be false to be updated.
-    # permittedOperations.editable should also be true
-    # text property should be markdown
-    #
-    # Get PR activity
-    # {{BBDC_URL}}/rest/api/latest/projects/P1/repos/simplyvulnerable/pull-requests/1/activities
-    # Use start=page, isLastPage to page through activity
-
-    # Add PR comment
-    # {{BBDC_URL}}/rest/api/latest/projects/P1/repos/simplyvulnerable/pull-requests/1/comments
-    # {
-    # "text": "[//]:#comment!!# MARKDOWN!"
-    # }
-
-    # Update PR comment
-    # {{BBDC_URL}}/rest/api/latest/projects/P1/repos/simplyvulnerable/pull-requests/1/comments/10
-    # {
-    #     "version": 1,
-    #     "text": "Whatever updated again"
-    # }
-
-
     async def __bbdc_paged_items_gen(self, path):
         offset = 0
         buf = []
