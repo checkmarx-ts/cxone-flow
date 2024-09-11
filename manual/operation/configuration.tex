@@ -114,9 +114,10 @@ definition
 
 \subsubsection{YAML Root}\label{sec:yaml-root}
 
-The root of the YAML configuration will contain the \texttt{secret-root-path} element
-and one or more unique SCM configuration monikers.  The following SCM configuration monikers
-are currently supported:
+The root elements of the YAML configuration are shown in Table \ref{tab:yaml-root-elements}.
+One or more SCM monikers specify the configuration applied to one
+or more instances of a supported SCM server's web hook events.  
+The following SCM configuration monikers are currently supported:
 
 \begin{itemize}
     \item \texttt{bbdc} for BitBucket Data Center webhook payloads targeting the \texttt{/bbdc}
@@ -126,13 +127,33 @@ are currently supported:
 \end{itemize}
 
 
-\noindent\\The value for \texttt{secret-root-path} is the path to a directory that contains one
-or more files containing secret values.  The names to these files are referenced elsewhere
-in the YAML configuration file as described in
-\hyperref[sec:scm-block-element]{YAML SCM Configuration Element}.
+\begin{table}[ht]
+    \caption{YAML Root Elements}  
+    \label{tab:yaml-root-elements}      
+    \begin{tabularx}{\textwidth}{lcl}
+        \toprule
+        \textbf{Key} & \textbf{Required} & \textbf{Description}\\
+        \midrule
+        \texttt{secret-root-path} & Yes & \makecell[l]{
+            The path to a directory that contains one or more files 
+            \\containing secret values.  The names to these files are 
+            \\referenced elsewhere in the YAML configuration file as 
+            \\described in \hyperref[sec:scm-block-element]{YAML SCM Configuration Element}.            
+        }\\
+        \midrule
+        \texttt{server-base-url} & Yes & \makecell[l]{The base URL
+        for the \cxoneflow endpoint.  This is used\\when creating feedback
+        content that loads image elements.                        
+        }\\
+        \midrule
+        \texttt{<scm moniker>} & Yes & \makecell[l]{At lease one SCM moniker.}\\
+        \midrule
+        \bottomrule
+    \end{tabularx}
+\end{table}
 
 
-\subsubsection{YAML SCM Configuration Element}\label{sec:scm-block-element}
+\subsubsection{YAML SCM Moniker Configuration Elements}\label{sec:scm-block-element}
 
 The SCM configuration element is the same for all SCM monikers. The element is a list with
 one or more entries corresponding to a clone URL regular expression match.  The entry
