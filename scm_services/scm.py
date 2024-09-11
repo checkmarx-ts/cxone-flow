@@ -1,13 +1,8 @@
-import asyncio, logging, urllib, sys
+import logging
 from requests import Request
+from api_utils import APISession
+from scm_services.cloner import Cloner
 
-
-
-class SCMAuthException(Exception):
-    pass
-
-class RetriesExhausted(Exception):
-    pass
 
 
 class SCMService:
@@ -16,7 +11,7 @@ class SCMService:
     def log(clazz):
         return logging.getLogger(clazz.__name__)
 
-    def __init__(self, moniker, api_session, shared_secret, cloner):
+    def __init__(self, moniker : str, api_session : APISession, shared_secret : str, cloner : Cloner):
         self.__session = api_session
         self.__shared_secret = shared_secret
         self.__cloner = cloner
@@ -33,57 +28,12 @@ class SCMService:
     @property
     def shared_secret(self):
         return self.__shared_secret
-
-    async def __exec_request(self, request):
-        prepared_request = self.__session.prepare_request(request)
-        prepStr = f"[{prepared_request.method} {prepared_request.url}]"
-
-        # This can probably be done a better way later.  This is
-        # to handle cases where the pooled connections don't detect
-        # unclean closes until trying to use the connection again.
-        for exceptCount in range(0, 30):
-            try:
-                for tryCount in range(0, self.__session.retries):
-                    
-                    SCMService.log().debug(f"Executing: {prepStr} #{tryCount}")
-                    response = await asyncio.to_thread(self.__session.send, prepared_request)
-                    
-                    logStr = f"{response.status_code}: {response.reason} {prepStr}"
-                    SCMService.log().debug(f"Response #{tryCount}: {logStr} : {response.text}")
-
-                    if not response.ok:
-                        if response.status_code in [401, 403]:
-                            SCMService.log().error(f"{prepStr} : Raising authorization exception, not retrying.")
-                            raise SCMAuthException(logStr)
-                        else:
-                            SCMService.log().error(f"{logStr} : Attempt {tryCount}")
-                            await asyncio.sleep(1)
-                    else:
-                        return response
-                
-                break
-
-            except:
-                SCMService.log().error(f"{sys.exc_info()} : Exception {exceptCount} for {prepStr}")
-                await asyncio.sleep(1)
-
-        raise RetriesExhausted(f"Retries exhausted for {prepStr}")
     
     def _form_url(self, url_path, anchor=None, **kwargs):
-        base = self.__session.base_endpoint.rstrip("/")
-        suffix = urllib.parse.quote(url_path.lstrip("/"))
-        args = [f"{x}={urllib.parse.quote(str(kwargs[x]))}" for x in kwargs.keys()]
-        return f"{base}/{suffix}{"?" if len(args) > 0 else ""}{"&".join(args)}{f"#{anchor}" if anchor is not None else ""}"
+        return self.__session._form_url(url_path, anchor, **kwargs)
     
-    
-    async def exec(self, method, path, query=None, body=None, extra_headers=None):
-        return await self.__exec_request(Request(method=method, \
-                                                url = self._form_url(path), \
-                                                params=query, \
-                                                data=body, \
-                                                auth=self.__session.auth, \
-                                                headers = extra_headers))
-    
+    async def exec(self, method : str, path : str, query=None, body=None, extra_headers=None):
+        return await self.__session.exec(method, path, query, body, extra_headers)
 
     async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, summary_markdown : str):
         raise NotImplementedError("exec_pr_decorate")

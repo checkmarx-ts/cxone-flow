@@ -1,33 +1,72 @@
-from _version import __version__
 from _agent import __agent__
-from requests import Session
+from requests.auth import AuthBase
+from requests import Response
+from requests import request
+from typing import Dict, Union, Any
+import urllib, logging, sys, asyncio
 
 
-class APISession(Session):
-    def __init__(self, api_base_endpoint, auth, timeout=60, retries=3, proxies=None, ssl_verify=True):
-        Session.__init__(self)
+class SCMAuthException(Exception):
+    pass
 
-        self.headers = { "User-Agent" : __agent__ }
+class RetriesExhausted(Exception):
+    pass
+
+class APISession:
+
+    @classmethod
+    def log(clazz):
+        return logging.getLogger(clazz.__name__)
+
+    def __init__(self, api_base_endpoint : str, auth : AuthBase, timeout : int = 60, retries : int = 3, proxies : Dict = None, ssl_verify : Union[bool, str] = True):
+
+        self.__headers = { "User-Agent" : __agent__ }
         
         self.__base_endpoint = api_base_endpoint
         self.__timeout = timeout
         self.__retries = retries
 
-        self.verify = ssl_verify
-        self.proxies = proxies
-        self.auth = auth
+        self.__verify = ssl_verify
+        self.__proxies = proxies
+        self.__auth = auth
 
-    @property
-    def base_endpoint(self):
-        return self.__base_endpoint
 
-    @property
-    def timeout(self):
-        return self.__timeout
+    def _form_url(self, url_path, anchor=None, **kwargs):
+        base = self.__base_endpoint.rstrip("/")
+        suffix = urllib.parse.quote(url_path.lstrip("/"))
+        args = [f"{x}={urllib.parse.quote(str(kwargs[x]))}" for x in kwargs.keys()]
+        return f"{base}/{suffix}{"?" if len(args) > 0 else ""}{"&".join(args)}{f"#{anchor}" if anchor is not None else ""}"
 
-    @property
-    def retries(self):
-        return self.__retries
+
+    async def exec(self, method : str, path : str, query : Dict = None, body : Any = None, extra_headers : Dict = None) -> Response:
+        url = self._form_url(path)
+        headers = dict(self.__headers)
+        if not extra_headers is None:
+            headers.update(extra_headers)
+
+        prepStr = f"[{method} {url}]"
+
+        for tryCount in range(0, self.__retries):
+            
+            APISession.log().debug(f"Executing: {prepStr} #{tryCount}")
+            response = await asyncio.to_thread(request, method=method, url=url, params=query,
+                data=body, headers=headers, auth=self.__auth, timeout=self.__timeout, 
+                proxies=self.__proxies, verify=self.__verify)
+            
+            logStr = f"{response.status_code}: {response.reason} {prepStr}"
+            APISession.log().debug(f"Response #{tryCount}: {logStr} : {response.text}")
+
+            if not response.ok:
+                if response.status_code in [401, 403]:
+                    APISession.log().error(f"{prepStr} : Raising authorization exception, not retrying.")
+                    raise SCMAuthException(logStr)
+                else:
+                    APISession.log().error(f"{logStr} : Attempt {tryCount}")
+                    await asyncio.sleep(1)
+            else:
+                return response
+
+        raise RetriesExhausted(f"Retries exhausted for {prepStr}")
 
 
 
