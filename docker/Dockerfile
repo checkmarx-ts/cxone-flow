@@ -45,7 +45,7 @@ RUN apt-get update && \
     rm /etc/nginx/sites-enabled/default
 
 
-RUN mkdir -p /opt/cxone && \
+RUN mkdir -p /opt/cxone/artifacts && \
     mkdir -p /var/log/gunicorn && \
     mkdir -p /var/log/cxoneflow && \
     mkdir -p /var/log/nginx && \
@@ -72,6 +72,7 @@ COPY orchestration /opt/cxone/orchestration
 COPY scm_services /opt/cxone/scm_services
 COPY task_management /opt/cxone/task_management
 COPY workflows /opt/cxone/workflows
+COPY artifacts /opt/cxone/artifacts
 
 
 ENTRYPOINT ["/opt/cxone/entrypoint.sh"]
