@@ -4,12 +4,10 @@ from jsonpath_ng.ext import parser
 from workflows.messaging import PRDetails
 from typing import Callable, List, Type, Dict
 from . import ResultSeverity, ResultStates
-import re
+import re, urllib
 
 
 class PullRequestDecoration:
-    __cx_embed_header_img = "![CheckmarxOne](https://camo.githubusercontent.com/450121ab9d772ac3f1186c2dde5608322249cba9183cd43b34ac7a71e71584b9/68747470733a2f2f63646e2e6173742e636865636b6d6172782e6e65742f696e746567726174696f6e732f6c6f676f2f436865636b6d6172782e706e67)"
-
     __comment = "[//]:#"
 
     __identifier = __comment + "cxoneflow"
@@ -42,12 +40,14 @@ class PullRequestDecoration:
     @staticmethod
     def matches_identifier(text : str):
         return PullRequestDecoration.__comment_match.match(text.replace("\n", ""))
+    
 
+    def __init__(self, server_base_url : str):
+        self.__server_base_url = server_base_url
 
-    def __init__(self):
         self.__elements = {
             PullRequestDecoration.__identifier : [PullRequestDecoration.__identifier],
-            PullRequestDecoration.__header_begin : [PullRequestDecoration.__cx_embed_header_img],
+            PullRequestDecoration.__header_begin : [PullRequestDecoration.header_image(self.__server_base_url)],
             PullRequestDecoration.__header_end : None,
             PullRequestDecoration.__annotation_begin : [],
             PullRequestDecoration.__annotation_end : None,
@@ -70,6 +70,18 @@ class PullRequestDecoration:
     @staticmethod
     def link(url : str, display_name : str):
         return f"[{display_name}]({url})"
+
+    @staticmethod
+    def image(url : str, display_name : str):
+        return f"![{display_name}]({url})"
+
+    @staticmethod
+    def header_image(server_base_url : str):
+         return PullRequestDecoration.image(PullRequestDecoration._form_artifact_url(server_base_url, "checkmarx.png"), "CheckmarxOne")
+
+    @staticmethod
+    def _form_artifact_url(server_base_url : str, artifact_path : str) -> str:
+        return f"{server_base_url.rstrip("/")}/artifacts/{urllib.parse.quote(artifact_path.lstrip("/"))}"
 
     @staticmethod
     def severity_indicator(severity : str):
@@ -158,8 +170,8 @@ class PullRequestDecoration:
 
 
 class PullRequestAnnotation(PullRequestDecoration):
-    def __init__(self, display_url : str, project_id : str, scanid : str, annotation : str, branch : str):
-        super().__init__()
+    def __init__(self, display_url : str, project_id : str, scanid : str, annotation : str, branch : str, server_base_url : str):
+        super().__init__(server_base_url)
         self.add_to_annotation(f"{annotation}: {PullRequestDecoration.scan_link(display_url, project_id, scanid, branch)}")
 
 class PullRequestFeedback(PullRequestDecoration):
@@ -181,8 +193,9 @@ class PullRequestFeedback(PullRequestDecoration):
             return False
 
     def __init__(self, excluded_severities : List[ResultSeverity], excluded_states : List[ResultStates], display_url : str,  
-                 project_id : str, scanid : str, enhanced_report : dict, code_permalink_func : Callable, pr_details : PRDetails):
-        super().__init__()
+                 project_id : str, scanid : str, enhanced_report : dict, code_permalink_func : Callable, pr_details : PRDetails,
+                 server_base_url : str):
+        super().__init__(server_base_url)
         self.__enhanced_report = enhanced_report
         self.__permalink = code_permalink_func
         self.__excluded_severities = excluded_severities

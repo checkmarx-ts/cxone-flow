@@ -5,7 +5,7 @@ proper orchestrator.  This allows this to be replaced with a different type of e
 that is compatible with other methods of deployment.
 """
 from _agent import __agent__
-from flask import Flask, request, Response
+from flask import Flask, request, Response, send_from_directory
 from orchestration import OrchestrationDispatch, BitBucketDataCenterOrchestrator, AzureDevOpsEnterpriseOrchestrator
 import json, logging, asyncio, os
 from config import CxOneFlowConfig, ConfigurationException, get_config_path
@@ -71,3 +71,7 @@ async def adoe_webhook_endpoint():
         __log.exception(ex)
         return Response(status=400)
     
+@app.get("/artifacts/<path:path>" )
+async def artifacts(path):
+    __log.debug(f"Fetching artifact at {path}")
+    return send_from_directory("artifacts", path)

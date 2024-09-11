@@ -134,6 +134,11 @@ class CxOneFlowConfig:
         CxOneFlowConfig.log().error(f"No route matched for {clone_urls}")
         raise RouteNotFoundException(clone_urls)
 
+
+    @staticmethod
+    def get_base_url():
+        return CxOneFlowConfig.__server_base_url
+
     @staticmethod
     def bootstrap(config_file_path = "./config.yaml"):
 
@@ -143,10 +148,8 @@ class CxOneFlowConfig:
             with open(config_file_path, "rt") as cfg:
                 CxOneFlowConfig.__raw = yaml.safe_load(cfg)
 
-            if not "secret-root-path" in CxOneFlowConfig.__raw.keys():
-                raise ConfigurationException.missing_key_path("/secret-root-path")
-            else:
-                CxOneFlowConfig.__secret_root = CxOneFlowConfig.__raw['secret-root-path']
+            CxOneFlowConfig.__server_base_url = CxOneFlowConfig.__get_value_for_key_or_fail("", "server-base-url", CxOneFlowConfig.__raw)
+            CxOneFlowConfig.__secret_root = CxOneFlowConfig.__get_value_for_key_or_fail("", "secret-root-path", CxOneFlowConfig.__raw)
 
             if len(CxOneFlowConfig.__raw.keys() - CxOneFlowConfig.__cloner_factories.keys()) == len(CxOneFlowConfig.__raw.keys()):
                 raise ConfigurationException.missing_at_least_one_key_path("/", CxOneFlowConfig.__cloner_factories.keys())
@@ -217,7 +220,8 @@ class CxOneFlowConfig:
     @staticmethod
     def __workflow_service_client_factory(config_path, moniker, **kwargs):
         if kwargs is None or len(kwargs.keys()) == 0:
-            return WorkflowStateService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, PullRequestWorkflow())
+            return WorkflowStateService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, CxOneFlowConfig.__server_base_url, 
+                                        PullRequestWorkflow())
         else:
 
             pr_workflow_dict = CxOneFlowConfig.__get_value_for_key_or_default("pull-request", kwargs, {})
@@ -253,10 +257,10 @@ class CxOneFlowConfig:
                 amqp_password = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(amqp_dict, "amqp-password", None)
                 ssl_verify = CxOneFlowConfig.__get_value_for_key_or_default("ssl-verify", amqp_dict, CxOneFlowConfig.get_default_ssl_verify_value())
                 
-                return WorkflowStateService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, pr_workflow, \
+                return WorkflowStateService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, CxOneFlowConfig.__server_base_url, pr_workflow, \
                                             max_poll_interval, poll_backoff)
             else:
-                return WorkflowStateService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, pr_workflow, \
+                return WorkflowStateService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, CxOneFlowConfig.__server_base_url, pr_workflow, \
                                             max_poll_interval, poll_backoff)
 
             
