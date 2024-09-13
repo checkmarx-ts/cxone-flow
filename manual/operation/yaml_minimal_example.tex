@@ -20,6 +20,7 @@ The following example shows a minimal \cxoneflow configuration that defines the 
 
 \begin{code}{Minimal YAML Configuration Example \#1}{Using BitBucket Data Center}{}
 secret-root-path: /run/secrets
+server-base-url: https://cxoneflow.mydomain.com:8443/
 
 bbdc:
     - service-name: BitBucket DC
@@ -43,6 +44,7 @@ bbdc:
 
 \begin{code}{Minimal YAML Configuration Example \#2}{Using BitBucket Data Center}{}
 secret-root-path: /run/secrets
+server-base-url: https://cxoneflow.mydomain.com:8443/
 
 bbdc:
     - service-name: BitBucket DC
@@ -68,6 +70,7 @@ SCM:
 
 \begin{code}{Minimal YAML Configuration Example \#2}{Using Azure DevOps Enterprise}{}
 secret-root-path: /run/secrets
+server-base-url: https://cxoneflow.mydomain.com:8443/
 
 adoe:
     - service-name: MyADO
@@ -90,7 +93,8 @@ adoe:
 
 \begin{code}{Minimal YAML Configuration Example}{Enabling Pull Request Feedback}{}
     secret-root-path: /run/secrets
-    
+    server-base-url: https://cxoneflow.mydomain.com:8443/
+
     bbdc:
         - service-name: BitBucket DC
           repo-match: .*

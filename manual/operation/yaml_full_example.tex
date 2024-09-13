@@ -14,6 +14,7 @@ and described by
 
 \begin{code}{Full YAML Configuration Example}{[CxOne: oauth]}{[SCM: token auth]}
 secret-root-path: /run/secrets
+server-base-url: https://cxoneflow.mydomain.com:8443/
 
 bbdc:
     - service-name: BitBucket DC
@@ -58,14 +59,15 @@ bbdc:
             https: http://proxy.corp.com:8080
 \end{code}
 
-
-\noindent\\This example shows a configuration where \cxoneflow has endpoint handlers for both
+\pagebreak
+\noindent\\The next example shows a configuration where \cxoneflow has endpoint handlers for both
 BitBucket Data Center and Azure DevOps Enterprise.  Each SCM is configured to handle 3 distinct
 projects to demonstrate Basic, Token, and SSH authentication methods.  All the SCM endpoints
 orchestrate scans in a single Checkmarx One tenant.
 
 \begin{code}{Multi-SCM YAML Configuration Example}{}{}
 secret-root-path: /run/secrets
+server-base-url: https://cxoneflow.mydomain.com:8443/
 adoe-connection: &adoe-con
     base-url: http://adoe.scm.org/DefaultCollection
     shared-secret: scm-shared-secret

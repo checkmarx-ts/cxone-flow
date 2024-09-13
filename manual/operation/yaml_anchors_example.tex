@@ -3,7 +3,7 @@ to all connection definitions:
 
 \begin{code}{Compacted Full YAML Configuration Example}{[CxOne: oauth]}{[SCM: token auth]}
 secret-root-path: /run/secrets
-
+server-base-url: https://cxoneflow.mydomain.com:8443/
 my-connection-params: &common-connection-params
     timeout-seconds: 60
     retries: 3
@@ -64,7 +64,7 @@ exists in the same SCM server and shares the same Checkmarx One instance.
 
 \begin{code}{SCM Multi-Org YAML Configuration Example}{[CxOne: oauth]}{[SCM: token auth]}
 secret-root-path: /run/secrets
-
+server-base-url: https://cxoneflow.mydomain.com:8443/
 my-connection-params: &common-connection-params
     timeout-seconds: 60
     retries: 3
