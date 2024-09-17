@@ -9,3 +9,5 @@ aio-pika
 dataclasses-json
 markdown
 aenum
+PyJWT
+cryptography
