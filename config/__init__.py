@@ -6,9 +6,11 @@ import yaml, logging, cxone_api as cx, os
 from scm_services import \
     bitbucketdc_cloner_factory, \
     adoe_cloner_factory, \
+    gh_cloner_factory, \
     adoe_api_auth_factory, \
     bbdc_api_auth_factory, \
-    SCMService, ADOEService, BBDCService
+    github_api_auth_factory, \
+    SCMService, ADOEService, BBDCService, GHService
 from api_utils import APISession
 from cxone_service import CxOneService
 from password_strength import PasswordPolicy
@@ -18,6 +20,7 @@ from workflows.pull_request import PullRequestWorkflow
 from workflows import ResultSeverity, ResultStates
 from typing import Tuple, List
 from multiprocessing import cpu_count
+from typing import Dict, List
 
 
 def get_workers_count():
@@ -64,10 +67,23 @@ class ConfigurationException(Exception):
 
     @staticmethod
     def mutually_exclusive(key_path, keys):
-        return ConfigurationException(f"Only one of these keys should be defined: {["/".join([key_path, x]) for x in keys]}")
+        report_list = []
+        for k in keys:
+            if isinstance(k, str):
+                report_list.append("/".join([key_path, k]))
+            
+            if isinstance(k, Tuple) or isinstance(k, List):
+                report_list.append(f"{key_path}/({",".join(k)})")
+
+
+        return ConfigurationException(f"Only one should be defined: {report_list}")
 
     @staticmethod
-    def invalid_keys(key_path, keys):
+    def key_mismatch(key_path, provided, needed):
+        return ConfigurationException(f"{key_path} invalid: Needed {needed} but provided {provided}.")
+
+    @staticmethod
+    def invalid_keys(key_path, keys : List):
         return ConfigurationException(f"These keys are invalid: {["/".join([key_path, x]) for x in keys]}")
 
 class RouteNotFoundException(Exception):
@@ -195,7 +211,7 @@ class CxOneFlowConfig:
                 return SecretRegistry.register(default)
             else:
                 with open(Path(CxOneFlowConfig.__secret_root) / Path(config_dict[key]), "rt") as secret:
-                    return SecretRegistry.register(secret.readline().strip())
+                    return SecretRegistry.register(secret.read().strip())
 
     @staticmethod
     def __get_secret_from_value_of_key_or_fail(config_path, key, config_dict):
@@ -330,45 +346,62 @@ class CxOneFlowConfig:
     __ordered_scm_config_tuples = {}
     __scm_config_tuples_by_service_moniker = {}
 
-    __minimum_api_auth_keys = ['token', 'password']
-    __basic_auth_keys = ['username', 'password']
-    __all_possible_api_auth_keys = list(set(__minimum_api_auth_keys + __basic_auth_keys))
+    __oauth_auth_keys = [tuple(sorted(('oauth-secret', 'oauth-id')))]
+    __basic_auth_keys = [tuple(sorted(('username', 'password')))]
+    __token_auth_keys = [('token',)]
+    __all_possible_api_auth_keys = list(set(__token_auth_keys + __basic_auth_keys + __oauth_auth_keys))
 
-    __minimum_clone_auth_keys = __minimum_api_auth_keys + ['ssh']
-    __all_possible_clone_auth_keys = list(set(__minimum_clone_auth_keys + __basic_auth_keys + ['ssh-port']))
+    __minimum_clone_auth_keys = __all_possible_api_auth_keys + [('ssh',)]
+    __all_possible_clone_auth_keys = list(set(__minimum_clone_auth_keys + [('ssh-port',)]))
 
     @staticmethod
     def __scm_api_auth_factory(api_auth_factory, config_dict, config_path):
+        if config_dict is not None and len(config_dict.keys()) > 0:
 
-        CxOneFlowConfig.__validate_no_extra_auth_keys(config_dict, CxOneFlowConfig.__all_possible_api_auth_keys, config_path)
-        
-        if len(CxOneFlowConfig.__validate_minimum_auth_keys(config_dict, CxOneFlowConfig.__minimum_api_auth_keys, config_path)) > 0:
+            CxOneFlowConfig.__validate_auth_keys(config_dict, CxOneFlowConfig.__all_possible_api_auth_keys, config_path)
+
             return api_auth_factory(CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "username", None),
                                     CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "password", None),
-                                    CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "token", None))
+                                    CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "token", None),
+                                    CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "oauth-secret", None),
+                                    CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "oauth-id", None))
 
         raise ConfigurationException(f"{config_path} SCM API authorization configuration is invalid!")
 
     @staticmethod
-    def __validate_minimum_auth_keys(config_dict, valid_keys, config_path):
-        auth_type_keys = [x for x in config_dict.keys() if x in valid_keys]
-        if len(auth_type_keys) > 1:
-            raise ConfigurationException.mutually_exclusive(config_path, auth_type_keys)
-        return auth_type_keys
+    def __validate_auth_keys(config_dict : Dict, valid_keys : List, config_path : str):
+        found_count = {}
+
+        for k in config_dict.keys():
+            found = False
+            for valid_tuple in valid_keys:
+                if k in valid_tuple:
+                    if valid_tuple not in found_count.keys():
+                        found_count[valid_tuple] = 1
+                    else:
+                        found_count[valid_tuple] += 1
+                    found = True
+                    break
+            if not found:
+                raise ConfigurationException.invalid_keys(config_path, [k])
+
+        # Check that only one set of keys was provided.
+        if len(found_count.keys()) > 1:
+            raise ConfigurationException.mutually_exclusive(config_path, found_count.keys())
+
+        # Check for missing keys in found sets.
+        for fk in found_count.keys():
+            if found_count[fk] != len(fk):
+                raise ConfigurationException.missing_keys(config_path, fk)
+        
 
 
-    @staticmethod
-    def __validate_no_extra_auth_keys(config_dict, valid_keys, config_path):
-        extra_passed_keys = config_dict.keys() - valid_keys
-
-        if len(extra_passed_keys) > 0:
-            raise ConfigurationException.invalid_keys(config_path, extra_passed_keys)
 
 
     @staticmethod
     def __cloner_factory(scm_cloner_factory, clone_auth_dict, config_path):
 
-        CxOneFlowConfig.__validate_no_extra_auth_keys(clone_auth_dict, CxOneFlowConfig.__all_possible_clone_auth_keys, config_path)
+        CxOneFlowConfig.__validate_auth_keys(clone_auth_dict, CxOneFlowConfig.__all_possible_clone_auth_keys, config_path)
 
         ssh_secret = CxOneFlowConfig.__get_value_for_key_or_default('ssh', clone_auth_dict, None)
         if ssh_secret is not None:
@@ -378,7 +411,9 @@ class CxOneFlowConfig:
                                   CxOneFlowConfig.__get_secret_from_value_of_key_or_default(clone_auth_dict, 'password', None),
                                   CxOneFlowConfig.__get_secret_from_value_of_key_or_default(clone_auth_dict, 'token', None),
                                   ssh_secret,
-                                  CxOneFlowConfig.__get_value_for_key_or_default('ssh-port', clone_auth_dict, None))
+                                  CxOneFlowConfig.__get_value_for_key_or_default('ssh-port', clone_auth_dict, None),
+                                  CxOneFlowConfig.__get_value_for_key_or_default('oauth-secret', clone_auth_dict, None),
+                                  CxOneFlowConfig.__get_value_for_key_or_default('oauth-id', clone_auth_dict, None))
 
         if retval is None:
             raise ConfigurationException(f"{config_path} SCM clone authorization configuration is invalid!")
@@ -436,15 +471,21 @@ class CxOneFlowConfig:
 
     __cloner_factories = {
         'bbdc' : bitbucketdc_cloner_factory,
-        'adoe' : adoe_cloner_factory }
+        'adoe' : adoe_cloner_factory,
+        'gh' : gh_cloner_factory
+        }
 
     __auth_factories = {
         'bbdc' : bbdc_api_auth_factory,
-        'adoe' : adoe_api_auth_factory }
+        'adoe' : adoe_api_auth_factory,
+        'gh' : github_api_auth_factory
+        }
         
     __scm_factories = {
         'bbdc' : BBDCService,
-        'adoe' : ADOEService }
+        'adoe' : ADOEService,
+        'gh' : BBDCService
+        }
 
         
 

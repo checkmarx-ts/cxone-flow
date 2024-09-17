@@ -1,6 +1,7 @@
 from api_utils import verify_signature
 from .bbdc import BitBucketDataCenterOrchestrator
 from .adoe import AzureDevOpsEnterpriseOrchestrator
+from .gh import GithubOrchestrator
 import logging
 from config import CxOneFlowConfig
 
@@ -25,7 +26,7 @@ class OrchestrationDispatch:
         if await orchestrator.is_signature_valid(scm_service.shared_secret):
             return await orchestrator.execute(cxone_service, scm_service, workflow_service)
         else:
-            OrchestrationDispatch.log().warn(f"Payload signature validation failed, webhook payload ignored.")
+            OrchestrationDispatch.log().warning(f"Payload signature validation failed, webhook payload ignored.")
 
 
 
