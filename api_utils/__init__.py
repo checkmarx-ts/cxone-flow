@@ -1,6 +1,7 @@
 from .apisession import APISession
 from requests.auth import AuthBase,HTTPBasicAuth
 from .signatures import signature
+from .gh_oauth import GithubOauth
 
 
 def auth_basic(username, password) -> AuthBase:

@@ -56,7 +56,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
         self.__event = [x.value for x in list(self.__payload_type_query.find(self.__json))][0]
         self.__route_urls = [x.value for x in list(self.__remoteurl_query.find(self.__json))]
         self.__clone_url = self.__route_urls[0]
-        self.__default_branches = [AzureDevOpsEnterpriseOrchestrator.__normalize_branch_name(x.value) for x in list(self.__push_default_branch_query.find(self.__json))]
+        self.__default_branches = [OrchestratorBase.normalize_branch_name(x.value) for x in list(self.__push_default_branch_query.find(self.__json))]
         self.__repo_key = [x.value for x in list(self.__repo_project_key_query.find(self.__json))][0]
         self.__repo_slug = [x.value for x in list(self.__repo_slug_query.find(self.__json))][0]
         self.__collection_url = [x.value for x in list(self.__collection_url_query.find(self.__json))][0]
@@ -65,10 +65,6 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
     async def execute(self, cxone_service: CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
         return await AzureDevOpsEnterpriseOrchestrator.__workflow_map[self.__event](self, cxone_service, scm_service, workflow_service)
-
-    @staticmethod
-    def __normalize_branch_name(branch):
-        return branch.split("/")[-1:].pop()
 
     @property
     def is_diagnostic(self):
@@ -139,7 +135,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
 
     async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
-        self.__source_branch = self.__target_branch = AzureDevOpsEnterpriseOrchestrator.__normalize_branch_name(
+        self.__source_branch = self.__target_branch = OrchestratorBase.normalize_branch_name(
             [x.value for x in list(self.__push_target_branch_query.find(self.__json))][0])
         self.__source_hash = self.__target_hash = [x.value for x in list(self.__push_target_hash_query.find(self.__json))][0]
 
@@ -150,8 +146,8 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
             AzureDevOpsEnterpriseOrchestrator.log().info(f"Skipping draft PR {AzureDevOpsEnterpriseOrchestrator.__pr_self_link_query.find(self.__json)[0].value}")
             return
 
-        self.__source_branch = AzureDevOpsEnterpriseOrchestrator.__normalize_branch_name([x.value for x in list(self.__pr_frombranch_query.find(self.__json))][0])
-        self.__target_branch = AzureDevOpsEnterpriseOrchestrator.__normalize_branch_name([x.value for x in list(self.__pr_tobranch_query.find(self.__json))][0])
+        self.__source_branch = OrchestratorBase.normalize_branch_name([x.value for x in list(self.__pr_frombranch_query.find(self.__json))][0])
+        self.__target_branch = OrchestratorBase.normalize_branch_name([x.value for x in list(self.__pr_tobranch_query.find(self.__json))][0])
         self.__source_hash = [x.value for x in list(self.__pr_fromhash_query.find(self.__json))][0]
         self.__target_hash = [x.value for x in list(self.__pr_tohash_query.find(self.__json))][0]
         self.__pr_id = str([x.value for x in list(self.__pr_id_query.find(self.__json))][0])
@@ -177,7 +173,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
                 AzureDevOpsEnterpriseOrchestrator.log().error(f"Response [{repo_details.status_code}] to request for repository details, event handling aborted.")
                 return
 
-            self.__default_branches = [AzureDevOpsEnterpriseOrchestrator.__normalize_branch_name(repo_details.json()['defaultBranch'])]
+            self.__default_branches = [OrchestratorBase.normalize_branch_name(repo_details.json()['defaultBranch'])]
             
             return await OrchestratorBase._execute_pr_scan_workflow(self, cxone_service, scm_service, workflow_service)
 

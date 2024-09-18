@@ -203,15 +203,20 @@ class CxOneFlowConfig:
             return config_dict[key]
 
     @staticmethod
-    def __get_secret_from_value_of_key_or_default(config_dict, key, default):
+    def __get_file_contents_from_value_of_key_or_default(config_dict, key, default):
         if not key in config_dict.keys():
-            return SecretRegistry.register(default)
+            return default
         else:
             if not os.path.isfile(Path(CxOneFlowConfig.__secret_root) / Path(config_dict[key])):
-                return SecretRegistry.register(default)
+                return default
             else:
-                with open(Path(CxOneFlowConfig.__secret_root) / Path(config_dict[key]), "rt") as secret:
-                    return SecretRegistry.register(secret.read().strip())
+                with open(Path(CxOneFlowConfig.__secret_root) / Path(config_dict[key]), "rt") as f:
+                    return f.read().strip()
+
+
+    @staticmethod
+    def __get_secret_from_value_of_key_or_default(config_dict, key, default):
+        return SecretRegistry.register(CxOneFlowConfig.__get_file_contents_from_value_of_key_or_default(config_dict, key, default))
 
     @staticmethod
     def __get_secret_from_value_of_key_or_fail(config_path, key, config_dict):
@@ -364,7 +369,7 @@ class CxOneFlowConfig:
                                     CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "password", None),
                                     CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "token", None),
                                     CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "oauth-secret", None),
-                                    CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "oauth-id", None))
+                                    CxOneFlowConfig.__get_file_contents_from_value_of_key_or_default(config_dict, "oauth-id", None))
 
         raise ConfigurationException(f"{config_path} SCM API authorization configuration is invalid!")
 

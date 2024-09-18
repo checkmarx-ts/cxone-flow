@@ -4,7 +4,7 @@ from .scm import SCMService
 from .adoe import ADOEService
 from .bbdc import BBDCService
 from .gh import GHService
-from api_utils import auth_basic, auth_bearer
+from api_utils import auth_basic, auth_bearer, GithubOauth
 
 class ScmCloneAuthSupportException(Exception):
         pass
@@ -76,7 +76,7 @@ def github_api_auth_factory(username=None, password=None, token=None, oauth_secr
         elif username is not None and password is not None:
                 return auth_basic(username, password)
         elif oauth_id is not None and oauth_secret is not None:
-                pass
+                return GithubOauth(oauth_id, oauth_secret)
         else:
                 raise ScmApiAuthSupportException("Unable to determine API auth method.")
 

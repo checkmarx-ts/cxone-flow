@@ -11,6 +11,9 @@ from workflows.messaging import PRDetails
 
 class OrchestratorBase:
 
+    @staticmethod
+    def normalize_branch_name(branch):
+        return branch.split("/")[-1:].pop()
 
     @staticmethod
     def log() -> logging.Logger:
