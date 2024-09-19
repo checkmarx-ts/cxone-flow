@@ -131,6 +131,7 @@ class OrchestratorBase:
 
 
     async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
+        OrchestratorBase.log().debug("_execute_pr_scan_workflow")
 
         source_branch, source_hash = await self._get_source_branch_and_hash()
         target_branch, _ = await self._get_target_branch_and_hash()
