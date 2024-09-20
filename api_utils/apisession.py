@@ -58,8 +58,8 @@ class APISession:
             
             APISession.log().debug(f"Executing: {prepStr} #{tryCount}")
             response = await asyncio.to_thread(request, method=method, url=url, params=query,
-                data=body, headers=headers, auth=await self.__auth_factory.make_auth(event_msg, self._api_endpoint), timeout=self.__timeout, 
-                proxies=self.__proxies, verify=self.__verify)
+                data=body, headers=headers, auth=await self.__auth_factory.make_auth(event_msg, self._api_endpoint, tryCount > 0), 
+                timeout=self.__timeout, proxies=self.__proxies, verify=self.__verify)
             
             logStr = f"{response.status_code}: {response.reason} {prepStr}"
             APISession.log().debug(f"Response #{tryCount}: {logStr} : {response.text}")

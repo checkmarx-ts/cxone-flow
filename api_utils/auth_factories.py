@@ -14,14 +14,14 @@ class AuthFactoryException(BaseException):
     pass
 
 class AuthFactory:
-    async def make_auth(self, event_context : Dict=None, api_url : str=None) -> AuthBase:
+    async def make_auth(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> AuthBase:
         raise NotImplementedError("make_auth")
 
 class StaticAuthFactory(AuthFactory):
     def __init__(self, static_auth : AuthBase):
         self.__auth = static_auth
 
-    async def make_auth(self, event_context : Dict=None, api_url : str=None) -> AuthBase:
+    async def make_auth(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> AuthBase:
         return self.__auth
 
 
@@ -50,7 +50,7 @@ class GithubAppAuthFactory(AuthFactory):
 
         return jwt.encode(payload, self.__pkey, algorithm='RS256')
 
-    async def make_auth(self, event_context : Dict=None, api_url : str=None) -> AuthBase:
+    async def make_auth(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> AuthBase:
         if event_context is None or api_url is None:
             raise AuthFactoryException("Event context and API url are required.")
                 
@@ -66,6 +66,7 @@ class GithubAppAuthFactory(AuthFactory):
 
         token_tuple = None
 
+        
         with GithubAppAuthFactory.__lock:
             if install_id in GithubAppAuthFactory.__token_cache.keys():
                 token_tuple = tuple(GithubAppAuthFactory.__token_cache[install_id])
@@ -73,7 +74,7 @@ class GithubAppAuthFactory(AuthFactory):
                 if datetime.now(exp.tzinfo) >= exp:
                     token_tuple = None
 
-        if token_tuple is None:        
+        if token_tuple is None or force_reauth:        
             token_response = json_on_ok(await asyncio.to_thread(request, method="POST", url=f"{api_url.rstrip("/")}/app/installations/{install_id}/access_tokens",
                                         headers = {"User-Agent" : __agent__}, 
                                         auth=HTTPBearerAuth(self.__encoded_jwt_factory(app_id))))
