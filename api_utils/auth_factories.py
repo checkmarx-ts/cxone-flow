@@ -14,6 +14,10 @@ class AuthFactoryException(BaseException):
     pass
 
 class AuthFactory:
+    @classmethod
+    def log(clazz):
+        return logging.getLogger(clazz.__name__)
+
     async def make_auth(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> AuthBase:
         raise NotImplementedError("make_auth")
 
@@ -33,9 +37,6 @@ class GithubAppAuthFactory(AuthFactory):
     __event_installation_id = parse("$.installation.id")
     __event_app_id = parse("$.sender.id")
 
-    @staticmethod
-    def log():
-        return logging.getLogger("GithubAppAuthFactory")
 
     def __init__(self, private_key : str):
         self.__pkey = private_key

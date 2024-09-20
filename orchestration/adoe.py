@@ -36,10 +36,6 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
     __pr_state_query = parse("$.resource.status")
 
 
-    @staticmethod
-    def log() -> logging.Logger:
-        return logging.getLogger("AzureDevOpsEnterpriseOrchestrator")
-
     @property
     def config_key(self):
         return "adoe"

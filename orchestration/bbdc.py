@@ -34,10 +34,6 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
     __pr_state_query = parse("$.pullRequest.state")
 
 
-    @staticmethod
-    def log():
-        return logging.getLogger("BitBucketDataCenterOrchestrator")
-
     @property
     def config_key(self):
         return "bbdc"
