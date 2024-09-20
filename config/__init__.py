@@ -477,7 +477,11 @@ class CxOneFlowConfig:
 
     @staticmethod
     def __gh_cloner_factory(config_path : str, config_dict : Dict) -> Cloner:
-            return Cloner()
+            ret_cloner = CxOneFlowConfig.__bitbucketdc_cloner_factory(config_path, config_dict)
+            if ret_cloner is None and 'app-private-key' in config_dict.keys():
+                ret_cloner = Cloner.using_github_app_auth(CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "app-private-key", config_dict))
+            
+            return ret_cloner
 
 
     @staticmethod

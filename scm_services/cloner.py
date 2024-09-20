@@ -1,6 +1,8 @@
 import os, tempfile, shutil, shlex, subprocess, asyncio, logging, urllib, base64, re
 from cxoneflow_logging import SecretRegistry
 from pathlib import Path
+from typing import Dict, List
+from api_utils.auth_factories import GithubAppAuthFactory
 
 class Cloner:
 
@@ -13,18 +15,18 @@ class Cloner:
     def __init__(self):
         self.__env = dict(os.environ)
 
-    @staticmethod
-    def log():
-        return logging.getLogger("Cloner")
+    @classmethod
+    def log(clazz) -> logging.Logger:
+        return logging.getLogger(clazz.__name__)
 
     @staticmethod
-    def __insert_creds_in_url(url, username, password):
+    def __insert_creds_in_url(url : str, username : str, password : str) -> str:
         split = urllib.parse.urlsplit(url)
         new_netloc = f"{urllib.parse.quote(username, safe='') if username is not None else 'git'}:{SecretRegistry.register(urllib.parse.quote(password, safe=''))}@{split.netloc}"
         return urllib.parse.urlunsplit((split.scheme, new_netloc, split.path, split.query, split.fragment))
         
     @staticmethod
-    def using_basic_auth(username, password, in_header=False):
+    def using_basic_auth(username : str, password : str, in_header : bool=False):
         Cloner.log().debug("Clone config: using_basic_auth")
 
         retval = Cloner()
@@ -45,7 +47,7 @@ class Cloner:
         return retval
 
     @staticmethod
-    def using_token_auth(token):
+    def using_token_auth(token : str):
         Cloner.log().debug("Clone config: using_token_auth")
 
         retval = Cloner()
@@ -78,6 +80,19 @@ class Cloner:
         retval.__fix_clone_url = lambda url: url
 
         return retval
+    
+    @staticmethod
+    def using_github_app_auth(app_private_key : str):
+        Cloner.log().debug("Clone config: using_github_app_auth")
+
+        retval = GithubAppCloner(GithubAppAuthFactory(app_private_key))
+        retval.__protocol_matcher = Cloner.__https_matcher
+        retval.__supported_protocols = Cloner.__http_protocols
+        retval.__port = None
+        retval.__fix_clone_url = lambda url: url
+        # retval.__clone_cmd_stub = ["git", "clone", "-c"]
+
+        return retval
    
     def select_protocol_from_supported(self, protocol_list):
         for x in protocol_list:
@@ -92,13 +107,16 @@ class Cloner:
     @property
     def destination_port(self):
         return self.__port
-
-    def clone(self, clone_url):
+    
+    async def _get_clone_cmd_stub(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> List:
+        return self.__clone_cmd_stub
+    
+    async def clone(self, clone_url, event_context : Dict=None, api_url : str=None, force_reauth : bool=False):
         Cloner.log().debug(f"Clone Execution for: {clone_url}")
 
         fixed_clone_url = self.__fix_clone_url(clone_url)
         clone_output_loc = tempfile.TemporaryDirectory(delete=False)
-        cmd = self.__clone_cmd_stub + [fixed_clone_url, clone_output_loc.name]
+        cmd = await self._get_clone_cmd_stub(event_context, api_url, force_reauth) + [fixed_clone_url, clone_output_loc.name]
         Cloner.log().debug(cmd)
         thread = asyncio.to_thread(subprocess.run, cmd, capture_output=True, env=self.__env, check=True)
         
@@ -123,7 +141,7 @@ class Cloner:
             self.__clone_thread = clone_thread
 
         
-        async def loc(self):
+        async def loc(self) -> str:
             try:
                 completed = await self.__clone_thread
                 self.__log.debug(f"Clone task: return code [{completed.returncode}] stdout: [{completed.stdout}] stderr: [{completed.stderr}]")
@@ -140,4 +158,12 @@ class Cloner:
             self.__clone_out_tempdir.cleanup()
 
 
+class GithubAppCloner(Cloner):
+    def __init__(self, auth_factory : GithubAppAuthFactory):
+        self.__auth_factory = auth_factory
 
+    async def _get_clone_cmd_stub(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> List:
+
+        token = await self.__auth_factory.get_token(event_context, api_url, force_reauth)
+        return ["git", "clone", "-c", 
+                f"http.extraHeader=Authorization: Bearer {token}"] 

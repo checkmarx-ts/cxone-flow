@@ -224,6 +224,10 @@ class GithubOrchestrator(OrchestratorBase):
     def _repo_clone_url(self, cloner) -> str:
         return self.__clone_urls[cloner.select_protocol_from_supported(self.__clone_urls.keys())]
 
+    async def get_cxone_project_name(self) -> str:
+        return f"{self._repo_organization}/{self._repo_slug}"
+
+
     __workflow_map = {
         "installation" : __log_app_install,
         "installation_repositories" : __log_app_install,

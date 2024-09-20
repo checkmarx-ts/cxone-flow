@@ -1,6 +1,6 @@
 from requests.auth import AuthBase
 from requests import request
-from typing import Dict
+from typing import Dict, Tuple
 from jsonpath_ng import parse
 import jwt, time, asyncio, logging
 from datetime import datetime
@@ -18,14 +18,18 @@ class AuthFactory:
     def log(clazz):
         return logging.getLogger(clazz.__name__)
 
-    async def make_auth(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> AuthBase:
-        raise NotImplementedError("make_auth")
+    async def get_auth(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> AuthBase:
+        raise NotImplementedError("get_auth")
+
+    async def get_token(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> str:
+        raise NotImplementedError("get_token")
+    
 
 class StaticAuthFactory(AuthFactory):
     def __init__(self, static_auth : AuthBase):
         self.__auth = static_auth
 
-    async def make_auth(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> AuthBase:
+    async def get_auth(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> AuthBase:
         return self.__auth
 
 
@@ -50,11 +54,9 @@ class GithubAppAuthFactory(AuthFactory):
         }
 
         return jwt.encode(payload, self.__pkey, algorithm='RS256')
+    
+    async def __get_token_tuple(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False):
 
-    async def make_auth(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> AuthBase:
-        if event_context is None or api_url is None:
-            raise AuthFactoryException("Event context and API url are required.")
-                
         install_id_found = GithubAppAuthFactory.__event_installation_id.find(event_context)
         if len(install_id_found) == 0:
             raise AuthFactoryException("GitHub installation id was not found in the event payload.")
@@ -66,7 +68,6 @@ class GithubAppAuthFactory(AuthFactory):
         app_id = app_id_found[0].value
 
         token_tuple = None
-
         
         with GithubAppAuthFactory.__lock:
             if install_id in GithubAppAuthFactory.__token_cache.keys():
@@ -84,10 +85,16 @@ class GithubAppAuthFactory(AuthFactory):
             
             with GithubAppAuthFactory.__lock:
                 GithubAppAuthFactory.__token_cache[install_id] = token_tuple
+            
+        return token_tuple
 
+    async def get_auth(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> AuthBase:
+        if event_context is None or api_url is None:
+            raise AuthFactoryException("Event context and API url are required.")
+        return HTTPBearerAuth ((await self.__get_token_tuple(event_context, api_url, force_reauth))[0])
 
-        return HTTPBearerAuth (token_tuple[0])
-
+    async def get_token(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> str:
+        return (await self.__get_token_tuple(event_context, api_url, force_reauth))[0]
 
 
 
