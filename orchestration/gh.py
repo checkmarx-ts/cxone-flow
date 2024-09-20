@@ -1,13 +1,19 @@
 from .base import OrchestratorBase
 from api_utils import signature
+from api_utils.pagers import async_api_page_generator
 from jsonpath_ng import parse
-import logging, json
+import json
 from cxone_service import CxOneService
+from cxone_api.util import json_on_ok
 from scm_services import SCMService, Cloner
 from workflows.state_service import WorkflowStateService
-
+from requests import Response
 
 class GithubOrchestrator(OrchestratorBase):
+
+    __api_page_max = 100
+
+
     __install_action_query = parse("$.action")
     __install_sender_query = parse("$.sender.login")
     __install_target_query = parse("$.installation.account.login")
@@ -25,6 +31,9 @@ class GithubOrchestrator(OrchestratorBase):
     __push_project_key_query = parse("$.repository.name")
     __push_org_key_query = parse("$.repository.owner.name")
 
+    __branch_names_extract = parse("$.[*].name")
+    __default_branch_name_extract = parse("$.default_branch")
+
     __expected_events = ['pull_request', 'pull_request_review', 'push']
     __expected_permissions = {
         "contents" : "read",
@@ -37,10 +46,6 @@ class GithubOrchestrator(OrchestratorBase):
         "write" : 2
     }
 
-
-    @staticmethod
-    def log():
-        return logging.getLogger("BitBucketDataCenterOrchestrator")
 
     @property
     def config_key(self):
@@ -172,21 +177,32 @@ class GithubOrchestrator(OrchestratorBase):
 
 
     async def _get_protected_branches(self, scm_service : SCMService) -> list:
-        page_max = 1
+        ret_branches = []
+        def data_extractor(resp : Response):
+            if resp.ok:
+                json = resp.json()
+                v = [b.value for b in GithubOrchestrator.__branch_names_extract.find(json)]
+                return v, len(v) < GithubOrchestrator.__api_page_max
 
-        # TODO: need a pager
-        # default branch is a protected branch, but they have rules.
-        # use default branch if there are no protected branches.
+            return None
 
+        def args_gen(offset : int):
+            return { 
+                "method" : "GET",
+                "path" : f"/repos/{self._repo_organization}/{self._repo_project_key}/branches",
+                "query" : { "protected" : True, "per_page" : GithubOrchestrator.__api_page_max, "page" : offset + 1},
+                "event_msg" : self.__json
+            }
 
-        # this would list all protected branches
+        async for branch in async_api_page_generator(scm_service.exec, data_extractor, args_gen):
+            ret_branches.append(branch)
 
-        foo = await scm_service.exec("GET", f"/repos/{self._repo_organization}/{self._repo_project_key}/branches", 
-                               query = {"protected" : True, "per_page" : page_max},
-                               event_msg=self.__json)
+        if len(ret_branches) == 0:
+            ret_branches.append(GithubOrchestrator.__default_branch_name_extract.find(
+                json_on_ok(await scm_service.exec("GET", f"/repos/{self._repo_organization}/{self._repo_project_key}", event_msg=self.__json)))[0].value)
 
+        return ret_branches
 
-        raise NotImplementedError("_get_protected_branches")
 
 
     @property

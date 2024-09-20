@@ -15,9 +15,9 @@ class OrchestratorBase:
     def normalize_branch_name(branch):
         return branch.split("/")[-1:].pop()
 
-    @staticmethod
-    def log() -> logging.Logger:
-        return logging.getLogger("OrchestratorBase")
+    @classmethod
+    def log(clazz) -> logging.Logger:
+        return logging.getLogger(clazz.__name__)
 
     def __init__(self, headers, webhook_payload):
         self.__webhook_payload = webhook_payload
