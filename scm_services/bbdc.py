@@ -2,6 +2,7 @@ from .scm import SCMService
 from cxone_api.util import json_on_ok
 import json
 from workflows.pr import PullRequestDecoration
+from typing import Dict
 
 class BBDCService(SCMService):
     __max_content_chars = 32000
@@ -53,7 +54,8 @@ class BBDCService(SCMService):
                                         return int(comment['id']), int(comment['version'])
         return None, None
 
-    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, summary_markdown : str):
+    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, 
+        summary_markdown : str, event_msg : Dict=None):
         id, version = await self.__find_existing_comment(project, repo_slug, pr_number)
 
         content = full_markdown if len(full_markdown) <= BBDCService.__max_content_chars else summary_markdown

@@ -4,6 +4,7 @@ from cxone_api.util import json_on_ok
 from typing import Union, Dict
 from datetime import datetime, UTC
 import markdown as md
+from typing import Dict
 
 
 class ADOEService(SCMService):
@@ -75,7 +76,7 @@ class ADOEService(SCMService):
 
 
     async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, 
-                               scanid : str, full_markdown : str, summary_markdown : str):
+                               scanid : str, full_markdown : str, summary_markdown : str, event_msg : Dict=None):
         existing_thread = await self.__get_pr_thread(organization, project, repo_slug, pr_number)
 
         content = md.markdown(full_markdown, extensions=['tables'])

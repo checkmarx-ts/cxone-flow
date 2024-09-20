@@ -1,5 +1,6 @@
 import os, tempfile, shutil, shlex, subprocess, asyncio, logging, urllib, base64, re
 from cxoneflow_logging import SecretRegistry
+from pathlib import Path
 
 class Cloner:
 
@@ -44,7 +45,7 @@ class Cloner:
         return retval
 
     @staticmethod
-    def using_token_auth(token, username=None):
+    def using_token_auth(token):
         Cloner.log().debug("Clone config: using_token_auth")
 
         retval = Cloner()
@@ -59,7 +60,7 @@ class Cloner:
         return retval
 
     @staticmethod
-    def using_ssh_auth(ssh_private_key_file, ssh_port):
+    def using_ssh_auth(ssh_private_key_file : Path, ssh_port : int):
         Cloner.log().debug("Clone config: using_ssh_auth")
 
         retval = Cloner()

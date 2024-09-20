@@ -6,8 +6,8 @@ from cxone_service import CxOneService
 from scm_services import SCMService, Cloner
 from workflows.state_service import WorkflowStateService
 
-class GithubOrchestrator(OrchestratorBase):
 
+class GithubOrchestrator(OrchestratorBase):
     __install_action_query = parse("$.action")
     __install_sender_query = parse("$.sender.login")
     __install_target_query = parse("$.installation.account.login")
@@ -36,7 +36,6 @@ class GithubOrchestrator(OrchestratorBase):
         "read" : 1,
         "write" : 2
     }
-
 
 
     @staticmethod
@@ -101,8 +100,6 @@ class GithubOrchestrator(OrchestratorBase):
 
             if not bad and not warned:
                 GithubOrchestrator.log().info("The GitHub app appears to be properly configured.")
-
-
 
     def __installation_route_urls(self):
         return [GithubOrchestrator.__install_route_url_query.find(self.__json)[0].value]
@@ -173,7 +170,22 @@ class GithubOrchestrator(OrchestratorBase):
         
         return await OrchestratorBase._execute_push_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
+
     async def _get_protected_branches(self, scm_service : SCMService) -> list:
+        page_max = 1
+
+        # TODO: need a pager
+        # default branch is a protected branch, but they have rules.
+        # use default branch if there are no protected branches.
+
+
+        # this would list all protected branches
+
+        foo = await scm_service.exec("GET", f"/repos/{self._repo_organization}/{self._repo_project_key}/branches", 
+                               query = {"protected" : True, "per_page" : page_max},
+                               event_msg=self.__json)
+
+
         raise NotImplementedError("_get_protected_branches")
 
 

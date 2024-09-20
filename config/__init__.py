@@ -3,15 +3,10 @@ from _agent import __agent__
 from pathlib import Path
 import re
 import yaml, logging, cxone_api as cx, os
-from scm_services import \
-    bitbucketdc_cloner_factory, \
-    adoe_cloner_factory, \
-    gh_cloner_factory, \
-    adoe_api_auth_factory, \
-    bbdc_api_auth_factory, \
-    github_api_auth_factory, \
-    SCMService, ADOEService, BBDCService, GHService
-from api_utils import APISession
+from scm_services import SCMService, ADOEService, BBDCService, GHService, Cloner
+from api_utils import auth_basic, auth_bearer
+from api_utils.apisession import APISession
+from api_utils.auth_factories import AuthFactory, GithubAppAuthFactory
 from cxone_service import CxOneService
 from password_strength import PasswordPolicy
 from cxoneflow_logging import SecretRegistry
@@ -351,74 +346,24 @@ class CxOneFlowConfig:
     __ordered_scm_config_tuples = {}
     __scm_config_tuples_by_service_moniker = {}
 
-    __oauth_auth_keys = [tuple(sorted(('oauth-secret', 'oauth-id')))]
-    __basic_auth_keys = [tuple(sorted(('username', 'password')))]
-    __token_auth_keys = [('token',)]
-    __all_possible_api_auth_keys = list(set(__token_auth_keys + __basic_auth_keys + __oauth_auth_keys))
-
-    __minimum_clone_auth_keys = __all_possible_api_auth_keys + [('ssh',)]
-    __all_possible_clone_auth_keys = list(set(__minimum_clone_auth_keys + [('ssh-port',)]))
-
     @staticmethod
     def __scm_api_auth_factory(api_auth_factory, config_dict, config_path):
+        retval = None
+
         if config_dict is not None and len(config_dict.keys()) > 0:
 
-            CxOneFlowConfig.__validate_auth_keys(config_dict, CxOneFlowConfig.__all_possible_api_auth_keys, config_path)
+            retval = api_auth_factory(config_path, config_dict)
 
-            return api_auth_factory(CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "username", None),
-                                    CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "password", None),
-                                    CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "token", None),
-                                    CxOneFlowConfig.__get_secret_from_value_of_key_or_default(config_dict, "oauth-secret", None),
-                                    CxOneFlowConfig.__get_file_contents_from_value_of_key_or_default(config_dict, "oauth-id", None))
-
-        raise ConfigurationException(f"{config_path} SCM API authorization configuration is invalid!")
-
-    @staticmethod
-    def __validate_auth_keys(config_dict : Dict, valid_keys : List, config_path : str):
-        found_count = {}
-
-        for k in config_dict.keys():
-            found = False
-            for valid_tuple in valid_keys:
-                if k in valid_tuple:
-                    if valid_tuple not in found_count.keys():
-                        found_count[valid_tuple] = 1
-                    else:
-                        found_count[valid_tuple] += 1
-                    found = True
-                    break
-            if not found:
-                raise ConfigurationException.invalid_keys(config_path, [k])
-
-        # Check that only one set of keys was provided.
-        if len(found_count.keys()) > 1:
-            raise ConfigurationException.mutually_exclusive(config_path, found_count.keys())
-
-        # Check for missing keys in found sets.
-        for fk in found_count.keys():
-            if found_count[fk] != len(fk):
-                raise ConfigurationException.missing_keys(config_path, fk)
+        if retval is None:
+            raise ConfigurationException(f"{config_path} SCM API authorization configuration is invalid!")
         
-
-
+        return retval
 
 
     @staticmethod
     def __cloner_factory(scm_cloner_factory, clone_auth_dict, config_path):
 
-        CxOneFlowConfig.__validate_auth_keys(clone_auth_dict, CxOneFlowConfig.__all_possible_clone_auth_keys, config_path)
-
-        ssh_secret = CxOneFlowConfig.__get_value_for_key_or_default('ssh', clone_auth_dict, None)
-        if ssh_secret is not None:
-            ssh_secret = Path(CxOneFlowConfig.__secret_root) / Path(ssh_secret)
-
-        retval = scm_cloner_factory(CxOneFlowConfig.__get_secret_from_value_of_key_or_default(clone_auth_dict, 'username', None),
-                                  CxOneFlowConfig.__get_secret_from_value_of_key_or_default(clone_auth_dict, 'password', None),
-                                  CxOneFlowConfig.__get_secret_from_value_of_key_or_default(clone_auth_dict, 'token', None),
-                                  ssh_secret,
-                                  CxOneFlowConfig.__get_value_for_key_or_default('ssh-port', clone_auth_dict, None),
-                                  CxOneFlowConfig.__get_value_for_key_or_default('oauth-secret', clone_auth_dict, None),
-                                  CxOneFlowConfig.__get_value_for_key_or_default('oauth-id', clone_auth_dict, None))
+        retval = scm_cloner_factory(Path(CxOneFlowConfig.__secret_root), clone_auth_dict)
 
         if retval is None:
             raise ConfigurationException(f"{config_path} SCM clone authorization configuration is invalid!")
@@ -451,12 +396,13 @@ class CxOneFlowConfig:
         api_auth_dict = CxOneFlowConfig.__get_value_for_key_or_fail(f"{config_path}/connection", 'api-auth', connection_config_dict)
 
         api_session = APISession(CxOneFlowConfig.__get_value_for_key_or_fail(f"{config_path}/connection", 'base-url', connection_config_dict), \
+                                 CxOneFlowConfig.__get_value_for_key_or_default('api-url-suffix', connection_config_dict, None), \
                                  CxOneFlowConfig.__scm_api_auth_factory(api_auth_factory, api_auth_dict, f"{config_path}/connection/api-auth"), \
                                  CxOneFlowConfig.__get_value_for_key_or_default('timeout-seconds', connection_config_dict, 60), \
                                  CxOneFlowConfig.__get_value_for_key_or_default('retries', connection_config_dict, 3), \
                                  CxOneFlowConfig.__get_value_for_key_or_default('proxies', connection_config_dict, None), \
-                                 CxOneFlowConfig.__get_value_for_key_or_default('ssl-verify', connection_config_dict, CxOneFlowConfig.get_default_ssl_verify_value()), \
-                                )
+                                 CxOneFlowConfig.__get_value_for_key_or_default('ssl-verify', connection_config_dict, 
+                                 CxOneFlowConfig.get_default_ssl_verify_value()))
         
         scm_shared_secret = CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(f"{config_path}/connection", 'shared-secret', connection_config_dict)
         secret_test_result = CxOneFlowConfig.__shared_secret_policy.test(scm_shared_secret)
@@ -473,25 +419,116 @@ class CxOneFlowConfig:
 
         return repo_matcher, cxone_service, scm_service, workflow_service_client
 
+    @staticmethod
+    def __has_basic_auth(config_dict : Dict) -> bool:
+            if 'username' in config_dict.keys() and 'password' in config_dict.keys():
+                    if config_dict['username'] is not None and config_dict['password'] is not None:
+                            return True
+            return False
+
+    @staticmethod
+    def __has_token_auth(config_dict : Dict) -> bool:
+            if 'token' in config_dict.keys():
+                    if config_dict['token'] is not None:
+                            return True
+            return False
+
+    @staticmethod
+    def __has_ssh_auth(config_dict : Dict) -> bool:
+            if 'ssh' in config_dict.keys():
+                    if config_dict['ssh'] is not None:
+                            return True
+            return False
+
+
+    @staticmethod
+    def __bitbucketdc_cloner_factory(config_path : str, config_dict : Dict) -> Cloner:
+            if CxOneFlowConfig.__has_basic_auth(config_dict):
+                    return Cloner.using_basic_auth(CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "username", config_dict), 
+                        CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "password", config_dict), True) 
+
+            if CxOneFlowConfig.__has_token_auth(config_dict):
+                    return Cloner.using_token_auth(CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "token", config_dict))
+
+            if CxOneFlowConfig.__has_ssh_auth(config_dict):
+                    return Cloner.using_ssh_auth(Path(CxOneFlowConfig.__secret_root) / 
+                            Path(CxOneFlowConfig.__get_value_for_key_or_fail(config_path, "ssh", config_dict)), 
+                            config_dict['ssh-port'] if 'ssh-port' in config_dict.keys() else None)
+
+            return None        
+
+    @staticmethod
+    def __adoe_cloner_factory(config_path : str, config_dict : Dict) -> Cloner:
+            if CxOneFlowConfig.__has_basic_auth(config_dict):
+                    return Cloner.using_basic_auth(CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "username", config_dict), 
+                        CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "password", config_dict), True) 
+            
+            if CxOneFlowConfig.__has_token_auth(config_dict):
+                    return Cloner.using_basic_auth("", CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "token", config_dict), True)
+
+            if CxOneFlowConfig.__has_ssh_auth(config_dict):
+                    return Cloner.using_ssh_auth(Path(CxOneFlowConfig.__secret_root) / 
+                            Path(CxOneFlowConfig.__get_value_for_key_or_fail(config_path, "ssh", config_dict)), 
+                            config_dict['ssh-port'] if 'ssh-port' in config_dict.keys() else None)
+            
+            CxOneFlowConfig.__get_value_for_key_or_fail
+
+            return None        
+
+    @staticmethod
+    def __gh_cloner_factory(config_path : str, config_dict : Dict) -> Cloner:
+            return Cloner()
+
+
+    @staticmethod
+    def __adoe_api_auth_factory(config_path : str, config_dict : Dict) -> AuthFactory:
+            if CxOneFlowConfig.__has_token_auth(config_dict):
+                    return auth_basic("", CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "token", config_dict))
+            elif CxOneFlowConfig.__has_basic_auth(config_dict):
+                    return auth_basic(CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "username", config_dict), 
+                        CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "password", config_dict))
+            
+            return None
+
+
+    @staticmethod
+    def __bbdc_api_auth_factory(config_path : str, config_dict : Dict) -> AuthFactory:
+            if CxOneFlowConfig.__has_token_auth(config_dict):
+                    return auth_bearer(CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "token", config_dict))
+            elif CxOneFlowConfig.__has_basic_auth(config_dict):
+                    return auth_basic(CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "username", config_dict), 
+                        CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "password", config_dict))
+
+            return None
+
+    @staticmethod
+    def __github_api_auth_factory(config_path : str, config_dict : Dict) -> AuthFactory:
+            if CxOneFlowConfig.__has_token_auth(config_dict):
+                    return auth_bearer(CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "token", config_dict))
+            elif CxOneFlowConfig.__has_basic_auth(config_dict):
+                    return auth_basic(CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "username", config_dict), 
+                        CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "password", config_dict))
+            elif 'app-private-key' in config_dict.keys() and config_dict['app-private-key'] is not None:
+                    return GithubAppAuthFactory(CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "app-private-key", config_dict))
+
+            return None
+
 
     __cloner_factories = {
-        'bbdc' : bitbucketdc_cloner_factory,
-        'adoe' : adoe_cloner_factory,
-        'gh' : gh_cloner_factory
+        'bbdc' : __bitbucketdc_cloner_factory,
+        'adoe' : __adoe_cloner_factory,
+        'gh' : __gh_cloner_factory
         }
 
     __auth_factories = {
-        'bbdc' : bbdc_api_auth_factory,
-        'adoe' : adoe_api_auth_factory,
-        'gh' : github_api_auth_factory
+        'bbdc' : __bbdc_api_auth_factory,
+        'adoe' : __adoe_api_auth_factory,
+        'gh' : __github_api_auth_factory
         }
         
     __scm_factories = {
         'bbdc' : BBDCService,
         'adoe' : ADOEService,
-        'gh' : BBDCService
+        'gh' : GHService
         }
-
-        
-
 
