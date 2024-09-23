@@ -75,13 +75,16 @@ class GithubAppAuthFactory(AuthFactory):
                 token_tuple = tuple(GithubAppAuthFactory.__token_cache[install_id])
                 exp = token_tuple[1]
                 if datetime.now(exp.tzinfo) >= exp:
+                    GithubAppAuthFactory.log().debug(f"Token for app_id {app_id} install_id {install_id} expired at {exp}")
                     token_tuple = None
 
         if token_tuple is None or force_reauth:    
+            GithubAppAuthFactory.log().debug(f"Generating app token for app_id {app_id} install_id {install_id}")
             token_response = json_on_ok(await asyncio.to_thread(request, method="POST", 
                                         url=f"{self.__api_url.rstrip("/")}/app/installations/{install_id}/access_tokens",
                                         headers = {"User-Agent" : __agent__}, 
                                         auth=HTTPBearerAuth(self.__encoded_jwt_factory(app_id))))
+            GithubAppAuthFactory.log().debug(f"App token for app_id {app_id} install_id {install_id} generated.")
             
             token_tuple = (SecretRegistry.register(token_response['token']), datetime.fromisoformat(token_response['expires_at']))
             
