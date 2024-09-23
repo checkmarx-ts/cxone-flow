@@ -5,7 +5,8 @@ from _version import __version__
 from .exceptions import OrchestrationException
 from cxone_service import CxOneService
 from cxone_api.scanning import ScanInspector
-from scm_services import SCMService, Cloner
+from scm_services import SCMService
+from scm_services.cloner import Cloner, CloneWorker
 from workflows.state_service import WorkflowStateService
 from workflows.messaging import PRDetails
 
@@ -63,6 +64,9 @@ class OrchestratorBase:
     async def execute(self, cxone_service: CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
         raise NotImplementedError("execute")
     
+    async def _get_clone_worker(self, scm_service : SCMService, clone_url : str) -> CloneWorker:
+        return await scm_service.cloner.clone(clone_url)
+    
     async def __exec_scan(self, cxone_service : CxOneService, scm_service : SCMService, tags) -> ScanInspector:
         protected_branches = await self._get_protected_branches(scm_service)
 
@@ -79,7 +83,7 @@ class OrchestratorBase:
             check = perf_counter_ns()
             
             OrchestratorBase.log().debug("Starting clone...")
-            async with await scm_service.cloner.clone(clone_url) as clone_worker:
+            async with await (await self._get_clone_worker(scm_service, clone_url)) as clone_worker:
                 code_path = await clone_worker.loc()
 
                 await scm_service.cloner.reset_head(code_path, source_hash)

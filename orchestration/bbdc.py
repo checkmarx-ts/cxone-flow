@@ -3,9 +3,9 @@ import json
 from api_utils import signature
 from jsonpath_ng import parse
 from .exceptions import OrchestrationException
-import logging
 from cxone_service import CxOneService
-from scm_services import SCMService, Cloner
+from scm_services import SCMService
+from scm_services.cloner import Cloner
 from workflows.state_service import WorkflowStateService
 from cxone_api.scanning import ScanInspector
 

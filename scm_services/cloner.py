@@ -4,8 +4,31 @@ from pathlib import Path
 from typing import Dict, List
 from api_utils.auth_factories import GithubAppAuthFactory
 
-class Cloner:
+class CloneWorker:
+    def __init__(self, clone_thread, clone_dest_path):
+        self.__log = logging.getLogger(f"CloneWorker:{clone_dest_path}")
+        self.__clone_out_tempdir = clone_dest_path
+        self.__clone_thread = clone_thread
 
+
+    async def loc(self) -> str:
+        try:
+            completed = await self.__clone_thread
+            self.__log.debug(f"Clone task: return code [{completed.returncode}] stdout: [{completed.stdout}] stderr: [{completed.stderr}]")
+            return self.__clone_out_tempdir.name
+        except subprocess.CalledProcessError as ex:
+            self.__log.error(f"{ex} stdout: [{ex.stdout.decode('UTF-8')}] stderr: [{ex.stderr.decode('UTF-8')})]")
+            raise
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.__log.debug(f"Cleanup: {self.__clone_out_tempdir}")
+        self.__clone_out_tempdir.cleanup()
+
+
+class Cloner:
     __https_matcher = re.compile("^http(s)?")
     __ssh_matcher = re.compile("^ssh")
 
@@ -20,7 +43,7 @@ class Cloner:
         return logging.getLogger(clazz.__name__)
 
     @staticmethod
-    def __insert_creds_in_url(url : str, username : str, password : str) -> str:
+    def insert_creds_in_url(url : str, username : str, password : str) -> str:
         split = urllib.parse.urlsplit(url)
         new_netloc = f"{urllib.parse.quote(username, safe='') if username is not None else 'git'}:{SecretRegistry.register(urllib.parse.quote(password, safe=''))}@{split.netloc}"
         return urllib.parse.urlunsplit((split.scheme, new_netloc, split.path, split.query, split.fragment))
@@ -29,20 +52,18 @@ class Cloner:
     def using_basic_auth(username : str, password : str, in_header : bool=False):
         Cloner.log().debug("Clone config: using_basic_auth")
 
-        retval = Cloner()
+
+        if not in_header:
+            retval = BasicAuthWithCredsInUrl(username, SecretRegistry.register(password))
+            retval.__clone_cmd_stub = ["git", "clone"]
+        else:
+            retval = Cloner()
+            encoded_creds = SecretRegistry.register(base64.b64encode(f"{username}:{password}".encode('UTF8')).decode('UTF8'))
+            retval.__clone_cmd_stub = ["git", "clone", "-c", f"http.extraHeader=Authorization: Basic {encoded_creds}"]
+
         retval.__protocol_matcher = Cloner.__https_matcher
         retval.__supported_protocols = Cloner.__http_protocols
         retval.__port = None
-        retval.__username = username
-        retval.__password = SecretRegistry.register(password)
-
-        if not in_header:
-            retval.__clone_cmd_stub = ["git", "clone"]
-            retval.__fix_clone_url = lambda url: Cloner.__insert_creds_in_url(url, username, password)
-        else:
-            encoded_creds = SecretRegistry.register(base64.b64encode(f"{username}:{password}".encode('UTF8')).decode('UTF8'))
-            retval.__clone_cmd_stub = ["git", "clone", "-c", f"http.extraHeader=Authorization: Basic {encoded_creds}"]
-            retval.__fix_clone_url = lambda url: url
 
         return retval
 
@@ -54,10 +75,7 @@ class Cloner:
         retval.__protocol_matcher = Cloner.__https_matcher
         retval.__supported_protocols = Cloner.__http_protocols
         retval.__port = None
-
         retval.__clone_cmd_stub = ["git", "clone", "-c", f"http.extraHeader=Authorization: Bearer {token}"]
-
-        retval.__fix_clone_url = lambda url: url
 
         return retval
 
@@ -77,20 +95,17 @@ class Cloner:
         retval.__env['GIT_SSH_COMMAND'] = f"ssh -i '{shlex.quote(retval.__keyfile)}' -oIdentitiesOnly=yes -oStrictHostKeyChecking=accept-new -oHostKeyAlgorithms=+ssh-rsa -oPubkeyAcceptedAlgorithms=+ssh-rsa"
         retval.__clone_cmd_stub = ["git", "clone"]
 
-        retval.__fix_clone_url = lambda url: url
-
         return retval
     
     @staticmethod
-    def using_github_app_auth(app_private_key : str):
+    def using_github_app_auth(gh_auth_factory : GithubAppAuthFactory):
         Cloner.log().debug("Clone config: using_github_app_auth")
 
-        retval = GithubAppCloner(GithubAppAuthFactory(app_private_key))
+        retval = GithubAppCloner(gh_auth_factory)
         retval.__protocol_matcher = Cloner.__https_matcher
         retval.__supported_protocols = Cloner.__http_protocols
         retval.__port = None
-        retval.__fix_clone_url = lambda url: url
-        # retval.__clone_cmd_stub = ["git", "clone", "-c"]
+        retval.__clone_cmd_stub = ["git", "clone"]
 
         return retval
    
@@ -99,6 +114,9 @@ class Cloner:
             if self.__protocol_matcher.match(x):
                 return x
         return None
+    
+    async def _fix_clone_url(self, clone_url : str, event_context : Dict=None, force_reauth : bool=False):
+        return clone_url
     
     @property
     def supported_protocols(self):
@@ -111,16 +129,16 @@ class Cloner:
     async def _get_clone_cmd_stub(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> List:
         return self.__clone_cmd_stub
     
-    async def clone(self, clone_url, event_context : Dict=None, api_url : str=None, force_reauth : bool=False):
+    async def clone(self, clone_url, event_context : Dict=None, force_reauth : bool=False):
         Cloner.log().debug(f"Clone Execution for: {clone_url}")
 
-        fixed_clone_url = self.__fix_clone_url(clone_url)
+        fixed_clone_url = await self._fix_clone_url(clone_url, event_context, force_reauth)
         clone_output_loc = tempfile.TemporaryDirectory(delete=False)
-        cmd = await self._get_clone_cmd_stub(event_context, api_url, force_reauth) + [fixed_clone_url, clone_output_loc.name]
+        cmd = await self._get_clone_cmd_stub(event_context, force_reauth) + [fixed_clone_url, clone_output_loc.name]
         Cloner.log().debug(cmd)
         thread = asyncio.to_thread(subprocess.run, cmd, capture_output=True, env=self.__env, check=True)
         
-        return Cloner.__clone_worker(thread, clone_output_loc)
+        return CloneWorker(thread, clone_output_loc)
 
     async def reset_head(self, code_path, hash):
         try:
@@ -133,37 +151,21 @@ class Cloner:
             self.log().error(f"{ex} stdout: [{ex.stdout.decode('UTF-8')}] stderr: [{ex.stderr.decode('UTF-8')})]")
             raise
 
-    class __clone_worker:
+class BasicAuthWithCredsInUrl(Cloner):
+    def __init__(self, username : str, password : str):
+        Cloner.__init__(self)
+        self.__username = username
+        self.__password = password
 
-        def __init__(self, clone_thread, clone_dest_path):
-            self.__log = logging.getLogger(f"__clone_worker:{clone_dest_path}")
-            self.__clone_out_tempdir = clone_dest_path
-            self.__clone_thread = clone_thread
-
-        
-        async def loc(self) -> str:
-            try:
-                completed = await self.__clone_thread
-                self.__log.debug(f"Clone task: return code [{completed.returncode}] stdout: [{completed.stdout}] stderr: [{completed.stderr}]")
-                return self.__clone_out_tempdir.name
-            except subprocess.CalledProcessError as ex:
-                self.__log.error(f"{ex} stdout: [{ex.stdout.decode('UTF-8')}] stderr: [{ex.stderr.decode('UTF-8')})]")
-                raise
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, tb):
-            self.__log.debug(f"Cleanup: {self.__clone_out_tempdir}")
-            self.__clone_out_tempdir.cleanup()
+    async def _fix_clone_url(self, clone_url : str, event_context : Dict=None, force_reauth : bool=False):
+        return Cloner.insert_creds_in_url(clone_url, self.__username, self.__password)
 
 
 class GithubAppCloner(Cloner):
     def __init__(self, auth_factory : GithubAppAuthFactory):
+        Cloner.__init__(self)
         self.__auth_factory = auth_factory
 
-    async def _get_clone_cmd_stub(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> List:
-
-        token = await self.__auth_factory.get_token(event_context, api_url, force_reauth)
-        return ["git", "clone", "-c", 
-                f"http.extraHeader=Authorization: Bearer {token}"] 
+    async def _fix_clone_url(self, clone_url : str, event_context : Dict=None, force_reauth : bool=False):
+        token = SecretRegistry.register(await self.__auth_factory.get_token(event_context, force_reauth))
+        return Cloner.insert_creds_in_url(clone_url, "x-access-token", token)

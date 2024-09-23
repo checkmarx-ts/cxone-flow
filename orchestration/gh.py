@@ -5,7 +5,8 @@ from jsonpath_ng import parse
 import json
 from cxone_service import CxOneService
 from cxone_api.util import json_on_ok
-from scm_services import SCMService, Cloner
+from scm_services import SCMService
+from scm_services.cloner import CloneWorker
 from workflows.state_service import WorkflowStateService
 from requests import Response
 
@@ -144,6 +145,8 @@ class GithubOrchestrator(OrchestratorBase):
         else:
             return await GithubOrchestrator.__workflow_map[self.__event](self, cxone_service, scm_service, workflow_service)
 
+    async def _get_clone_worker(self, scm_service : SCMService, clone_url : str) -> CloneWorker:
+        return scm_service.cloner.clone(clone_url, self.__json)
 
     async def _get_target_branch_and_hash(self) -> tuple:
         return self.__target_branch, self.__target_hash

@@ -8,7 +8,7 @@ from _agent import __agent__
 from flask import Flask, request, Response, send_from_directory
 from orchestration import OrchestrationDispatch, BitBucketDataCenterOrchestrator, \
     AzureDevOpsEnterpriseOrchestrator, GithubOrchestrator
-import json, logging, asyncio, os
+import json, logging, os
 from config import CxOneFlowConfig, ConfigurationException, get_config_path
 from time import perf_counter_ns
 from task_management import TaskManager

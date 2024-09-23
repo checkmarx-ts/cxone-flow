@@ -17,12 +17,11 @@ class APISession:
     def log(clazz):
         return logging.getLogger(clazz.__name__)
 
-    def __init__(self, api_base_endpoint : str, api_suffix : str, auth : AuthFactory, timeout : int = 60, retries : int = 3, proxies : Dict = None, ssl_verify : Union[bool, str] = True):
+    def __init__(self, api_endpoint : str, auth : AuthFactory, timeout : int = 60, retries : int = 3, proxies : Dict = None, ssl_verify : Union[bool, str] = True):
 
         self.__headers = { "User-Agent" : __agent__ }
         
-        self.__base_endpoint = api_base_endpoint
-        self.__api_suffix = api_suffix
+        self.__api_endpoint = api_endpoint
         self.__timeout = timeout
         self.__retries = retries
 
@@ -30,17 +29,21 @@ class APISession:
         self.__proxies = proxies
         self.__auth_factory = auth
     
+    @staticmethod
+    def form_api_endpoint(base_endpoint : str, suffix : str):
+        ret = base_endpoint.rstrip("/")
+        if suffix is not None and len(suffix) > 0:
+            ret = f"{ret}/{suffix.lstrip("/").rstrip("/")}"
+        return ret
+
+
     @property
-    def _api_endpoint(self):
-        base = self.__base_endpoint.rstrip("/")
-        if self.__api_suffix is not None and len(self.__api_suffix) > 0:
-            base = f"{base}/{self.__api_suffix.lstrip("/").rstrip("/")}"
-        
-        return base
+    def api_endpoint(self):
+        return self.__api_endpoint
 
 
     def _form_url(self, url_path, anchor=None, **kwargs):
-        base = self._api_endpoint
+        base = self.api_endpoint
         suffix = urllib.parse.quote(url_path.lstrip("/"))
         args = [f"{x}={urllib.parse.quote(str(kwargs[x]))}" for x in kwargs.keys()]
         return f"{base}/{suffix}{"?" if len(args) > 0 else ""}{"&".join(args)}{f"#{anchor}" if anchor is not None else ""}"
@@ -58,7 +61,7 @@ class APISession:
             
             APISession.log().debug(f"Executing: {prepStr} #{tryCount}")
             response = await asyncio.to_thread(request, method=method, url=url, params=query,
-                data=body, headers=headers, auth=await self.__auth_factory.get_auth(event_msg, self._api_endpoint, tryCount > 0), 
+                data=body, headers=headers, auth=await self.__auth_factory.get_auth(event_msg, tryCount > 0), 
                 timeout=self.__timeout, proxies=self.__proxies, verify=self.__verify)
             
             logStr = f"{response.status_code}: {response.reason} {prepStr}"

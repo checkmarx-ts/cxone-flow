@@ -2,9 +2,8 @@ from .base import OrchestratorBase
 import json, base64, urllib, urllib.parse
 from jsonpath_ng import parse
 from cxone_api.util import CloneUrlParser
-import logging
 from cxone_service import CxOneService
-from scm_services import SCMService, Cloner
+from scm_services import SCMService
 from workflows.state_service import WorkflowStateService
 from pathlib import Path
 from cxone_api.scanning import ScanInspector
