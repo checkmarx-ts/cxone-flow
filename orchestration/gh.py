@@ -9,11 +9,12 @@ from scm_services import SCMService
 from scm_services.cloner import CloneWorker
 from workflows.state_service import WorkflowStateService
 from requests import Response
+from cxone_api.scanning import ScanInspector
+
 
 class GithubOrchestrator(OrchestratorBase):
 
     __api_page_max = 100
-
 
     __install_action_query = parse("$.action")
     __install_sender_query = parse("$.sender.login")
@@ -24,16 +25,25 @@ class GithubOrchestrator(OrchestratorBase):
     __install_permissions_query = parse("$.installation.permissions")
     __install_route_url_query = parse("$.installation.account.html_url")
 
-    __push_route_url_query = parse("$.repository[clone_url,ssh_url]")
-    __push_ssh_clone_url_query = parse("$.repository.ssh_url")
-    __push_http_clone_url_query = parse("$.repository.clone_url")
+       
     __push_target_branch_query = parse("$.ref")
     __push_target_hash_query = parse("$.head_commit.id")
     __push_project_key_query = parse("$.repository.name")
     __push_org_key_query = parse("$.repository.owner.name")
 
+
+    __pull_target_branch_query = parse("$.pull_request.base.ref")
+    __pull_target_hash_query = parse("$.pull_request.base.sha")
+    __pull_source_branch_query = parse("$.pull_request.head.ref")
+    __pull_source_hash_query = parse("$.pull_request.head.sha")
+    __pull_pr_id_query = parse("$.pull_request.id")
+
+    __code_event_route_url_query = parse("$.repository[clone_url,ssh_url]")
+    __code_event_ssh_clone_url_query = parse("$.repository.ssh_url")
+    __code_event_http_clone_url_query = parse("$.repository.clone_url")
+    __code_event_default_branch_name_extract = parse("$.repository.default_branch")
+    
     __branch_names_extract = parse("$.[*].name")
-    __default_branch_name_extract = parse("$.default_branch")
 
     __expected_events = ['pull_request', 'pull_request_review', 'push']
     __expected_permissions = {
@@ -110,13 +120,13 @@ class GithubOrchestrator(OrchestratorBase):
     def __installation_route_urls(self):
         return [GithubOrchestrator.__install_route_url_query.find(self.__json)[0].value]
     
-    def __push_route_urls(self):
-        return [GithubOrchestrator.__push_route_url_query.find(self.__json)[0].value]
-    
-    def __push_clone_urls(self):
+    def __code_event_route_urls(self):
+        return [GithubOrchestrator.__code_event_route_url_query.find(self.__json)[0].value]
+
+    def __code_event_clone_urls(self):
         return {
-            "ssh" : GithubOrchestrator.__push_ssh_clone_url_query.find(self.__json)[0].value,
-            "http" : GithubOrchestrator.__push_http_clone_url_query.find(self.__json)[0].value
+            "ssh" : GithubOrchestrator.__code_event_ssh_clone_url_query.find(self.__json)[0].value,
+            "http" : GithubOrchestrator.__code_event_http_clone_url_query.find(self.__json)[0].value
         }
 
     def __init__(self, headers : dict, webhook_payload : dict):
@@ -178,6 +188,30 @@ class GithubOrchestrator(OrchestratorBase):
         
         return await OrchestratorBase._execute_push_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
+    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
+        self.__target_branch = GithubOrchestrator.__pull_target_branch_query.find(self.__json)[0].value
+        self.__source_branch = GithubOrchestrator.__pull_source_branch_query.find(self.__json)[0].value
+
+        self.__target_hash = GithubOrchestrator.__pull_target_hash_query.find(self.__json)[0].value
+        self.__source_hash = GithubOrchestrator.__pull_source_hash_query.find(self.__json)[0].value
+
+        self.__pr_id = GithubOrchestrator.__pull_pr_id_query.find(self.__json)[0].value
+
+        return await OrchestratorBase._execute_pr_scan_workflow(self, cxone_service, scm_service, workflow_service)
+
+
+    @property
+    def _pr_id(self) -> str:
+        return self.__pr_id
+
+    @property
+    def _pr_state(self) -> str:
+        raise NotImplementedError("_pr_state")
+
+    @property
+    def _pr_status(self) -> str:
+        raise NotImplementedError("_pr_status")
+
 
     async def _get_protected_branches(self, scm_service : SCMService) -> list:
         ret_branches = []
@@ -201,8 +235,7 @@ class GithubOrchestrator(OrchestratorBase):
             ret_branches.append(branch)
 
         if len(ret_branches) == 0:
-            ret_branches.append(GithubOrchestrator.__default_branch_name_extract.find(
-                json_on_ok(await scm_service.exec("GET", f"/repos/{self._repo_organization}/{self._repo_project_key}", event_msg=self.__json)))[0].value)
+            ret_branches.append(GithubOrchestrator.__code_event_default_branch_name_extract.find(self.__json)[0].value)
 
         return ret_branches
 
@@ -234,15 +267,19 @@ class GithubOrchestrator(OrchestratorBase):
     __workflow_map = {
         "installation" : __log_app_install,
         "installation_repositories" : __log_app_install,
-        "push" : _execute_push_scan_workflow
+        "push" : _execute_push_scan_workflow,
+        "pull_request" : _execute_pr_scan_workflow
     }
 
     __route_url_parser_dispatch_map = {
         "installation" : __installation_route_urls,
         "installation_repositories" : __installation_route_urls,
-        "push" : __push_route_urls
+        "push" : __code_event_route_urls,
+        "pull_request" : __code_event_route_urls
+
     }
 
     __clone_url_parser_dispatch_map = {
-        "push" : __push_clone_urls
+        "push" : __code_event_clone_urls,
+        "pull_request" : __code_event_clone_urls
     }
