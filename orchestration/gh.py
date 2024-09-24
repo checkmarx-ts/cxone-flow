@@ -16,7 +16,8 @@ class GithubOrchestrator(OrchestratorBase):
 
     __api_page_max = 100
 
-    __install_action_query = parse("$.action")
+    __event_action_query = parse("$.action")
+
     __install_sender_query = parse("$.sender.login")
     __install_target_query = parse("$.installation.account.login")
     __install_target_type_query = parse("$.installation.account.type")
@@ -36,7 +37,12 @@ class GithubOrchestrator(OrchestratorBase):
     __pull_target_hash_query = parse("$.pull_request.base.sha")
     __pull_source_branch_query = parse("$.pull_request.head.ref")
     __pull_source_hash_query = parse("$.pull_request.head.sha")
-    __pull_pr_id_query = parse("$.pull_request.id")
+    __pull_id_query = parse("$.pull_request.id")
+    __pull_state_query = parse("$.pull_request.state")
+    __pull_draft_query = parse("$.pull_request.draft")
+    __pull_html_url = parse("$.pull_request.html_url")
+    __pull_project_key_query = parse("$.repository.name")
+    __pull_org_key_query = parse("$.repository.owner.login")
 
     __code_event_route_url_query = parse("$.repository[clone_url,ssh_url]")
     __code_event_ssh_clone_url_query = parse("$.repository.ssh_url")
@@ -67,7 +73,7 @@ class GithubOrchestrator(OrchestratorBase):
         return self.__isdiagnostic
 
     async def __log_app_install(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
-        action = GithubOrchestrator.__install_action_query.find(self.__json)[0].value
+        action = GithubOrchestrator.__event_action_query.find(self.__json)[0].value
         sender = GithubOrchestrator.__install_sender_query.find(self.__json)[0].value
         target = GithubOrchestrator.__install_target_query.find(self.__json)[0].value
         target_type = GithubOrchestrator.__install_target_type_query.find(self.__json)[0].value
@@ -185,32 +191,60 @@ class GithubOrchestrator(OrchestratorBase):
         self.__target_branch = self.__source_branch = OrchestratorBase.normalize_branch_name(
             GithubOrchestrator.__push_target_branch_query.find(self.__json)[0].value)
         self.__target_hash = self.__source_hash = GithubOrchestrator.__push_target_hash_query.find(self.__json)[0].value
-        
+
+        self.__project_key = GithubOrchestrator.__push_project_key_query.find(self.__json)[0].value
+        self.__org = GithubOrchestrator.__push_org_key_query.find(self.__json)[0].value
+       
         return await OrchestratorBase._execute_push_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
     async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
+
+        action = GithubOrchestrator.__event_action_query.find(self.__json)[0].value
+        html_url = GithubOrchestrator.__pull_html_url.find(self.__json)[0].value
+        self.__pr_id = GithubOrchestrator.__pull_id_query.find(self.__json)[0].value
+        self.__project_key = GithubOrchestrator.__pull_project_key_query.find(self.__json)[0].value
+        self.__org = GithubOrchestrator.__pull_org_key_query.find(self.__json)[0].value
+
+        if bool(GithubOrchestrator.__pull_draft_query.find(self.__json)[0].value):
+            GithubOrchestrator.log().info(f"Skipping draft PR {self.__pr_id}: {html_url}")
+            return
+        
+        if action not in GithubOrchestrator.__pr_scan_actions:
+            GithubOrchestrator.log().info(f"PR {self.__pr_id} with action [{action}] skipped: {html_url}")
+            return
+
         self.__target_branch = GithubOrchestrator.__pull_target_branch_query.find(self.__json)[0].value
         self.__source_branch = GithubOrchestrator.__pull_source_branch_query.find(self.__json)[0].value
 
         self.__target_hash = GithubOrchestrator.__pull_target_hash_query.find(self.__json)[0].value
         self.__source_hash = GithubOrchestrator.__pull_source_hash_query.find(self.__json)[0].value
 
-        self.__pr_id = GithubOrchestrator.__pull_pr_id_query.find(self.__json)[0].value
+        self.__pr_state = GithubOrchestrator.__pull_state_query.find(self.__json)[0].value
+
+        # TODO: Set status with reviewer names
+        # $.pull_request.assignee - can be null
+        # $.pull_request.assignees - can be an empty list
+        # $.pull_request[requested_teams,requested_reviewers][*] - can have no match
+        # Can be:
+        # NO_REVIEWERS
+        # REVIEWERS_REQUESTED
+        # REVIEWERS_ASSIGNED
+        self.__pr_status = "NO_REVIEWERS"
 
         return await OrchestratorBase._execute_pr_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
 
     @property
     def _pr_id(self) -> str:
-        return self.__pr_id
+        return str(self.__pr_id)
 
     @property
     def _pr_state(self) -> str:
-        raise NotImplementedError("_pr_state")
+        return self.__pr_state
 
     @property
     def _pr_status(self) -> str:
-        raise NotImplementedError("_pr_status")
+        return self.__pr_status
 
 
     async def _get_protected_branches(self, scm_service : SCMService) -> list:
@@ -243,11 +277,11 @@ class GithubOrchestrator(OrchestratorBase):
 
     @property
     def _repo_project_key(self) -> str:
-        return GithubOrchestrator.__push_project_key_query.find(self.__json)[0].value
+        return self.__project_key
 
     @property
     def _repo_organization(self) -> str:
-        return GithubOrchestrator.__push_org_key_query.find(self.__json)[0].value
+        return self.__org
 
     @property
     def _repo_slug(self) -> str:
@@ -283,3 +317,10 @@ class GithubOrchestrator(OrchestratorBase):
         "push" : __code_event_clone_urls,
         "pull_request" : __code_event_clone_urls
     }
+
+    __pr_scan_actions = [
+        "opened",
+        "synchronize",
+        "ready_for_review",
+        "reopened"
+    ]
