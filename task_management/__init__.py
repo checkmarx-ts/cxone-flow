@@ -1,5 +1,6 @@
 import asyncio, logging, time
 from threading import Thread, Lock
+from traceback import TracebackException
 
 
 class TaskManager:
@@ -43,6 +44,7 @@ class TaskManager:
     def __log_future_result(future):
         if future.exception() is not None:
             TaskManager.log().exception(future.exception())
+            TaskManager.log().error("".join(TracebackException.from_exception(future.exception()).format()))
         else:
             if future.result() is not None:
                 TaskManager.log().debug(future.result())
