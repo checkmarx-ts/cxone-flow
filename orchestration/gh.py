@@ -43,6 +43,9 @@ class GithubOrchestrator(OrchestratorBase):
     __pull_html_url = parse("$.pull_request.html_url")
     __pull_project_key_query = parse("$.repository.name")
     __pull_org_key_query = parse("$.repository.owner.login")
+    __pull_assignee_query = parse("$.pull_request.assignee")
+    __pull_assignees_query = parse("$.pull_request.assignees")
+    __pull_requested_reviewers_query = parse("$.pull_request[requested_teams,requested_reviewers][*]")
 
     __code_event_route_url_query = parse("$.repository[clone_url,ssh_url]")
     __code_event_ssh_clone_url_query = parse("$.repository.ssh_url")
@@ -73,13 +76,12 @@ class GithubOrchestrator(OrchestratorBase):
         return self.__isdiagnostic
 
     async def __log_app_install(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
-        action = GithubOrchestrator.__event_action_query.find(self.__json)[0].value
         sender = GithubOrchestrator.__install_sender_query.find(self.__json)[0].value
         target = GithubOrchestrator.__install_target_query.find(self.__json)[0].value
         target_type = GithubOrchestrator.__install_target_type_query.find(self.__json)[0].value
 
-        GithubOrchestrator.log().info(f"Install event '{action}': Initiated by [{sender}] on {target_type} [{target}]")
-        if action in ["created", "new_permissions_accepted", "added"]:
+        GithubOrchestrator.log().info(f"Install event '{self.__action}': Initiated by [{sender}] on {target_type} [{target}]")
+        if self.__action in ["created", "new_permissions_accepted", "added"]:
             warned = False
             bad = False
             if not target_type == "Organization":
@@ -147,6 +149,14 @@ class GithubOrchestrator(OrchestratorBase):
             return
         
         self.__json = json.loads(webhook_payload)
+
+        action_found = GithubOrchestrator.__event_action_query.find(self.__json)
+        if len(action_found) > 0:
+            self.__action = action_found[0].value
+            self.__dispatch_event = f"{self.__event}:{self.__action if self.__action is not None else ""}"
+        else:
+            self.__dispatch_event = self.__event
+
    
         self.__route_urls = GithubOrchestrator.__route_url_parser_dispatch_map[self.__event](self) \
             if self.__event in GithubOrchestrator.__route_url_parser_dispatch_map.keys() else []
@@ -156,10 +166,10 @@ class GithubOrchestrator(OrchestratorBase):
 
 
     async def execute(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
-        if self.__event not in GithubOrchestrator.__workflow_map.keys():
-            GithubOrchestrator.log().error(f"Unhandled event type: {self.__event}")
+        if self.__dispatch_event not in GithubOrchestrator.__workflow_map.keys():
+            GithubOrchestrator.log().error(f"Unhandled event type: {self.__dispatch_event}")
         else:
-            return await GithubOrchestrator.__workflow_map[self.__event](self, cxone_service, scm_service, workflow_service)
+            return await GithubOrchestrator.__workflow_map[self.__dispatch_event](self, cxone_service, scm_service, workflow_service)
 
     async def _get_clone_worker(self, scm_service : SCMService, clone_url : str) -> CloneWorker:
         return scm_service.cloner.clone(clone_url, self.__json)
@@ -197,42 +207,59 @@ class GithubOrchestrator(OrchestratorBase):
        
         return await OrchestratorBase._execute_push_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
-    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
 
-        action = GithubOrchestrator.__event_action_query.find(self.__json)[0].value
-        html_url = GithubOrchestrator.__pull_html_url.find(self.__json)[0].value
+    def __get_pr_assignees(self):
+        ret = []
+        assignee = GithubOrchestrator.__pull_assignee_query.find(self.__json)
+        assignees = GithubOrchestrator.__pull_assignees_query.find(self.__json)
+
+        if len(assignees) > 0 and assignees[0].value is not None and len(assignees[0].value) > 0:
+            ret = assignees[0].value
+
+        if len(assignee) > 0 and assignee[0].value is not None:
+            ret.append(assignee[0].value)
+
+        return ret
+
+    def __get_pr_reviewers(self):
+        reviewers = GithubOrchestrator.__pull_requested_reviewers_query.find(self.__json)
+        if len(reviewers) > 0 and reviewers[0].value is not None:
+            return reviewers[0].value
+        
+        return []
+
+    def __populate_common_pr_data(self):
+        self.__pr_html_url = GithubOrchestrator.__pull_html_url.find(self.__json)[0].value
         self.__pr_id = GithubOrchestrator.__pull_id_query.find(self.__json)[0].value
         self.__project_key = GithubOrchestrator.__pull_project_key_query.find(self.__json)[0].value
         self.__org = GithubOrchestrator.__pull_org_key_query.find(self.__json)[0].value
-
-        if bool(GithubOrchestrator.__pull_draft_query.find(self.__json)[0].value):
-            GithubOrchestrator.log().info(f"Skipping draft PR {self.__pr_id}: {html_url}")
-            return
-        
-        if action not in GithubOrchestrator.__pr_scan_actions:
-            GithubOrchestrator.log().info(f"PR {self.__pr_id} with action [{action}] skipped: {html_url}")
-            return
-
         self.__target_branch = GithubOrchestrator.__pull_target_branch_query.find(self.__json)[0].value
         self.__source_branch = GithubOrchestrator.__pull_source_branch_query.find(self.__json)[0].value
-
         self.__target_hash = GithubOrchestrator.__pull_target_hash_query.find(self.__json)[0].value
         self.__source_hash = GithubOrchestrator.__pull_source_hash_query.find(self.__json)[0].value
+        self.__is_draft = bool(GithubOrchestrator.__pull_draft_query.find(self.__json)[0].value)
+        self.__pr_state = f"{GithubOrchestrator.__pull_state_query.find(self.__json)[0].value}{"-draft" if self.__is_draft else ""}"
 
-        self.__pr_state = GithubOrchestrator.__pull_state_query.find(self.__json)[0].value
+        if len(self.__get_pr_assignees()) > 0:
+            self.__pr_status = "REVIEWERS_ASSIGNED"
+        elif len(self.__get_pr_reviewers()) > 0:
+            self.__pr_status = "REVIEWERS_REQUESTED"
+        else:
+            self.__pr_status = "NO_REVIEWERS"
 
-        # TODO: Set status with reviewer names
-        # $.pull_request.assignee - can be null
-        # $.pull_request.assignees - can be an empty list
-        # $.pull_request[requested_teams,requested_reviewers][*] - can have no match
-        # Can be:
-        # NO_REVIEWERS
-        # REVIEWERS_REQUESTED
-        # REVIEWERS_ASSIGNED
-        self.__pr_status = "NO_REVIEWERS"
 
+    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
+        self.__populate_common_pr_data()
+
+        if self.__is_draft:
+            GithubOrchestrator.log().info(f"Skipping draft PR {self.__pr_id}: {self.__pr_html_url}")
+            return
+        
         return await OrchestratorBase._execute_pr_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
+    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+        self.__populate_common_pr_data()
+        return await OrchestratorBase._execute_pr_tag_update_workflow(self, cxone_service, scm_service, workflow_service)
 
     @property
     def _pr_id(self) -> str:
@@ -299,10 +326,26 @@ class GithubOrchestrator(OrchestratorBase):
 
 
     __workflow_map = {
-        "installation" : __log_app_install,
-        "installation_repositories" : __log_app_install,
+        "installation:deleted" : __log_app_install,
+        "installation:unsuspend" : __log_app_install,
+        "installation:suspend" : __log_app_install,
+        "installation:created" : __log_app_install,
+        "installation_repositories:deleted" : __log_app_install,
+        "installation_repositories:unsuspend" : __log_app_install,
+        "installation_repositories:suspend" : __log_app_install,
+        "installation_repositories:created" : __log_app_install,
         "push" : _execute_push_scan_workflow,
-        "pull_request" : _execute_pr_scan_workflow
+        "pull_request:opened" : _execute_pr_scan_workflow,
+        "pull_request:synchronize" : _execute_pr_scan_workflow,
+        "pull_request:ready_for_review" : _execute_pr_scan_workflow,
+        "pull_request:reopened" : _execute_pr_scan_workflow,
+        "pull_request:assigned" : _execute_pr_tag_update_workflow,
+        "pull_request:unassigned" : _execute_pr_tag_update_workflow,
+        "pull_request:review_request_removed" : _execute_pr_tag_update_workflow,
+        "pull_request:review_requested" : _execute_pr_tag_update_workflow,
+        "pull_request:closed" : _execute_pr_tag_update_workflow,
+        "pull_request:converted_to_draft" : _execute_pr_tag_update_workflow
+        
     }
 
     __route_url_parser_dispatch_map = {
@@ -318,9 +361,3 @@ class GithubOrchestrator(OrchestratorBase):
         "pull_request" : __code_event_clone_urls
     }
 
-    __pr_scan_actions = [
-        "opened",
-        "synchronize",
-        "ready_for_review",
-        "reopened"
-    ]
