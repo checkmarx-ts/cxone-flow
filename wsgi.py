@@ -13,6 +13,7 @@ from config import CxOneFlowConfig, ConfigurationException, get_config_path
 from time import perf_counter_ns
 from task_management import TaskManager
 import cxoneflow_logging as cof_logging
+from api_utils.auth_factories import EventContext, HeaderFilteredEventContext
 
 cof_logging.bootstrap()
 
@@ -44,7 +45,7 @@ async def bbdc_webhook_endpoint():
     __log.info("Received hook for BitBucket Data Center")
     __log.debug(f"bbdc webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     try:
-        TaskManager.in_background(OrchestrationDispatch.execute(BitBucketDataCenterOrchestrator(request.headers, request.data)))
+        TaskManager.in_background(OrchestrationDispatch.execute(BitBucketDataCenterOrchestrator(EventContext(request.data, request.headers))))
         return Response(status=204)
     except Exception as ex:
         __log.exception(ex)
@@ -55,7 +56,7 @@ async def github_webhook_endpoint():
     __log.info("Received hook for Github")
     __log.debug(f"github webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     try:
-        orch = GithubOrchestrator(request.headers, request.data)
+        orch = GithubOrchestrator(HeaderFilteredEventContext(request.data, request.headers, "User-Agent|X-(Git)?[H|h]ub"))
 
         if not orch.is_diagnostic:
             TaskManager.in_background(OrchestrationDispatch.execute(orch))
@@ -76,7 +77,7 @@ async def adoe_webhook_endpoint():
     __log.info("Received hook for Azure DevOps Enterprise")
     __log.debug(f"adoe webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     try:
-        orch = AzureDevOpsEnterpriseOrchestrator(request.headers, request.data);
+        orch = AzureDevOpsEnterpriseOrchestrator(EventContext(request.data, request.headers));
 
         if not orch.is_diagnostic:
             TaskManager.in_background(OrchestrationDispatch.execute(orch))

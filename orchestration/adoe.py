@@ -1,5 +1,5 @@
 from .base import OrchestratorBase
-import json, base64, urllib, urllib.parse
+import base64, urllib, urllib.parse
 from jsonpath_ng import parse
 from cxone_api.util import CloneUrlParser
 from cxone_service import CxOneService
@@ -7,6 +7,7 @@ from scm_services import SCMService
 from workflows.state_service import WorkflowStateService
 from pathlib import Path
 from cxone_api.scanning import ScanInspector
+from api_utils.auth_factories import EventContext
 
 class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
@@ -39,22 +40,20 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
     def config_key(self):
         return "adoe"
 
-    def __init__(self, headers, webhook_payload):
-        OrchestratorBase.__init__(self, headers, webhook_payload)
+    def __init__(self, event_context : EventContext):
+        OrchestratorBase.__init__(self, event_context)
 
-        self.__json = json.loads(webhook_payload)
-      
-        self.__isdiagnostic = AzureDevOpsEnterpriseOrchestrator.__diag_id in [x.value for x in list(AzureDevOpsEnterpriseOrchestrator.__diagid_query.find(self.__json))]
+        self.__isdiagnostic = AzureDevOpsEnterpriseOrchestrator.__diag_id in [x.value for x in list(AzureDevOpsEnterpriseOrchestrator.__diagid_query.find(self.event_context.message))]
         if self.__isdiagnostic:
             return
 
-        self.__event = [x.value for x in list(self.__payload_type_query.find(self.__json))][0]
-        self.__route_urls = [x.value for x in list(self.__remoteurl_query.find(self.__json))]
+        self.__event = [x.value for x in list(self.__payload_type_query.find(self.event_context.message))][0]
+        self.__route_urls = [x.value for x in list(self.__remoteurl_query.find(self.event_context.message))]
         self.__clone_url = self.__route_urls[0]
-        self.__default_branches = [OrchestratorBase.normalize_branch_name(x.value) for x in list(self.__push_default_branch_query.find(self.__json))]
-        self.__repo_key = [x.value for x in list(self.__repo_project_key_query.find(self.__json))][0]
-        self.__repo_slug = [x.value for x in list(self.__repo_slug_query.find(self.__json))][0]
-        self.__collection_url = [x.value for x in list(self.__collection_url_query.find(self.__json))][0]
+        self.__default_branches = [OrchestratorBase.normalize_branch_name(x.value) for x in list(self.__push_default_branch_query.find(self.event_context.message))]
+        self.__repo_key = [x.value for x in list(self.__repo_project_key_query.find(self.event_context.message))][0]
+        self.__repo_slug = [x.value for x in list(self.__repo_slug_query.find(self.event_context.message))][0]
+        self.__collection_url = [x.value for x in list(self.__collection_url_query.find(self.event_context.message))][0]
         self.__collection = Path(urllib.parse.urlparse(self.__collection_url).path).name
 
 
@@ -126,35 +125,35 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
         return f"{p.org}/{self._repo_project_key}/{self._repo_name}"
 
     async def __is_pr_draft(self) -> bool:
-        return bool(AzureDevOpsEnterpriseOrchestrator.__pr_draft_query.find(self.__json)[0].value)
+        return bool(AzureDevOpsEnterpriseOrchestrator.__pr_draft_query.find(self.event_context.message)[0].value)
 
 
     async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
         self.__source_branch = self.__target_branch = OrchestratorBase.normalize_branch_name(
-            [x.value for x in list(self.__push_target_branch_query.find(self.__json))][0])
-        self.__source_hash = self.__target_hash = [x.value for x in list(self.__push_target_hash_query.find(self.__json))][0]
+            [x.value for x in list(self.__push_target_branch_query.find(self.event_context.message))][0])
+        self.__source_hash = self.__target_hash = [x.value for x in list(self.__push_target_hash_query.find(self.event_context.message))][0]
 
         return await OrchestratorBase._execute_push_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
     async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
         if await self.__is_pr_draft():
-            AzureDevOpsEnterpriseOrchestrator.log().info(f"Skipping draft PR {AzureDevOpsEnterpriseOrchestrator.__pr_self_link_query.find(self.__json)[0].value}")
+            AzureDevOpsEnterpriseOrchestrator.log().info(f"Skipping draft PR {AzureDevOpsEnterpriseOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
             return
 
-        self.__source_branch = OrchestratorBase.normalize_branch_name([x.value for x in list(self.__pr_frombranch_query.find(self.__json))][0])
-        self.__target_branch = OrchestratorBase.normalize_branch_name([x.value for x in list(self.__pr_tobranch_query.find(self.__json))][0])
-        self.__source_hash = [x.value for x in list(self.__pr_fromhash_query.find(self.__json))][0]
-        self.__target_hash = [x.value for x in list(self.__pr_tohash_query.find(self.__json))][0]
-        self.__pr_id = str([x.value for x in list(self.__pr_id_query.find(self.__json))][0])
+        self.__source_branch = OrchestratorBase.normalize_branch_name([x.value for x in list(self.__pr_frombranch_query.find(self.event_context.message))][0])
+        self.__target_branch = OrchestratorBase.normalize_branch_name([x.value for x in list(self.__pr_tobranch_query.find(self.event_context.message))][0])
+        self.__source_hash = [x.value for x in list(self.__pr_fromhash_query.find(self.event_context.message))][0]
+        self.__target_hash = [x.value for x in list(self.__pr_tohash_query.find(self.event_context.message))][0]
+        self.__pr_id = str([x.value for x in list(self.__pr_id_query.find(self.event_context.message))][0])
 
-        statuses = list(set([AzureDevOpsEnterpriseOrchestrator.__pr_status_map[x.value] for x in AzureDevOpsEnterpriseOrchestrator.__pr_reviewer_status_query.find(self.__json)]))
+        statuses = list(set([AzureDevOpsEnterpriseOrchestrator.__pr_status_map[x.value] for x in AzureDevOpsEnterpriseOrchestrator.__pr_reviewer_status_query.find(self.event_context.message)]))
 
         if not len(statuses) > 0:
             self.__pr_status = "NO_REVIEWERS"
         else:
             self.__pr_status = "/".join(statuses)
 
-        self.__pr_state = AzureDevOpsEnterpriseOrchestrator.__pr_state_query.find(self.__json)[0].value
+        self.__pr_state = AzureDevOpsEnterpriseOrchestrator.__pr_state_query.find(self.event_context.message)[0].value
 
         existing_scans = await cxone_service.find_pr_scans(await self.get_cxone_project_name(), self.__pr_id, self.__source_hash)
 
@@ -176,7 +175,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
     
     @property
     def __repository_id(self) -> str:
-        return [x.value for x in list(self.__repository_id_query.find(self.__json))][0]
+        return [x.value for x in list(self.__repository_id_query.find(self.event_context.message))][0]
 
 
     @property

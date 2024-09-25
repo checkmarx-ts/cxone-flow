@@ -4,6 +4,7 @@ from requests import request
 from typing import Dict, Union, Any
 import urllib, logging, sys, asyncio
 from api_utils import AuthFactory
+from api_utils.auth_factories import EventContext
 
 class SCMAuthException(Exception):
     pass
@@ -49,7 +50,7 @@ class APISession:
         return f"{base}/{suffix}{"?" if len(args) > 0 else ""}{"&".join(args)}{f"#{anchor}" if anchor is not None else ""}"
 
 
-    async def exec(self, event_msg : Dict, method : str, path : str, query : Dict = None, body : Any = None, extra_headers : Dict = None) -> Response:
+    async def exec(self, event_context : EventContext, method : str, path : str, query : Dict = None, body : Any = None, extra_headers : Dict = None) -> Response:
         url = self._form_url(path)
         headers = dict(self.__headers)
         if not extra_headers is None:
@@ -61,7 +62,7 @@ class APISession:
             
             APISession.log().debug(f"Executing: {prepStr} #{tryCount}")
             response = await asyncio.to_thread(request, method=method, url=url, params=query,
-                data=body, headers=headers, auth=await self.__auth_factory.get_auth(event_msg, tryCount > 0), 
+                data=body, headers=headers, auth=await self.__auth_factory.get_auth(event_context, tryCount > 0), 
                 timeout=self.__timeout, proxies=self.__proxies, verify=self.__verify)
             
             logStr = f"{response.status_code}: {response.reason} {prepStr}"

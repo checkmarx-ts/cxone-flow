@@ -3,6 +3,7 @@ from cxoneflow_logging import SecretRegistry
 from pathlib import Path
 from typing import Dict, List
 from api_utils.auth_factories import GithubAppAuthFactory
+from api_utils.auth_factories import EventContext
 
 class CloneWorker:
     def __init__(self, clone_thread, clone_dest_path):
@@ -115,7 +116,7 @@ class Cloner:
                 return x
         return None
     
-    async def _fix_clone_url(self, clone_url : str, event_context : Dict=None, force_reauth : bool=False):
+    async def _fix_clone_url(self, clone_url : str, event_context : EventContext=None, force_reauth : bool=False):
         return clone_url
     
     @property
@@ -129,7 +130,7 @@ class Cloner:
     async def _get_clone_cmd_stub(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> List:
         return self.__clone_cmd_stub
     
-    async def clone(self, clone_url, event_context : Dict=None, force_reauth : bool=False):
+    async def clone(self, clone_url, event_context : EventContext=None, force_reauth : bool=False):
         Cloner.log().debug(f"Clone Execution for: {clone_url}")
 
         fixed_clone_url = await self._fix_clone_url(clone_url, event_context, force_reauth)
@@ -157,7 +158,7 @@ class BasicAuthWithCredsInUrl(Cloner):
         self.__username = username
         self.__password = password
 
-    async def _fix_clone_url(self, clone_url : str, event_context : Dict=None, force_reauth : bool=False):
+    async def _fix_clone_url(self, clone_url : str, event_context : EventContext=None, force_reauth : bool=False):
         return Cloner.insert_creds_in_url(clone_url, self.__username, self.__password)
 
 
@@ -166,6 +167,6 @@ class GithubAppCloner(Cloner):
         Cloner.__init__(self)
         self.__auth_factory = auth_factory
 
-    async def _fix_clone_url(self, clone_url : str, event_context : Dict=None, force_reauth : bool=False):
+    async def _fix_clone_url(self, clone_url : str, event_context : EventContext=None, force_reauth : bool=False):
         token = SecretRegistry.register(await self.__auth_factory.get_token(event_context, force_reauth))
         return Cloner.insert_creds_in_url(clone_url, "x-access-token", token)

@@ -2,7 +2,7 @@ from requests.auth import AuthBase
 from requests import request
 from typing import Dict
 from jsonpath_ng import parse
-import jwt, time, asyncio, logging
+import jwt, time, asyncio, logging, json, re
 from datetime import datetime
 from threading import Lock
 from _agent import __agent__
@@ -13,15 +13,43 @@ from cxoneflow_logging import SecretRegistry
 class AuthFactoryException(BaseException):
     pass
 
+class EventContext:
+    def __init__(self, event_payload : Dict, event_headers : Dict):
+        self.__payload = event_payload
+        self.__msg = json.loads(event_payload)
+        self.__headers = event_headers
+
+    @property
+    def message(self) -> Dict:
+        return self.__msg
+
+    @property
+    def raw_event_payload(self):
+        return self.__payload
+    
+
+    @property
+    def headers(self) -> Dict:
+        return self.__headers
+
+
+class HeaderFilteredEventContext(EventContext):
+    def __init__(self, event_payload : Dict, event_headers : Dict, header_key_regex : str):
+        pattern = re.compile(header_key_regex)
+        EventContext.__init__(self, event_payload, {k:v for k,v in event_headers if pattern.match(k)})
+
+
+
+
 class AuthFactory:
     @classmethod
     def log(clazz):
         return logging.getLogger(clazz.__name__)
 
-    async def get_auth(self, event_context : Dict=None, force_reauth : bool=False) -> AuthBase:
+    async def get_auth(self, event_context : EventContext=None, force_reauth : bool=False) -> AuthBase:
         raise NotImplementedError("get_auth")
 
-    async def get_token(self, event_context : Dict=None, force_reauth : bool=False) -> str:
+    async def get_token(self, event_context : EventContext=None, force_reauth : bool=False) -> str:
         raise NotImplementedError("get_token")
     
 
@@ -29,7 +57,7 @@ class StaticAuthFactory(AuthFactory):
     def __init__(self, static_auth : AuthBase):
         self.__auth = static_auth
 
-    async def get_auth(self, event_context : Dict=None, force_reauth : bool=False) -> AuthBase:
+    async def get_auth(self, event_context : EventContext=None, force_reauth : bool=False) -> AuthBase:
         return self.__auth
 
 
@@ -39,7 +67,7 @@ class GithubAppAuthFactory(AuthFactory):
     __token_cache = {}
 
     __event_installation_id = parse("$.installation.id")
-    __event_app_id = parse("$.sender.id")
+    __app_id_header = "X-Github-Hook-Installation-Target-Id"
 
 
     def __init__(self, private_key : str, api_url : str):
@@ -56,17 +84,17 @@ class GithubAppAuthFactory(AuthFactory):
 
         return jwt.encode(payload, self.__pkey, algorithm='RS256')
     
-    async def __get_token_tuple(self, event_context : Dict=None, force_reauth : bool=False):
+    async def __get_token_tuple(self, event_context : EventContext=None, force_reauth : bool=False):
 
-        install_id_found = GithubAppAuthFactory.__event_installation_id.find(event_context)
+        install_id_found = GithubAppAuthFactory.__event_installation_id.find(event_context.message)
         if len(install_id_found) == 0:
             raise AuthFactoryException("GitHub installation id was not found in the event payload.")
         install_id = install_id_found[0].value
 
-        app_id_found = GithubAppAuthFactory.__event_app_id.find(event_context)
-        if len(app_id_found) == 0:
-            raise AuthFactoryException("GitHub app id was not found in the event payload.")
-        app_id = app_id_found[0].value
+        if GithubAppAuthFactory.__app_id_header in event_context.headers.keys():
+            app_id = event_context.headers[GithubAppAuthFactory.__app_id_header]
+        else:
+            raise AuthFactoryException(f"Header {GithubAppAuthFactory.__app_id_header} not found in event context.")
 
         token_tuple = None
         
@@ -93,12 +121,12 @@ class GithubAppAuthFactory(AuthFactory):
             
         return token_tuple
 
-    async def get_auth(self, event_context : Dict=None, force_reauth : bool=False) -> AuthBase:
+    async def get_auth(self, event_context : EventContext=None, force_reauth : bool=False) -> AuthBase:
         if event_context is None:
             raise AuthFactoryException("Event context is required.")
         return HTTPBearerAuth ((await self.__get_token_tuple(event_context, force_reauth))[0])
 
-    async def get_token(self, event_context : Dict=None, force_reauth : bool=False) -> str:
+    async def get_token(self, event_context : EventContext=None, force_reauth : bool=False) -> str:
         if event_context is None:
             raise AuthFactoryException("Event context is required.")
         return (await self.__get_token_tuple(event_context, force_reauth))[0]

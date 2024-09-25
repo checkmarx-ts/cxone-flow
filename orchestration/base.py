@@ -9,6 +9,8 @@ from scm_services import SCMService
 from scm_services.cloner import Cloner, CloneWorker
 from workflows.state_service import WorkflowStateService
 from workflows.messaging import PRDetails
+from api_utils.auth_factories import EventContext
+from typing import Dict
 
 class OrchestratorBase:
 
@@ -20,25 +22,20 @@ class OrchestratorBase:
     def log(clazz) -> logging.Logger:
         return logging.getLogger(clazz.__name__)
 
-    def __init__(self, headers, webhook_payload):
-        self.__webhook_payload = webhook_payload
-        self.__headers = headers
+    def __init__(self, event_context : EventContext):
+        self.__event_context = event_context
 
     @property
     def config_key(self):
         raise NotImplementedError("config_key")
 
     @property
-    def _headers(self) -> dict:
-        return self.__headers
+    def event_context(self) -> EventContext:
+        return self.__event_context
 
     @property
     def route_urls(self) -> list:
         raise NotImplementedError("route_urls")
-
-    @property
-    def _webhook_payload(self) -> str:
-        return self.__webhook_payload
     
     @staticmethod
     def __get_path_dict(path : str, root : str = None) -> dict:
@@ -57,7 +54,7 @@ class OrchestratorBase:
     
     def get_header_key_safe(self, key):
         try:
-            return self.__headers[key]
+            return self.event_context.headers[key]
         except:
             return None
 

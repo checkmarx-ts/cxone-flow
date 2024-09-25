@@ -1,8 +1,8 @@
 from .base import OrchestratorBase
 from api_utils import signature
 from api_utils.pagers import async_api_page_generator
+from api_utils.auth_factories import EventContext
 from jsonpath_ng import parse
-import json
 from cxone_service import CxOneService
 from cxone_api.util import json_on_ok
 from scm_services import SCMService
@@ -76,9 +76,9 @@ class GithubOrchestrator(OrchestratorBase):
         return self.__isdiagnostic
 
     async def __log_app_install(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
-        sender = GithubOrchestrator.__install_sender_query.find(self.__json)[0].value
-        target = GithubOrchestrator.__install_target_query.find(self.__json)[0].value
-        target_type = GithubOrchestrator.__install_target_type_query.find(self.__json)[0].value
+        sender = GithubOrchestrator.__install_sender_query.find(self.event_context.message)[0].value
+        target = GithubOrchestrator.__install_target_query.find(self.event_context.message)[0].value
+        target_type = GithubOrchestrator.__install_target_type_query.find(self.event_context.message)[0].value
 
         GithubOrchestrator.log().info(f"Install event '{self.__action}': Initiated by [{sender}] on {target_type} [{target}]")
         if self.__action in ["created", "new_permissions_accepted", "added"]:
@@ -88,12 +88,12 @@ class GithubOrchestrator(OrchestratorBase):
                 GithubOrchestrator.log().warning(f"Install target '{target}' is type '{target_type}' but expected to be 'Organization'.")
                 warned = True
 
-            repo_selection = GithubOrchestrator.__install_repo_selection_query.find(self.__json)[0].value
+            repo_selection = GithubOrchestrator.__install_repo_selection_query.find(self.event_context.message)[0].value
             if not repo_selection == "all":
                 GithubOrchestrator.log().warning(f"Repository selection is '{repo_selection}' but expected to be 'all'.")
                 warned = True
             
-            events = GithubOrchestrator.__install_events_query.find(self.__json)
+            events = GithubOrchestrator.__install_events_query.find(self.event_context.message)
             if len(events) == 0:
                 unhandled_events = GithubOrchestrator.__expected_events
             else:
@@ -104,7 +104,7 @@ class GithubOrchestrator(OrchestratorBase):
 
 
             permissions_not_found = dict(GithubOrchestrator.__expected_permissions)
-            payload_permissions = GithubOrchestrator.__install_permissions_query.find(self.__json)
+            payload_permissions = GithubOrchestrator.__install_permissions_query.find(self.event_context.message)
             if len(payload_permissions) > 0:
                 permissions = payload_permissions[0].value
                 for p in permissions.keys():
@@ -126,31 +126,29 @@ class GithubOrchestrator(OrchestratorBase):
                 GithubOrchestrator.log().info("The GitHub app appears to be properly configured.")
 
     def __installation_route_urls(self):
-        return [GithubOrchestrator.__install_route_url_query.find(self.__json)[0].value]
+        return [GithubOrchestrator.__install_route_url_query.find(self.event_context.message)[0].value]
     
     def __code_event_route_urls(self):
-        return [GithubOrchestrator.__code_event_route_url_query.find(self.__json)[0].value]
+        return [GithubOrchestrator.__code_event_route_url_query.find(self.event_context.message)[0].value]
 
     def __code_event_clone_urls(self):
         return {
-            "ssh" : GithubOrchestrator.__code_event_ssh_clone_url_query.find(self.__json)[0].value,
-            "http" : GithubOrchestrator.__code_event_http_clone_url_query.find(self.__json)[0].value
+            "ssh" : GithubOrchestrator.__code_event_ssh_clone_url_query.find(self.event_context.message)[0].value,
+            "http" : GithubOrchestrator.__code_event_http_clone_url_query.find(self.event_context.message)[0].value
         }
 
-    def __init__(self, headers : dict, webhook_payload : dict):
-        OrchestratorBase.__init__(self, headers, webhook_payload)
+    def __init__(self, event_context : EventContext):
+        OrchestratorBase.__init__(self, event_context)
 
         self.__isdiagnostic = False
 
-        self.__event = self.get_header_key_safe('X-GitHub-Event') 
+        self.__event = self.get_header_key_safe('X-Github-Event') 
 
         if not self.__event is None and self.__event == "ping":
             self.__isdiagnostic = True
             return
         
-        self.__json = json.loads(webhook_payload)
-
-        action_found = GithubOrchestrator.__event_action_query.find(self.__json)
+        action_found = GithubOrchestrator.__event_action_query.find(self.event_context.message)
         if len(action_found) > 0:
             self.__action = action_found[0].value
             self.__dispatch_event = f"{self.__event}:{self.__action if self.__action is not None else ""}"
@@ -172,7 +170,7 @@ class GithubOrchestrator(OrchestratorBase):
             return await GithubOrchestrator.__workflow_map[self.__dispatch_event](self, cxone_service, scm_service, workflow_service)
 
     async def _get_clone_worker(self, scm_service : SCMService, clone_url : str) -> CloneWorker:
-        return scm_service.cloner.clone(clone_url, self.__json)
+        return scm_service.cloner.clone(clone_url, self.event_context)
 
     async def _get_target_branch_and_hash(self) -> tuple:
         return self.__target_branch, self.__target_hash
@@ -192,26 +190,26 @@ class GithubOrchestrator(OrchestratorBase):
             return False
         
         hashalg,hash = sig.split("=")
-        payload_hash = signature.get(hashalg, shared_secret, self._webhook_payload)
+        payload_hash = signature.get(hashalg, shared_secret, self.event_context.raw_event_payload)
 
         return hash == payload_hash
 
 
     async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
         self.__target_branch = self.__source_branch = OrchestratorBase.normalize_branch_name(
-            GithubOrchestrator.__push_target_branch_query.find(self.__json)[0].value)
-        self.__target_hash = self.__source_hash = GithubOrchestrator.__push_target_hash_query.find(self.__json)[0].value
+            GithubOrchestrator.__push_target_branch_query.find(self.event_context.message)[0].value)
+        self.__target_hash = self.__source_hash = GithubOrchestrator.__push_target_hash_query.find(self.event_context.message)[0].value
 
-        self.__project_key = GithubOrchestrator.__push_project_key_query.find(self.__json)[0].value
-        self.__org = GithubOrchestrator.__push_org_key_query.find(self.__json)[0].value
+        self.__project_key = GithubOrchestrator.__push_project_key_query.find(self.event_context.message)[0].value
+        self.__org = GithubOrchestrator.__push_org_key_query.find(self.event_context.message)[0].value
        
         return await OrchestratorBase._execute_push_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
 
     def __get_pr_assignees(self):
         ret = []
-        assignee = GithubOrchestrator.__pull_assignee_query.find(self.__json)
-        assignees = GithubOrchestrator.__pull_assignees_query.find(self.__json)
+        assignee = GithubOrchestrator.__pull_assignee_query.find(self.event_context.message)
+        assignees = GithubOrchestrator.__pull_assignees_query.find(self.event_context.message)
 
         if len(assignees) > 0 and assignees[0].value is not None and len(assignees[0].value) > 0:
             ret = assignees[0].value
@@ -222,23 +220,23 @@ class GithubOrchestrator(OrchestratorBase):
         return ret
 
     def __get_pr_reviewers(self):
-        reviewers = GithubOrchestrator.__pull_requested_reviewers_query.find(self.__json)
+        reviewers = GithubOrchestrator.__pull_requested_reviewers_query.find(self.event_context.message)
         if len(reviewers) > 0 and reviewers[0].value is not None:
             return reviewers[0].value
         
         return []
 
     def __populate_common_pr_data(self):
-        self.__pr_html_url = GithubOrchestrator.__pull_html_url.find(self.__json)[0].value
-        self.__pr_id = GithubOrchestrator.__pull_id_query.find(self.__json)[0].value
-        self.__project_key = GithubOrchestrator.__pull_project_key_query.find(self.__json)[0].value
-        self.__org = GithubOrchestrator.__pull_org_key_query.find(self.__json)[0].value
-        self.__target_branch = GithubOrchestrator.__pull_target_branch_query.find(self.__json)[0].value
-        self.__source_branch = GithubOrchestrator.__pull_source_branch_query.find(self.__json)[0].value
-        self.__target_hash = GithubOrchestrator.__pull_target_hash_query.find(self.__json)[0].value
-        self.__source_hash = GithubOrchestrator.__pull_source_hash_query.find(self.__json)[0].value
-        self.__is_draft = bool(GithubOrchestrator.__pull_draft_query.find(self.__json)[0].value)
-        self.__pr_state = f"{GithubOrchestrator.__pull_state_query.find(self.__json)[0].value}{"-draft" if self.__is_draft else ""}"
+        self.__pr_html_url = GithubOrchestrator.__pull_html_url.find(self.event_context.message)[0].value
+        self.__pr_id = GithubOrchestrator.__pull_id_query.find(self.event_context.message)[0].value
+        self.__project_key = GithubOrchestrator.__pull_project_key_query.find(self.event_context.message)[0].value
+        self.__org = GithubOrchestrator.__pull_org_key_query.find(self.event_context.message)[0].value
+        self.__target_branch = GithubOrchestrator.__pull_target_branch_query.find(self.event_context.message)[0].value
+        self.__source_branch = GithubOrchestrator.__pull_source_branch_query.find(self.event_context.message)[0].value
+        self.__target_hash = GithubOrchestrator.__pull_target_hash_query.find(self.event_context.message)[0].value
+        self.__source_hash = GithubOrchestrator.__pull_source_hash_query.find(self.event_context.message)[0].value
+        self.__is_draft = bool(GithubOrchestrator.__pull_draft_query.find(self.event_context.message)[0].value)
+        self.__pr_state = f"{GithubOrchestrator.__pull_state_query.find(self.event_context.message)[0].value}{"-draft" if self.__is_draft else ""}"
 
         if len(self.__get_pr_assignees()) > 0:
             self.__pr_status = "REVIEWERS_ASSIGNED"
@@ -289,18 +287,16 @@ class GithubOrchestrator(OrchestratorBase):
                 "method" : "GET",
                 "path" : f"/repos/{self._repo_organization}/{self._repo_project_key}/branches",
                 "query" : { "protected" : True, "per_page" : GithubOrchestrator.__api_page_max, "page" : offset + 1},
-                "event_msg" : self.__json
+                "event_context" : self.event_context
             }
 
         async for branch in async_api_page_generator(scm_service.exec, data_extractor, args_gen):
             ret_branches.append(branch)
 
         if len(ret_branches) == 0:
-            ret_branches.append(GithubOrchestrator.__code_event_default_branch_name_extract.find(self.__json)[0].value)
+            ret_branches.append(GithubOrchestrator.__code_event_default_branch_name_extract.find(self.event_context.message)[0].value)
 
         return ret_branches
-
-
 
     @property
     def _repo_project_key(self) -> str:
