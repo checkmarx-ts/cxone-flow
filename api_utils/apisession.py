@@ -2,9 +2,10 @@ from _agent import __agent__
 from requests import Response
 from requests import request
 from typing import Dict, Union, Any
-import urllib, logging, sys, asyncio
+import logging, sys, asyncio
 from api_utils import AuthFactory
 from api_utils.auth_factories import EventContext
+from . import form_url
 
 class SCMAuthException(Exception):
     pass
@@ -37,21 +38,12 @@ class APISession:
             ret = f"{ret}/{suffix.lstrip("/").rstrip("/")}"
         return ret
 
-
     @property
     def api_endpoint(self):
         return self.__api_endpoint
 
-
-    def _form_url(self, url_path, anchor=None, **kwargs):
-        base = self.api_endpoint
-        suffix = urllib.parse.quote(url_path.lstrip("/"))
-        args = [f"{x}={urllib.parse.quote(str(kwargs[x]))}" for x in kwargs.keys()]
-        return f"{base}/{suffix}{"?" if len(args) > 0 else ""}{"&".join(args)}{f"#{anchor}" if anchor is not None else ""}"
-
-
     async def exec(self, event_context : EventContext, method : str, path : str, query : Dict = None, body : Any = None, extra_headers : Dict = None) -> Response:
-        url = self._form_url(path)
+        url = form_url(self.api_endpoint, path)
         headers = dict(self.__headers)
         if not extra_headers is None:
             headers.update(extra_headers)

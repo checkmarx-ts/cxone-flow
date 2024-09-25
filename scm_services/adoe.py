@@ -5,7 +5,8 @@ from typing import Union, Dict
 from datetime import datetime, UTC
 import markdown as md
 from typing import Dict
-
+from api_utils.auth_factories import EventContext
+from api_utils import form_url
 
 class ADOEService(SCMService):
 
@@ -76,7 +77,7 @@ class ADOEService(SCMService):
 
 
     async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, 
-                               scanid : str, full_markdown : str, summary_markdown : str, event_msg : Dict=None):
+                               scanid : str, full_markdown : str, summary_markdown : str, event_context : EventContext):
         existing_thread = await self.__get_pr_thread(organization, project, repo_slug, pr_number)
 
         content = md.markdown(full_markdown, extensions=['tables'])
@@ -91,5 +92,5 @@ class ADOEService(SCMService):
 
 
     def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
-        return self._form_url(f"{organization}/{project}/_git/{repo_slug}", path=code_path, version=f"GB{branch}", 
+        return form_url(self.display_url, f"{organization}/{project}/_git/{repo_slug}", path=code_path, version=f"GB{branch}", 
                               line=code_line, lineEnd=code_line, lineStartColumn=0, lineEndColumn=1024, lineStyle="plain", _a="contents")

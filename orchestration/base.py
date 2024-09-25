@@ -151,7 +151,7 @@ class OrchestratorBase:
         inspector = await self.__exec_scan(cxone_service, scm_service, scan_tags)
         if inspector is not None:
             await workflow_service.start_pr_scan_workflow(inspector.project_id, inspector.scan_id, 
-                                                        PRDetails(clone_url=self._repo_clone_url(scm_service.cloner), 
+                                                        PRDetails(event_context=self.event_context, clone_url=self._repo_clone_url(scm_service.cloner), 
                                                         repo_project=self._repo_project_key, repo_slug=self._repo_slug, 
                                                         organization=self._repo_organization, pr_id=self._pr_id,
                                                         source_branch=source_branch, target_branch=target_branch))

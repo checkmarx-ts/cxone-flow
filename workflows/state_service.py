@@ -157,7 +157,7 @@ class WorkflowStateService:
                     annotation = PullRequestAnnotation(cxone_service.display_link, inspector.project_id, am.scanid, am.annotation, pr_details.source_branch,
                                                        self.__server_base_url)
                     await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
-                                                    am.scanid, annotation.full_content, annotation.summary_content)
+                                                    am.scanid, annotation.full_content, annotation.summary_content, pr_details.event_context)
                     await msg.ack()
                 else:
                     WorkflowStateService.log().error(f"Unable for load scan {am.scanid}")
@@ -183,7 +183,7 @@ class WorkflowStateService:
                         self.__workflow_map[ScanWorkflow.PR].excluded_states, cxone_service.display_link, am.projectid, am.scanid, report, 
                         scm_service.create_code_permalink, pr_details, self.__server_base_url)
                     await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
-                                                    am.scanid, feedback.full_content, feedback.summary_content)
+                                                    am.scanid, feedback.full_content, feedback.summary_content, pr_details.event_context)
                     await msg.ack()
             else:
                 await msg.ack()

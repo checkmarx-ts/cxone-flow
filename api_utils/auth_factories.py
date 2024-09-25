@@ -9,34 +9,27 @@ from _agent import __agent__
 from api_utils.bearer import HTTPBearerAuth
 from cxone_api.util import json_on_ok
 from cxoneflow_logging import SecretRegistry
+from dataclasses import dataclass, field
+from dataclasses_json import dataclass_json
 
 class AuthFactoryException(BaseException):
     pass
 
+@dataclass_json
+@dataclass
 class EventContext:
-    def __init__(self, event_payload : Dict, event_headers : Dict):
-        self.__payload = event_payload
-        self.__msg = json.loads(event_payload)
-        self.__headers = event_headers
+    raw_event_payload : bytes = field(repr=False)
+    headers : Dict
+    message : Dict = field(init=False)
 
-    @property
-    def message(self) -> Dict:
-        return self.__msg
-
-    @property
-    def raw_event_payload(self):
-        return self.__payload
-    
-
-    @property
-    def headers(self) -> Dict:
-        return self.__headers
+    def __post_init__(self):
+        self.message = json.loads(self.raw_event_payload)
 
 
 class HeaderFilteredEventContext(EventContext):
-    def __init__(self, event_payload : Dict, event_headers : Dict, header_key_regex : str):
+    def __init__(self, raw_event_payload : str, headers : Dict, header_key_regex : str):
         pattern = re.compile(header_key_regex)
-        EventContext.__init__(self, event_payload, {k:v for k,v in event_headers if pattern.match(k)})
+        EventContext.__init__(self, raw_event_payload=raw_event_payload, headers={k:v for k,v in headers if pattern.match(k)})
 
 
 

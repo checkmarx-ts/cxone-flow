@@ -37,7 +37,7 @@ class GithubOrchestrator(OrchestratorBase):
     __pull_target_hash_query = parse("$.pull_request.base.sha")
     __pull_source_branch_query = parse("$.pull_request.head.ref")
     __pull_source_hash_query = parse("$.pull_request.head.sha")
-    __pull_id_query = parse("$.pull_request.id")
+    __pull_id_query = parse("$.number")
     __pull_state_query = parse("$.pull_request.state")
     __pull_draft_query = parse("$.pull_request.draft")
     __pull_html_url = parse("$.pull_request.html_url")

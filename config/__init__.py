@@ -396,6 +396,8 @@ class CxOneFlowConfig:
 
         api_auth_dict = CxOneFlowConfig.__get_value_for_key_or_fail(f"{config_path}/connection", 'api-auth', connection_config_dict)
 
+        display_url = CxOneFlowConfig.__get_value_for_key_or_fail(f"{config_path}/connection", 'base-url', connection_config_dict)
+
         api_url = APISession.form_api_endpoint(CxOneFlowConfig.__get_value_for_key_or_fail(f"{config_path}/connection", 'base-url', connection_config_dict),
                                                CxOneFlowConfig.__get_value_for_key_or_default('api-url-suffix', connection_config_dict, None))
 
@@ -418,7 +420,7 @@ class CxOneFlowConfig:
             clone_auth_dict = api_auth_dict
             clone_config_path = f"{config_path}/connection/api-auth"
                
-        scm_service = scm_class(service_moniker, api_session, scm_shared_secret, 
+        scm_service = scm_class(display_url, service_moniker, api_session, scm_shared_secret, 
                                 CxOneFlowConfig.__cloner_factory(api_session, cloner_factory, clone_auth_dict, clone_config_path))
 
         return repo_matcher, cxone_service, scm_service, workflow_service_client

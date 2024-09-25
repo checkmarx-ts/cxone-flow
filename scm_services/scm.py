@@ -12,13 +12,17 @@ class SCMService:
     def log(clazz):
         return logging.getLogger(clazz.__name__)
 
-    def __init__(self, moniker : str, api_session : APISession, shared_secret : str, cloner : Cloner):
+    def __init__(self, display_url : str, moniker : str, api_session : APISession, shared_secret : str, cloner : Cloner):
         self.__session = api_session
         self.__shared_secret = shared_secret
         self.__cloner = cloner
         self.__moniker = moniker
+        self.__display_url = display_url
 
-
+    @property
+    def display_url(self):
+        return self.__display_url
+    
     @property
     def moniker(self):
         return self.__moniker
@@ -38,7 +42,7 @@ class SCMService:
         return await self.__session.exec(event_context, method, path, query, body, extra_headers)
 
     async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, 
-        summary_markdown : str, event_msg : Dict=None):
+        summary_markdown : str, event_context : EventContext):
         raise NotImplementedError("exec_pr_decorate")
    
     def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):

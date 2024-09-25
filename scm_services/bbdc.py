@@ -2,7 +2,8 @@ from .scm import SCMService
 from cxone_api.util import json_on_ok
 import json
 from workflows.pr import PullRequestDecoration
-from typing import Dict
+from api_utils.auth_factories import EventContext
+from api_utils import form_url
 
 class BBDCService(SCMService):
     __max_content_chars = 32000
@@ -55,7 +56,7 @@ class BBDCService(SCMService):
         return None, None
 
     async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, 
-        summary_markdown : str, event_msg : Dict=None):
+        summary_markdown : str, event_context : EventContext):
         id, version = await self.__find_existing_comment(project, repo_slug, pr_number)
 
         content = full_markdown if len(full_markdown) <= BBDCService.__max_content_chars else summary_markdown
@@ -68,5 +69,5 @@ class BBDCService(SCMService):
         SCMService.log().debug(f"Comment {id} version {version} modified on PR {pr_number}")
    
     def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
-        return self._form_url(f"projects/{project}/repos/{repo_slug}/browse{code_path}", anchor=code_line, at=branch)
+        return form_url(self.display_url, f"projects/{project}/repos/{repo_slug}/browse{code_path}", anchor=code_line, at=branch)
    
