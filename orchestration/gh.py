@@ -4,7 +4,6 @@ from api_utils.pagers import async_api_page_generator
 from api_utils.auth_factories import EventContext
 from jsonpath_ng import parse
 from cxone_service import CxOneService
-from cxone_api.util import json_on_ok
 from scm_services import SCMService
 from scm_services.cloner import CloneWorker
 from workflows.state_service import WorkflowStateService
