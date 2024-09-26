@@ -483,11 +483,21 @@ class CxOneFlowConfig:
 
     @staticmethod
     def __gh_cloner_factory(api_session : APISession, config_path : str, config_dict : Dict) -> Cloner:
-            ret_cloner = CxOneFlowConfig.__bitbucketdc_cloner_factory(api_session, config_path, config_dict)
-            if ret_cloner is None and 'app-private-key' in config_dict.keys():
-                ret_cloner = Cloner.using_github_app_auth(GithubAppAuthFactory
+            if CxOneFlowConfig.__has_basic_auth(config_dict):
+                    return Cloner.using_basic_auth(CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "username", config_dict), 
+                        CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "password", config_dict), True) 
+
+            if CxOneFlowConfig.__has_token_auth(config_dict):
+                    return Cloner.using_basic_auth("git", CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "token", config_dict))
+
+            if CxOneFlowConfig.__has_ssh_auth(config_dict):
+                    return Cloner.using_ssh_auth(Path(CxOneFlowConfig.__secret_root) / 
+                            Path(CxOneFlowConfig.__get_value_for_key_or_fail(config_path, "ssh", config_dict)), 
+                            config_dict['ssh-port'] if 'ssh-port' in config_dict.keys() else None)
+
+            if 'app-private-key' in config_dict.keys():
+                return Cloner.using_github_app_auth(GithubAppAuthFactory
                     (CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "app-private-key", config_dict), api_session.api_endpoint))
-            return ret_cloner
 
 
     @staticmethod
