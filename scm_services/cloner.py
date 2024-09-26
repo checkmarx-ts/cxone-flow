@@ -5,12 +5,19 @@ from typing import Dict, List
 from api_utils.auth_factories import GithubAppAuthFactory
 from api_utils.auth_factories import EventContext
 
+
+class CloneAuthException(BaseException):
+    pass
+
 class CloneWorker:
+
+    __stderr_auth_fail = re.compile(".*Invalid username or password.*")
+    __auth_fail_exit_code = 128
+
     def __init__(self, clone_thread, clone_dest_path):
         self.__log = logging.getLogger(f"CloneWorker:{clone_dest_path}")
         self.__clone_out_tempdir = clone_dest_path
         self.__clone_thread = clone_thread
-
 
     async def loc(self) -> str:
         try:
@@ -18,8 +25,12 @@ class CloneWorker:
             self.__log.debug(f"Clone task: return code [{completed.returncode}] stdout: [{completed.stdout}] stderr: [{completed.stderr}]")
             return self.__clone_out_tempdir.name
         except subprocess.CalledProcessError as ex:
-            self.__log.error(f"{ex} stdout: [{ex.stdout.decode('UTF-8')}] stderr: [{ex.stderr.decode('UTF-8')})]")
-            raise
+            if CloneWorker.__stderr_auth_fail.match(ex.stderr.decode('UTF-8').replace("\n", "")) and \
+                ex.returncode == CloneWorker.__auth_fail_exit_code:
+                raise CloneAuthException(ex.stderr.decode('UTF-8'))
+            else:
+                self.__log.error(f"{ex} stdout: [{ex.stdout.decode('UTF-8')}] stderr: [{ex.stderr.decode('UTF-8')})]")
+                raise
 
     async def __aenter__(self):
         return self

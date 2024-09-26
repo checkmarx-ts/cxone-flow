@@ -6,7 +6,7 @@ from .exceptions import OrchestrationException
 from cxone_service import CxOneService
 from cxone_api.scanning import ScanInspector
 from scm_services import SCMService
-from scm_services.cloner import Cloner, CloneWorker
+from scm_services.cloner import Cloner, CloneWorker, CloneAuthException
 from workflows.state_service import WorkflowStateService
 from workflows.messaging import PRDetails
 from api_utils.auth_factories import EventContext
@@ -61,7 +61,7 @@ class OrchestratorBase:
     async def execute(self, cxone_service: CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
         raise NotImplementedError("execute")
     
-    async def _get_clone_worker(self, scm_service : SCMService, clone_url : str) -> CloneWorker:
+    async def _get_clone_worker(self, scm_service : SCMService, clone_url : str, failures : int) -> CloneWorker:
         return await scm_service.cloner.clone(clone_url)
     
     async def __exec_scan(self, cxone_service : CxOneService, scm_service : SCMService, tags) -> ScanInspector:
@@ -80,40 +80,54 @@ class OrchestratorBase:
             check = perf_counter_ns()
             
             OrchestratorBase.log().debug("Starting clone...")
-            async with await (await self._get_clone_worker(scm_service, clone_url)) as clone_worker:
-                code_path = await clone_worker.loc()
+            # Do 1 clone retry if there is an auth failure.
+            clone_auth_fails = 0
+            while clone_auth_fails <= 1:
+                try:
+                    async with await (await self._get_clone_worker(scm_service, clone_url, clone_auth_fails)) as clone_worker:
+                        code_path = await clone_worker.loc()
 
-                await scm_service.cloner.reset_head(code_path, source_hash)
+                        await scm_service.cloner.reset_head(code_path, source_hash)
 
-                OrchestratorBase.log().info(f"{clone_url} cloned in {perf_counter_ns() - check}ns")
-                check = perf_counter_ns()
+                        OrchestratorBase.log().info(f"{clone_url} cloned in {perf_counter_ns() - check}ns")
+                        check = perf_counter_ns()
 
-                with tempfile.NamedTemporaryFile(suffix='.zip') as zip_file:
-                    with zipfile.ZipFile(zip_file, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as upload_payload:
-                        zip_entries = OrchestratorBase.__get_path_dict(code_path)
+                        with tempfile.NamedTemporaryFile(suffix='.zip') as zip_file:
+                            with zipfile.ZipFile(zip_file, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as upload_payload:
+                                zip_entries = OrchestratorBase.__get_path_dict(code_path)
 
-                        OrchestratorBase.log().debug(f"[{clone_url}][{source_branch}][{source_hash}] zipping for scan: {zip_entries}")
+                                OrchestratorBase.log().debug(f"[{clone_url}][{source_branch}][{source_hash}] zipping for scan: {zip_entries}")
 
-                        for entry_key in zip_entries.keys():
-                            upload_payload.write(entry_key, zip_entries[entry_key])
-                        
-                        OrchestratorBase.log().info(f"{clone_url} zipped in {perf_counter_ns() - check}ns")
-                        
+                                for entry_key in zip_entries.keys():
+                                    upload_payload.write(entry_key, zip_entries[entry_key])
+                                
+                                OrchestratorBase.log().info(f"{clone_url} zipped in {perf_counter_ns() - check}ns")
+                                
 
-                    try:
-                        scan_submit = await cxone_service.execute_scan(zip_file.name, cxone_project_name, \
-                                                                        source_branch, clone_url, tags)
+                            try:
+                                scan_submit = await cxone_service.execute_scan(zip_file.name, cxone_project_name, \
+                                                                                source_branch, clone_url, tags)
 
-                        OrchestratorBase.log().debug(scan_submit)
-                        OrchestratorBase.log().info(f"Scan id {scan_submit['id']} created for {clone_url}|{source_branch}|{source_hash}")
+                                OrchestratorBase.log().debug(scan_submit)
+                                OrchestratorBase.log().info(f"Scan id {scan_submit['id']} created for {clone_url}|{source_branch}|{source_hash}")
 
-                        return ScanInspector(scan_submit)
-                    except Exception as ex:
-                        OrchestratorBase.log().error(f"{clone_url}:{source_branch}@{source_hash}: No scan created due to exception: {ex}")
-                        OrchestratorBase.log().exception(ex)
+                                return ScanInspector(scan_submit)
+                            except Exception as ex:
+                                OrchestratorBase.log().error(f"{clone_url}:{source_branch}@{source_hash}: No scan created due to exception: {ex}")
+                                OrchestratorBase.log().exception(ex)
+                                break
+                except CloneAuthException as cax:
+                    if clone_auth_fails <= 1:
+                        clone_auth_fails += 1
+                        OrchestratorBase.log().exception(cax)
+                    else:
+                        raise
+
         else:
             OrchestratorBase.log().info(f"{clone_url}:{source_hash}:{source_branch} is not related to any protected branch: {protected_branches}")
+            return
 
+        OrchestratorBase.log().warning("Scan not executed.")
 
     async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
         OrchestratorBase.log().debug("_execute_push_scan_workflow")
