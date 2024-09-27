@@ -54,6 +54,10 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
 
         self.__route_urls = list(self.__clone_urls.values())
 
+    @property
+    def event_name(self) -> str:
+        return self.__event
+
 
     @property
     def route_urls(self) -> list:

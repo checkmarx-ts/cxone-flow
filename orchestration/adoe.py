@@ -57,6 +57,10 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
         self.__collection = Path(urllib.parse.urlparse(self.__collection_url).path).name
 
 
+    @property
+    def event_name(self) -> str:
+        return self.__event
+
     async def execute(self, cxone_service: CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
         return await AzureDevOpsEnterpriseOrchestrator.__workflow_map[self.__event](self, cxone_service, scm_service, workflow_service)
 

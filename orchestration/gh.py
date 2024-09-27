@@ -27,7 +27,7 @@ class GithubOrchestrator(OrchestratorBase):
 
        
     __push_target_branch_query = parse("$.ref")
-    __push_target_hash_query = parse("$.head_commit.id")
+    __push_target_hash_query = parse("$.after")
     __push_project_key_query = parse("$.repository.name")
     __push_org_key_query = parse("$.repository.owner.name")
 
@@ -161,6 +161,9 @@ class GithubOrchestrator(OrchestratorBase):
         self.__clone_urls = GithubOrchestrator.__clone_url_parser_dispatch_map[self.__event](self) \
             if self.__event in GithubOrchestrator.__clone_url_parser_dispatch_map.keys() else {}
 
+    @property
+    def event_name(self) -> str:
+        return self.__dispatch_event
 
     async def execute(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
         if self.__dispatch_event not in GithubOrchestrator.__workflow_map.keys():

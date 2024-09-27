@@ -32,6 +32,11 @@ class OrchestratorBase:
     @property
     def event_context(self) -> EventContext:
         return self.__event_context
+    
+    @property
+    def event_name(self) -> str:
+        raise NotImplementedError("route_urls")
+
 
     @property
     def route_urls(self) -> list:
