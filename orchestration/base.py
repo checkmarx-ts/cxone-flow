@@ -101,7 +101,7 @@ class OrchestratorBase:
                             with zipfile.ZipFile(zip_file, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as upload_payload:
                                 zip_entries = OrchestratorBase.__get_path_dict(code_path)
 
-                                OrchestratorBase.log().debug(f"[{clone_url}][{source_branch}][{source_hash}] zipping for scan: {zip_entries}")
+                                OrchestratorBase.log().debug(f"[{clone_url}][{source_branch}][{source_hash}] zipped {len(zip_entries)} files for scan.")
 
                                 for entry_key in zip_entries.keys():
                                     upload_payload.write(entry_key, zip_entries[entry_key])
