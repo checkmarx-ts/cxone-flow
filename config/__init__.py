@@ -396,9 +396,12 @@ class CxOneFlowConfig:
 
         api_auth_dict = CxOneFlowConfig.__get_value_for_key_or_fail(f"{config_path}/connection", 'api-auth', connection_config_dict)
 
-        display_url = CxOneFlowConfig.__get_value_for_key_or_fail(f"{config_path}/connection", 'base-url', connection_config_dict)
 
-        api_url = APISession.form_api_endpoint(CxOneFlowConfig.__get_value_for_key_or_fail(f"{config_path}/connection", 'base-url', connection_config_dict),
+        api_base_url = CxOneFlowConfig.__get_value_for_key_or_fail(f"{config_path}/connection", 'base-url', connection_config_dict)
+
+        display_url = CxOneFlowConfig.__get_value_for_key_or_default('base-display-url', connection_config_dict, api_base_url)
+
+        api_url = APISession.form_api_endpoint(api_base_url,
                                                CxOneFlowConfig.__get_value_for_key_or_default('api-url-suffix', connection_config_dict, None))
 
         api_session = APISession(api_url, \
