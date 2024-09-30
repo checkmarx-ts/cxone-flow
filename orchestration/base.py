@@ -89,7 +89,7 @@ class OrchestratorBase:
             clone_auth_fails = 0
             while clone_auth_fails <= 1:
                 try:
-                    async with await (await self._get_clone_worker(scm_service, clone_url, clone_auth_fails)) as clone_worker:
+                    async with await self._get_clone_worker(scm_service, clone_url, clone_auth_fails) as clone_worker:
                         code_path = await clone_worker.loc()
 
                         await scm_service.cloner.reset_head(code_path, source_hash)

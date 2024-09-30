@@ -172,7 +172,7 @@ class GithubOrchestrator(OrchestratorBase):
             return await GithubOrchestrator.__workflow_map[self.__dispatch_event](self, cxone_service, scm_service, workflow_service)
 
     async def _get_clone_worker(self, scm_service : SCMService, clone_url : str, failures : int) -> CloneWorker:
-        return scm_service.cloner.clone(clone_url, self.event_context, failures > 0)
+        return await scm_service.cloner.clone(clone_url, self.event_context, failures > 0)
 
     async def _get_target_branch_and_hash(self) -> tuple:
         return self.__target_branch, self.__target_hash

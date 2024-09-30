@@ -45,7 +45,7 @@ async def bbdc_webhook_endpoint():
     __log.info("Received hook for BitBucket Data Center")
     __log.debug(f"bbdc webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     try:
-        TaskManager.in_background(OrchestrationDispatch.execute(BitBucketDataCenterOrchestrator(EventContext(request.data, request.headers))))
+        TaskManager.in_background(OrchestrationDispatch.execute(BitBucketDataCenterOrchestrator(EventContext(request.get_data(), request.headers))))
         return Response(status=204)
     except Exception as ex:
         __log.exception(ex)
@@ -56,7 +56,7 @@ async def github_webhook_endpoint():
     __log.info("Received hook for Github")
     __log.debug(f"github webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     try:
-        orch = GithubOrchestrator(HeaderFilteredEventContext(request.data, request.headers, "User-Agent|X-(Git)?[H|h]ub"))
+        orch = GithubOrchestrator(HeaderFilteredEventContext(request.get_data(), request.headers, "User-Agent|X-(Git)?[H|h]ub"))
 
         if not orch.is_diagnostic:
             TaskManager.in_background(OrchestrationDispatch.execute(orch))
@@ -77,7 +77,7 @@ async def adoe_webhook_endpoint():
     __log.info("Received hook for Azure DevOps Enterprise")
     __log.debug(f"adoe webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     try:
-        orch = AzureDevOpsEnterpriseOrchestrator(EventContext(request.data, request.headers));
+        orch = AzureDevOpsEnterpriseOrchestrator(EventContext(request.get_data(), request.headers))
 
         if not orch.is_diagnostic:
             TaskManager.in_background(OrchestrationDispatch.execute(orch))

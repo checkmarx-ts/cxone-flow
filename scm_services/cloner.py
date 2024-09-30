@@ -141,7 +141,7 @@ class Cloner:
     async def _get_clone_cmd_stub(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> List:
         return self.__clone_cmd_stub
     
-    async def clone(self, clone_url, event_context : EventContext=None, force_reauth : bool=False):
+    async def clone(self, clone_url, event_context : EventContext=None, force_reauth : bool=False) -> CloneWorker:
         Cloner.log().debug(f"Clone Execution for: {clone_url}")
 
         fixed_clone_url = await self._fix_clone_url(clone_url, event_context, force_reauth)
