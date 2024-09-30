@@ -29,7 +29,7 @@ class EventContext:
 class HeaderFilteredEventContext(EventContext):
     def __init__(self, raw_event_payload : str, headers : Dict, header_key_regex : str):
         pattern = re.compile(header_key_regex)
-        EventContext.__init__(self, raw_event_payload=raw_event_payload, headers={k:v for k,v in headers if pattern.match(k)})
+        EventContext.__init__(self, raw_event_payload=raw_event_payload, headers={k:headers[k] for k in headers if pattern.match(k)})
 
 
 
