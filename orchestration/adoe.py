@@ -8,6 +8,7 @@ from workflows.state_service import WorkflowStateService
 from pathlib import Path
 from cxone_api.scanning import ScanInspector
 from api_utils.auth_factories import EventContext
+from cxone_api.util import json_on_ok
 
 class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
@@ -49,7 +50,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
         self.__event = [x.value for x in list(self.__payload_type_query.find(self.event_context.message))][0]
         self.__route_urls = [x.value for x in list(self.__remoteurl_query.find(self.event_context.message))]
-        self.__clone_url = self.__route_urls[0]
+        self.__remote_url = self.__route_urls[0]
         self.__default_branches = [OrchestratorBase.normalize_branch_name(x.value) for x in list(self.__push_default_branch_query.find(self.event_context.message))]
         self.__repo_key = [x.value for x in list(self.__repo_project_key_query.find(self.event_context.message))][0]
         self.__repo_slug = [x.value for x in list(self.__repo_slug_query.find(self.event_context.message))][0]
@@ -62,6 +63,13 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
         return self.__event
 
     async def execute(self, cxone_service: CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+        # Get clone urls from repo details since ADO doesn't include all clone protocols in the event.
+        repo_details = json_on_ok(await scm_service.exec("GET", f"/{self.__collection}/{self.__repo_key}/_apis/git/repositories/{self.__repo_slug}"))
+        http_clone_url = urllib.parse.urlparse(self.__remote_url)
+        self.__clone_urls = {
+            http_clone_url.scheme : self.__remote_url,
+            "ssh" : repo_details['sshUrl']
+        }
         return await AzureDevOpsEnterpriseOrchestrator.__workflow_map[self.__event](self, cxone_service, scm_service, workflow_service)
 
     @property
@@ -102,18 +110,20 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
         sent_secret = base64.b64decode(base64_payload).decode("utf-8").split(":")[-1:].pop()
         return sent_secret == shared_secret
 
+    def _repo_clone_url(self, cloner) -> str:
+        return self.__clone_urls[cloner.select_protocol_from_supported(self.__clone_urls.keys())]
 
-    def _repo_clone_url(self, cloner):
-        parsed_clone_url = urllib.parse.urlparse(self.__clone_url)
+    # def _repo_clone_url(self, cloner):
+    #     parsed_clone_url = urllib.parse.urlparse(self.__remote_url)
 
-        if parsed_clone_url.scheme in cloner.supported_protocols:
-            return self.__clone_url
+    #     if parsed_clone_url.scheme in cloner.supported_protocols:
+    #         return self.__remote_url
 
-        protocol = cloner.supported_protocols[0]
-        port = cloner.destination_port
+    #     protocol = cloner.supported_protocols[0]
+    #     port = cloner.destination_port
 
-        return urllib.parse.urlunparse((protocol, f"{parsed_clone_url.netloc}{f":{port}" if port is not None else ""}", 
-                                       parsed_clone_url.path, parsed_clone_url.params, parsed_clone_url.query, parsed_clone_url.fragment))
+    #     return urllib.parse.urlunparse((protocol, f"{parsed_clone_url.netloc}{f":{port}" if port is not None else ""}", 
+    #                                    parsed_clone_url.path, parsed_clone_url.params, parsed_clone_url.query, parsed_clone_url.fragment))
     
     async def _get_protected_branches(self, scm_service : SCMService):
         return self.__default_branches
@@ -125,7 +135,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
         return self.__source_branch, self.__source_hash
 
     async def get_cxone_project_name(self) -> str:
-        p = CloneUrlParser("azure", self.__clone_url)
+        p = CloneUrlParser("azure", self.__remote_url)
         return f"{p.org}/{self._repo_project_key}/{self._repo_name}"
 
     async def __is_pr_draft(self) -> bool:
