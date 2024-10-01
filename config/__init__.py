@@ -178,7 +178,10 @@ class CxOneFlowConfig:
                                                                                                repo_config_dict, f"/{scm}[{index}]")
                         
                         scm_tuple = (repo_matcher, cxone_service, scm_service, workflow_service_client)
-                        CxOneFlowConfig.__scm_config_tuples_by_service_moniker[scm_service.moniker] = scm_tuple
+                        if scm_service.moniker not in CxOneFlowConfig.__scm_config_tuples_by_service_moniker.keys():
+                            CxOneFlowConfig.__scm_config_tuples_by_service_moniker[scm_service.moniker] = scm_tuple
+                        else:
+                             raise ConfigurationException(f"Service {scm_service.moniker} is defined more than once.")
 						
                         if not scm in CxOneFlowConfig.__ordered_scm_config_tuples:
                             CxOneFlowConfig.__ordered_scm_config_tuples[scm] = [scm_tuple]
