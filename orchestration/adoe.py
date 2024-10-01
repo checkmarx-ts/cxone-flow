@@ -113,18 +113,6 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
     def _repo_clone_url(self, cloner) -> str:
         return self.__clone_urls[cloner.select_protocol_from_supported(self.__clone_urls.keys())]
 
-    # def _repo_clone_url(self, cloner):
-    #     parsed_clone_url = urllib.parse.urlparse(self.__remote_url)
-
-    #     if parsed_clone_url.scheme in cloner.supported_protocols:
-    #         return self.__remote_url
-
-    #     protocol = cloner.supported_protocols[0]
-    #     port = cloner.destination_port
-
-    #     return urllib.parse.urlunparse((protocol, f"{parsed_clone_url.netloc}{f":{port}" if port is not None else ""}", 
-    #                                    parsed_clone_url.path, parsed_clone_url.params, parsed_clone_url.query, parsed_clone_url.fragment))
-    
     async def _get_protected_branches(self, scm_service : SCMService):
         return self.__default_branches
 
