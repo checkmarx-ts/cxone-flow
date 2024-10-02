@@ -29,18 +29,18 @@ bbdc:
         base-url: https://scm.corp.com
         shared-secret: scm-shared-secret
         api-auth:
-            token: scm-token-secret
+          token: scm-token-secret
       cxone:
         tenant: mytenant
         oauth:
-            client-id: my-oauth-id
-            client-secret: my-oauth-secret
+          client-id: my-oauth-id
+          client-secret: my-oauth-secret
         iam-endpoint: US
         api-endpoint: US
 \end{code}
 
 \pagebreak
-\noindent\\An alternate minimal example using different authorization options:
+\noindent\\An alternate minimal example using a token for API authorization and SSH for cloning authorization:
 
 \begin{code}{Minimal YAML Configuration Example \#2}{Using BitBucket Data Center}{}
 secret-root-path: /run/secrets
@@ -53,10 +53,9 @@ bbdc:
       base-url: https://scm.corp.com
       shared-secret: scm-shared-secret
       api-auth:
-          username: scm-username-secret
-          password: scm-password-secret
+        token: scm-token-secret
       clone-auth:
-          ssh: scm-ssh-key-secret
+        ssh: scm-ssh-key-secret
       cxone:
         tenant: mytenant
         api-key: my-cxone-api-key
@@ -76,13 +75,13 @@ adoe:
     - service-name: MyADO
       repo-match: .*
       connection:
-      base-url: https://scm.corp.com/DefaultCollection
+      base-url: https://scm.corp.com/
       shared-secret: scm-shared-secret
       api-auth:
-          username: scm-username-secret
-          password: scm-password-secret
+        username: scm-username-secret
+        password: scm-password-secret
       clone-auth:
-          ssh: scm-ssh-key-secret
+        ssh: scm-ssh-key-secret
       cxone:
         tenant: mytenant
         api-key: my-cxone-api-key
@@ -90,28 +89,55 @@ adoe:
         api-endpoint: US
 \end{code}
 
+\pagebreak
+\noindent\\A minimal example for BitBucket Data Center with pull-request feedback enabled:
 
 \begin{code}{Minimal YAML Configuration Example}{Enabling Pull Request Feedback}{}
-    secret-root-path: /run/secrets
-    server-base-url: https://cxoneflow.mydomain.com:8443/
+secret-root-path: /run/secrets
+server-base-url: https://cxoneflow.mydomain.com:8443/
 
-    bbdc:
-        - service-name: BitBucket DC
-          repo-match: .*
-          feedback:
-            pull-request:
-              enabled: "True"
-          connection:
-            base-url: https://scm.corp.com
-            shared-secret: scm-shared-secret
-            api-auth:
-                token: scm-token-secret
-          cxone:
-            tenant: mytenant
-            oauth:
-                client-id: my-oauth-id
-                client-secret: my-oauth-secret
-            iam-endpoint: US
-            api-endpoint: US
-    \end{code}
-    
+bbdc:
+    - service-name: BitBucket DC
+      repo-match: .*
+      feedback:
+        pull-request:
+          enabled: True
+      connection:
+        base-url: https://scm.corp.com
+        shared-secret: scm-shared-secret
+        api-auth:
+          token: scm-token-secret
+      cxone:
+        tenant: mytenant
+        oauth:
+          client-id: my-oauth-id
+          client-secret: my-oauth-secret
+        iam-endpoint: US
+        api-endpoint: US
+\end{code}
+
+\pagebreak
+\noindent\\A minimal example using GitHub Enterprise with the \cxoneflow integration installed
+as a GitHub App:
+\input{operation/ghe_app_minimal_example.tex}
+  
+  
+\pagebreak
+\noindent\\A minimal example using GitHub Enterprise with the \cxoneflow integration using
+webhooks configured at the individual repository level:
+\input{operation/ghe_webhook_minimal_example.tex}
+
+
+
+
+\pagebreak
+\noindent\\A minimal example using GitHub Cloud with the \cxoneflow integration installed
+as a GitHub App:
+\input{operation/ghc_app_minimal_example.tex}
+
+  
+  
+\pagebreak
+\noindent\\A minimal example using GitHub Cloud with the \cxoneflow integration using
+webhooks configured at the individual repository level:
+\input{operation/ghc_webhook_minimal_example.tex}

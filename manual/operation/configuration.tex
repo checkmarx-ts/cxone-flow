@@ -122,7 +122,9 @@ The following SCM configuration monikers are currently supported:
 \begin{itemize}
     \item \texttt{bbdc} for BitBucket Data Center webhook payloads targeting the \texttt{/bbdc}
     webhook payload receiver endpoint.
-    \item \texttt{adoe} for Azure DevOps Enterprise webhook payloads targeting the \texttt{/adoe}
+    \item \texttt{adoe} for Azure DevOps Enterprise or Cloud webhook payloads targeting the \texttt{/adoe}
+    webhook payload receiver endpoint.
+    \item \texttt{gh} for GitHub Enterprise or Cloud webhook payloads targeting the \texttt{/gh}
     webhook payload receiver endpoint.
 \end{itemize}
 
@@ -435,8 +437,18 @@ describes the SCM connection parameters used for API access and cloning.
         \toprule
         \textbf{Key} & \textbf{Required} & \textbf{Default} & \textbf{Description}\\
         \midrule
-        \texttt{base-url} & Yes & N/A & \makecell[l]{The base url of the SCM server.}\\
+        \texttt{base-url} & Yes & N/A & \makecell[l]{The base url of the SCM server's API endpoint.\\This should be the 
+        root URL for the API that can\\be used when composing all API calls related to the\\source of the received webhook event}\\
         \midrule
+
+        \texttt{base-display-url} & No & \texttt{base-url} & \makecell[l]{An optional URL for use when composing links as
+        \\part of an information display such as pull-\\request feedback. Most SCMs will not require this\\setting.}\\
+        \midrule
+
+        \texttt{api-url-suffix} & No & N/A & \makecell[l]{An optional API URL suffix used when composing\\API request URLs. Most SCMs
+        will not require\\this setting.}\\
+        \midrule
+
         \texttt{shared-secret} & Yes & N/A & \makecell[l]{The shared secret configured in the SCM used to sign\\webhook payloads. The shared secret must meet the\\following minimum criteria: 20 characters long,\\contains at least 3 numbers, contains at least\\3 upper-case letters, and contains at least 2 special\\characters.}\\
         \midrule
         \texttt{timeout-seconds} & No & 60s & \makecell[l]{The number of seconds before a request for API\\results times out.}\\
@@ -455,51 +467,6 @@ describes the SCM connection parameters used for API access and cloning.
 \end{table}
 
 \pagebreak
-\paragraph{YAML Configuration Element: \texttt{clone-auth} }\label{sec:clone-auth-element}
-
-\noindent\\\\The \texttt{clone-auth} element is optional;  if not provided, the connection information defined
-in \texttt{api-auth} will be used.  This element can contain the following key:value pair combinations:
-
-\noindent\\\textbf{Token Authorization Elements}
-
-\noindent\\To clone with a token, the following elements can appear under the \texttt{clone-auth}
-element exclusive of other elements:
-
-\begin{itemize}
-    \item \texttt{token} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing a Personal Access Token (PAT).  This is required for
-    token authorization.
-    \item \texttt{username} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing a username associated with the PAT.  This is 
-    optional; if not supplied, the default username of \texttt{git} is used.
-\end{itemize}
-
-\noindent\\\textbf{Basic Authorization Elements}
-
-\noindent\\To clone with basic authorization, the following required elements can appear under the
-\texttt{clone-auth} element exclusive of other elements:
-
-\begin{itemize}
-    \item \texttt{username} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing the username associated with the account used
-    for authorization. 
-    \item \texttt{password} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing the password associated with the account used
-    for authorization. 
-\end{itemize}
-
-\noindent\\\textbf{SSH Authorization Elements}
-
-\noindent\\To clone with SSH, the following required element can appear under the
-\texttt{clone-auth} element exclusive of other elements:
-
-\begin{itemize}
-    \item \texttt{ssh} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing an unencrypted private SSH key.
-    \item \texttt{ssh-port} - This optional value specifies the port used for SSH cloning
-    if the SCM is not using port 22 and does not automatically include it in the clone
-    URL.
-\end{itemize}
 
 \paragraph{YAML Configuration Element: \texttt{api-auth} }\label{sec:api-auth-element}
 
@@ -526,7 +493,8 @@ key:value pair combinations:
 
 \noindent\\\textbf{Basic Authorization Elements}
 
-\noindent\\To access the SCM API or clone with basic authorization, the following required elements can
+\noindent\\To access the SCM API or clone with basic authorization\footnote{Many SCMs no longer support basic authorization.}
+, the following required elements can
 appear under the \texttt{api-auth} element exclusive of other elements:
 
 \begin{itemize}
@@ -537,6 +505,67 @@ appear under the \texttt{api-auth} element exclusive of other elements:
     by \texttt{secret-root-path} containing the password associated with the account used
     for authorization. 
 \end{itemize}
+
+\noindent\\\textbf{Application Authorization Elements}
+
+\noindent\\Application Authorization is available for use with select SCM types.  When using Application Authorization, there is typically not a need
+to provide a separate method of authorization for cloning defined in the \texttt{clone-auth} element. The following required
+Application Authorization elements can appear under the \texttt{api-auth} element exclusive of other elements:
+
+\begin{itemize}
+    \item \texttt{app-private-key} - The value specifies a file name found under the path defined
+    by \texttt{secret-root-path} containing a private key used when obtaining application authorization. 
+\end{itemize}
+
+\noindent\\Refer to Part \ref{part:scms} for details about SCMs that support this type of authorization. 
+
+
+\paragraph{YAML Configuration Element: \texttt{clone-auth} }\label{sec:clone-auth-element}
+
+\noindent\\\\The \texttt{clone-auth} element is optional;  if not provided, the connection information defined
+in \texttt{api-auth} will be used.  This element can contain the following key:value pair combinations:
+
+\noindent\\\textbf{Token Authorization Elements}
+
+\noindent\\To clone with a token, the following elements can appear under the \texttt{clone-auth}
+element exclusive of other elements:
+
+\begin{itemize}
+    \item \texttt{token} - The value specifies a file name found under the path defined
+    by \texttt{secret-root-path} containing a Personal Access Token (PAT).  This is required for
+    token authorization.
+    \item \texttt{username} - The value specifies a file name found under the path defined
+    by \texttt{secret-root-path} containing a username associated with the PAT.  This is 
+    optional; if not supplied, the default username of \texttt{git} is used.
+\end{itemize}
+
+\noindent\\\textbf{Basic Authorization Elements}
+
+\noindent\\To clone with basic authorization\footnote{Many SCMs no longer support basic authorization.}, the following required elements can appear under the
+\texttt{clone-auth} element exclusive of other elements:
+
+\begin{itemize}
+    \item \texttt{username} - The value specifies a file name found under the path defined
+    by \texttt{secret-root-path} containing the username associated with the account used
+    for authorization. 
+    \item \texttt{password} - The value specifies a file name found under the path defined
+    by \texttt{secret-root-path} containing the password associated with the account used
+    for authorization. 
+\end{itemize}
+
+\noindent\\\textbf{SSH Authorization Elements}
+
+\noindent\\To clone with SSH, the following required element can appear under the
+\texttt{clone-auth} element exclusive of other elements:
+
+\begin{itemize}
+    \item \texttt{ssh} - The value specifies a file name found under the path defined
+    by \texttt{secret-root-path} containing an unencrypted private SSH key.
+    \item \texttt{ssh-port} - This optional value specifies the port used for SSH cloning
+    if the SCM is not using port 22 and does not automatically include it in the clone
+    URL.
+\end{itemize}
+
 
 
 

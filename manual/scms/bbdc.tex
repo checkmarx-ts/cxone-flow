@@ -98,19 +98,21 @@ the \cxoneflow endpoint.  The following events are currently supported:
 
 \section{\cxoneflow HTTP Access Tokens}
 
-While it is possible to use Basic Authorization to access the SCM, typically this is a configuration that
-should be avoided.  The Basic Authorization is typically an interactive user account that can be subject
-to password changes and Captcha verification that can break \cxoneflow operations.  It is generally
-best to use a project-level HTTP Access Token for SCM connection configurations \texttt{api-auth} or
-\texttt{clone-auth}.  Please refer to Section \ref{sec:connection-element} for more details about the token
-configuration.
+Current versions of BitBucket Data Center now reject the use of Basic Authorization using
+a username and password. While it may be possible to use Basic Authorization to access the SCM, typically
+this is a configuration that should be avoided.  In addition to Basic Authorization breaking upon BitBucket Data Center
+server upgrades, an interactive user account may be subject to password changes and Captcha verification that
+can break \cxoneflow operations.  It is generally best to use a project-level HTTP Access Token for SCM connection
+configurations \texttt{api-auth} or \texttt{clone-auth}.  Please refer to Section \ref{sec:connection-element} for more
+details about the token configuration.
 
-Figure \ref{fig:bbdc-token-config} shows the project-level "HTTP Access tokens" configuration.  The required
+\noindent\\Figure \ref{fig:bbdc-token-config} shows the project-level "HTTP Access tokens" configuration.  The required
 token permissions for \cxoneflow operations are:
 
 \begin{itemize}
     \item Project read
-    \item Repository read\footnote{Figure \ref{fig:bbdc-token-config} shows "Repository write".  There may be future versions of \cxoneflow that will need to create pull-request comments which will require write access.  If desired, the token can be granted "Repository read" until a write capability is released.}
+    \item Repository read
+    \item Repository write
 \end{itemize}
 
 
@@ -120,9 +122,17 @@ token permissions for \cxoneflow operations are:
     \label{fig:bbdc-token-config}
 \end{figure}
 
-Project-level access tokens do not have an associated user account.  If using project-level
-access tokens, one project-level token is required per-project for which \cxoneflow is
-orchestrating scans.
+\noindent\\Project-level access tokens do not have an associated user account that would be tied to
+a user's access.  If using project-level access tokens, one project-level token is required per-project
+for which \cxoneflow is orchestrating scans.  This also implies that there is one SCM service 
+configuration per project with an associated route match to use the correct project-level token.
+
+\noindent\\User-level access tokens are tied to a user account but are not subject to password
+changes, 2FA authentication, and captcha challenges with interactive logins.  A token generated
+from a user as a service account can be granted the required permissions across all projects.
+In this scenario, a single SCM service configuration would be able to handle events coming from
+repositories in all projects.
+
 
 \section{\cxoneflow SSH Keys}
 

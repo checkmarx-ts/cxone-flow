@@ -61,15 +61,15 @@ bbdc:
 
 \pagebreak
 \noindent\\The next example shows a configuration where \cxoneflow has endpoint handlers for both
-BitBucket Data Center and Azure DevOps Enterprise.  Each SCM is configured to handle 3 distinct
-projects to demonstrate Basic, Token, and SSH authentication methods.  All the SCM endpoints
+BitBucket Data Center and Azure DevOps Enterprise.  Each SCM is configured to handle multiple distinct
+projects to demonstrate the use of multiple authentication methods.  All the SCM endpoints
 orchestrate scans in a single Checkmarx One tenant.
 
 \begin{code}{Multi-SCM YAML Configuration Example}{}{}
 secret-root-path: /run/secrets
 server-base-url: https://cxoneflow.mydomain.com:8443/
 adoe-connection: &adoe-con
-    base-url: http://adoe.scm.org/DefaultCollection
+    base-url: http://adoe.scm.org/
     shared-secret: scm-shared-secret
 bbdc-connection: &bbdc-con
     base-url: http://bbdc.scm.org
@@ -102,8 +102,6 @@ adoe:
         connection:
         <<: *adoe-con
         api-auth:
-            token: adoe-token-secret
-        clone-auth: &basic-creds
             username: username-secret
             password: password-secret
         cxone: *cxone
@@ -122,11 +120,5 @@ bbdc:
         <<: *bbdc-con
         api-auth:
             token: bbdc-token-proj-pat
-        cxone: *cxone
-    - service-name: BBDC-AsBasicAuth
-        repo-match: .*BAS
-        connection:
-        <<: *bbdc-con
-        api-auth: *basic-creds
         cxone: *cxone
 \end{code}

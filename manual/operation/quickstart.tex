@@ -5,16 +5,17 @@ To get up and running with a basic configuration of \cxoneflow, these are the fo
 
 \section{Step 1: Create a basic configuration YAML file}
 
-The full configuration documentation can be found in Section \ref{sec:op-config}. \input{operation/yaml_minimal_example.tex}
-
-\noindent\\To fully configure the YAML, you'll need the following information:
+The full configuration documentation can be found in Section \ref{sec:op-config}. To fully configure the \cxoneflow you'll need
+the following information that will be used when composing the configuration YAML file:
 
 \begin{itemize}
     \item A CheckmarxOne API Key or OAuth client id + client secret.
-    \item A username/password or Personal Access Token used to communicate with the Git server's API.
-    \item A username/password, Personal Access Token, or SSH private key used to clone Git repositories.
+    \item Credentials appropriate for communicating with the Git server's API.
+    \item Credentials used to clone Git repositories if the clone credentials must be different than the credentials used for API access.
 \end{itemize}
 
+\noindent\\The types of credentials may vary based on how the SCM server is configured or how \cxoneflow
+integrates with the SCM.
 
 \section{Step 2: Execute the \cxoneflow Container}
 

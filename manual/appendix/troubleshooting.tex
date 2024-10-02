@@ -18,6 +18,9 @@ troubleshooting steps may help to understand the reason:
     image.  A shell on the container can be opened using a command such as
     \texttt{docker exec -it <container name> bash}
 
+    \item For Git cloning issues, the setting environment variables \texttt{GIT\_TRACE=1} and
+    \texttt{GIT\_CURL\_VERBOSE=1} may log useful troubleshooting information.
+
 \end{itemize}
 
 \noindent\\Exception stack traces emitted in the \cxoneflow logs can generally

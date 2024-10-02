@@ -1,0 +1,25 @@
+\begin{code}{Minimal YAML Configuration Example}{GitHub Cloud as GitHub App}{}
+secret-root-path: /run/secrets
+server-base-url: https://cxoneflow.mydomain.com:8443/
+
+gh:
+    - service-name: GHC
+      repo-match: .*
+      feedback:
+        pull-request:
+          enabled: True
+      connection:
+        base-url: https://api.github.com
+        base-display-url: https://www.github.com
+        shared-secret: scm-shared-secret
+        api-auth:
+          app-private-key: ghe-app-priv-key
+      cxone:
+        tenant: mytenant
+        oauth:
+          client-id: my-oauth-id
+          client-secret: my-oauth-secret
+        iam-endpoint: US
+        api-endpoint: US
+\end{code}
+  

@@ -17,15 +17,15 @@ bbdc:
       repo-match: .*
       feedback:
         pull-request:
-            enabled: "True"
+            enabled: True
       scan-config:
           default-scan-engines:
               sca:
-                  exploitablePath: "True"
+                  exploitablePath: True
               sast:
                   presetName: ASA Premium
-                  incremental: "False"
-                  fastScanMode: "True"
+                  incremental: False
+                  fastScanMode: True
                   filter: "!**/node_modules,!**/test*"
                   languageMode: multi
               kics:
@@ -78,11 +78,11 @@ bbdc:
       scan-config: 
           default-scan-engines: &common-engine-config
               sca:
-                  exploitablePath: "True"
+                  exploitablePath: True
               sast:
                   presetName: ASA Premium
-                  incremental: "False"
-                  fastScanMode: "True"
+                  incremental: False
+                  fastScanMode: True
                   filter: "!**/node_modules,!**/test*"
                   languageMode: multi
               kics:

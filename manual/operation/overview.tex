@@ -32,11 +32,27 @@ hooks where they will emit events for the largest possible number of repositorie
 systems, this can be done at a global or organization level.  The web hooks will be configured to send events
 to a \cxoneflow endpoint specific to the type of source control system.
 
-Figure \ref{fig:cxoneflow-deployment} depicts the way \cxoneflow is deployed.  Some organizations may have
-multiple source control systems of the same type or even multiple different types of source control systems.
-There may be multiple Checkmarx One tenants or a combination of multi-tenant and single-tenant Checkmarx One
-deployments.  The \cxoneflow configuration allows each endpoint to be configured such that it orchestrates
-scans in the correct Checkmarx One instance for the source of the web hook event.
+Figure \ref{fig:cxoneflow-deployment} is a \cxoneflow deployment diagram. The key points of the diagram:
+
+\begin{itemize}
+    \item A single instance or clustered install of \cxoneflow can be used as the endpoint for multiple
+    SCM instances.
+    \item There may be more than one instance of an SCM type.
+    \item Each SCM instance may have one or more logical groups of repositories.  For example:
+    \begin{itemize}
+        \item Azure DevOps has \textbf{Collections} and each collection has a \textbf{Project} where
+        each project will contain repositories.
+        \item GitHub has \textbf{Organizations} where each organization will contain repositories.
+        \item BitBucket Data Center has \textbf{Projects} where each project will contain repositories.
+    \end{itemize}
+    \item There may be multiple Checkmarx One tenants where scans are to be invoked from an SCM or SCM
+    logical group of repositories.
+\end{itemize}
+
+The \cxoneflow configuration allows each endpoint to be configured such that it orchestrates
+scans in the correct Checkmarx One instance and tenant for the SCM that emits the web hook event.
+\cxoneflow is compatible with Checkmax One hosted single-tenant, hosted multi-tenant, and self-hosted
+instances.
 
 \begin{figure}[ht]
     \includegraphics[width=\textwidth]{graphics/cxoneflow-deployment.png}
