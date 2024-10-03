@@ -11,17 +11,17 @@ While the CheckmarxOne system uses TLS certificates signed by a public CA, it is
 corporate proxies use certificates signed by a private CA. If so, it is possible to
 import custom CA certificates when using \cxoneflow.
 
-\noindent\\The custom certificates must meet the following criteria:
+\noindent\\Each custom certificate to import must meet the following criteria:
 
 \begin{itemize}
-    \item Must be in the PEM format.
     \item Must be in a file ending with the extension .crt.
-    \item Only one certificate is in the file.
-    \item Must be mapped to the container path /usr/local/share/ca-certificates.
+    \item The contents of the file must be one certificate stored in the PEM format.
+    \item Each file must be mapped to the container path /usr/local/share/ca-certificates.
 \end{itemize}
 
 
-\noindent\\As an example, if using Docker, it is possible to map a local file to a file in the container with this mapping option added to the container execution command line:
+\noindent\\As an example, if using Docker, it is possible to map a single local file to a file in the container with this mapping 
+option added to the container execution command line:
 
 \begin{code}{Custom CA Mapping Option}{[Docker]}{}
 -v $(pwd)/custom-ca.pem:/usr/local/share/ca-certificates/custom-ca.crt
@@ -44,7 +44,8 @@ if there is a need to use a CA bundle other than the one provided by the OS.
 \subsubsection{Configuring SSL for the \cxoneflow Endpoint}
 
 To make the \cxoneflow endpoint use SSL for communication, obtain an SSL certificate public/private key pair
-and then set the following environment variables in the runtime environment:
+and map the files to a location on the container.  The following environment variables must then be set in the
+runtime environment:
 
 \begin{table}[ht]
     \caption{SSL Environment Variables}        
@@ -60,7 +61,7 @@ and then set the following environment variables in the runtime environment:
 \end{table}
 
 \noindent\\If your SSL certificate is self-signed or signed with a non-public CA, you'll want
-to import the custom CA as described in Section \ref{sec:self-signed-certs}.
+to import the self-signed certificate and/or non-public CA as described in Section \ref{sec:self-signed-certs}.
 
 
 \subsection{Runtime Control Environment Variables}
@@ -71,7 +72,7 @@ to import the custom CA as described in Section \ref{sec:self-signed-certs}.
         \toprule
         \textbf{Variable} & \textbf{Required} & \textbf{Default} & \textbf{Description}\\
         \midrule
-        \texttt{CXONEFLOW\_WORKERS} & No & \texttt{(\# of CPUs / 2)} & \makecell[l]{The number of worker processes\\used for parallel execution. The\\maximum value will be\\set at \texttt{(\# of CPUs - 1)}}\\
+        \texttt{CXONEFLOW\_WORKERS} & No & \texttt{max(\# of CPUs / 2, 1)} & \makecell[l]{The number of worker processes\\used for parallel execution. The\\maximum value will be\\set at \texttt{(\# of CPUs - 1)}}\\
         \midrule
         \texttt{LOG\_LEVEL} & No & \texttt{INFO} & \makecell[l]{The logging verbosity level.  Set to\\\texttt{DEBUG} for increased logging\\verbosity.}\\
         \midrule
@@ -87,8 +88,9 @@ to import the custom CA as described in Section \ref{sec:self-signed-certs}.
 
 \section{Operational Configuration}\label{sec:op-config}
 
-The operational configuration is done using a YAML file mapped at \texttt{/opt/cxone/config.yaml}
-by default.  
+The operational configuration uses a YAML file mapped at \texttt{/opt/cxone/config.yaml}
+by default.  It is possible to map the \texttt{config.yaml} file to another location in the
+container and adjust the path via the \texttt{CONFIG\_YAML\_PATH} environment variable.
 
 \subsection{YAML Configuration Examples}
 

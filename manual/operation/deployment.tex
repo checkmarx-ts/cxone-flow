@@ -59,12 +59,12 @@ running instance to ensure it is alive.
 \subsection{Scan Configuration Defaults}\label{sec:deployment-scan-defaults}
 
 Scan configuration defaults can be provided at the tenant-global and project scope
-in CheckmarxOne.  The \cxoneflow configuration can be configured to set configuration
-defaults for each scan.  It is important to understand how the CheckmarxOne default
+in Checkmarx One.  The \cxoneflow configuration can be configured to set configuration
+defaults for each scan.  It is important to understand how the Checkmarx One default
 scan configurations work given the \cxoneflow configuration can override all other
 settings based on how the tenant and project defaults are configured.
 
-The configurations in CheckmarxOne are defined in the tenant or project scope with a
+The configurations in Checkmarx One are defined in the tenant or project scope with a
 flag that allows the value to be overridden at a lower level of configuration.  A
 SAST scan default preset, for example, is generally configured at the tenant scope
 as "ASA Premium" with the ability to override the preset at the project scope.  The
@@ -77,10 +77,10 @@ If the tenant scope configuration was such that the SAST preset could not be ove
 option for configuring the preset would not appear in the project settings.
 
 Configuring the SAST preset as a per-scan default in \cxoneflow will override both
-the tenant and project scope settings if both are set to allow override.  This is 
-due to the scan scope being the lowest level configuration scope.  If a project scope
-configuration was such that the SAST preset could not be overridden, then the \cxoneflow
-default preset set at the time of scan will be ignored.
+the tenant and project scope settings if both are set to allow override.  The reason for this
+is that the scan configuration provided to the API when a scan is initiated is considered to override
+all other configuration scopes.  If a project scope configuration was such that the SAST preset could
+not be overridden, then the \cxoneflow provided default preset set at the time of scan will be ignored.
 
 The configurations at the tenant, project, and scan level scopes work based on overrides.
 This causes the value of a configuration to be set by the lowest level in which it is
@@ -100,7 +100,7 @@ to users who are not fully aware of how the scan configuration overrides work.
 
 \subsubsection{\cxoneflow Inheritance of \texttt{filter} Settings}
 
-The configuration scopes are implemented in CheckmarxOne as overrides for all
+The configuration scopes are implemented in Checkmarx One as overrides for all
 configuration elements.  This is ideal for most elements, but not ideal for elements
 such as \texttt{filter} that defines the file/folder filters in each engine.  \cxoneflow
 interprets \texttt{filter} settings in each scan engine so that they are inherited

@@ -1,6 +1,5 @@
-This example shows a \cxoneflow configuration using all default options defined
-as a handler when using a single SCM.  This is the same as one of the simple examples if
-an example had explicitly defined omitted default connection elements.
+This example shows a \cxoneflow configuration explicitly setting default options in a service 
+configuration for a single SCM.  The minimal examples leave several of these options as default.
 
 The \texttt{scan-config} element has been added to this configuration to
 demonstrate some of the controls that can be implemented over scan options.  In this
@@ -11,6 +10,10 @@ option keys are defined by the
 and described by
 \href{https://checkmarx.com/resource/documents/en/34965-68598-global-settings.html#UUID-8e38f06b-45d4-ea7f-5ff5-50deb22e43aa_UUID-1a4211ec-dbf9-a180-cb20-59e1246ec3fb}{Scanners Settings}.
 
+While there are options to apply scan configurations via \texttt{scan-config} elements, it is often the case that defining the scan configuration
+in \cxoneflow will have undesirable results.  When defined in the \cxoneflow configuration, the configuration will explicitly override Checkmarx One
+tenant and project level default scan configurations.  Details about utilizing the Checkmarx One configuration options for best results with \cxoneflow
+can be found in Section \ref{sec:deployment-scan-defaults}.
 
 \begin{code}{Full YAML Configuration Example}{[CxOne: oauth]}{[SCM: token auth]}
 secret-root-path: /run/secrets
@@ -58,6 +61,7 @@ bbdc:
             http: http://proxy.corp.com:8080
             https: http://proxy.corp.com:8080
 \end{code}
+
 
 \pagebreak
 \noindent\\The next example shows a configuration where \cxoneflow has endpoint handlers for both
