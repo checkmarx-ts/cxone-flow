@@ -2,6 +2,9 @@ from _agent import __agent__
 from _version import __version__
 from cxone_api.high.scans import ScanInvoker, ScanInspector, ScanLoader, ScanFilterConfig
 from cxone_api.high.projects import ProjectRepoConfig
+from cxone_api.low.projects import retrieve_list_of_projects, create_a_project, update_a_project
+from cxone_api.low.reports import create_a_report, retrieve_report_status, download_a_report
+from cxone_api.low.scans import retrieve_list_of_scans, update_scan_tags
 from cxone_api.util import page_generator
 import logging,asyncio
 from datetime import datetime
@@ -61,7 +64,7 @@ class CxOneService:
     async def update_scan_pr_tags(self, by_project_name : str, by_pr_id : str, by_commit_hash : str, new_target_branch : str, new_state : str, new_status : str) -> list:
         scans_updated = []
 
-        async for scan in page_generator(self.__client.get_scans, "scans", statuses=CxOneService.UPDATABLE_SCANS_STATUSES,
+        async for scan in page_generator(retrieve_list_of_scans, "scans", client=self.__client, statuses=CxOneService.UPDATABLE_SCANS_STATUSES,
                                     project_names=by_project_name, tags_keys = CxOneService.COMMIT_TAG, tags_values=by_commit_hash):
 
             # Qualify the PR identifier before updating since the search lacks the ability to filter by AND
@@ -71,7 +74,7 @@ class CxOneService:
                 updated[CxOneService.PR_STATE_TAG] = new_state
                 updated[CxOneService.PR_STATUS_TAG] = new_status
 
-                update_response = await self.__client.update_scan_tags(scan['id'], {"tags" : updated})
+                update_response = await update_scan_tags(self.__client, scan['id'], {"tags" : updated})
 
                 if update_response.ok:
                     scans_updated.append(scan['id'])
@@ -87,10 +90,10 @@ class CxOneService:
 
     async def execute_scan(self, zip_path : str, project_name : str, commit_branch : str, repo_url : str, scan_tags : dict ={}):
 
-        projects_response = CxOneService.__get_json_or_fail (await self.__client.get_projects(name=project_name))
+        projects_response = CxOneService.__get_json_or_fail (await retrieve_list_of_projects(self.__client, name=project_name))
 
         if int(projects_response['filteredTotalCount']) == 0:
-            project_json = CxOneService.__get_json_or_fail (await self.__client.create_project( \
+            project_json = CxOneService.__get_json_or_fail (await create_a_project (self.__client, \
                 name=project_name, origin=__agent__, tags=self.__default_project_tags | {"cxone-flow" : __version__, "service" : self.moniker}))
             project_id = project_json['id']
         else:
@@ -109,7 +112,7 @@ class CxOneService:
 
             if len(new_tags.keys()) > 0:
                 project_json['tags'] = new_tags | project_json['tags']
-                CxOneService.__succeed_or_throw(await self.__client.update_project(project_id, project_json))
+                CxOneService.__succeed_or_throw(await update_a_project (self.__client, project_id, project_json))
 
         project_config = await ProjectRepoConfig.from_project_json(self.__client, project_json)
 
@@ -129,7 +132,7 @@ class CxOneService:
     async def find_pr_scans(self, by_project_name : str, by_pr_id : str, by_commit_hash : str) -> list:
         found_scans = []
 
-        async for scan in paged_api(self.__client.get_scans, "scans", 
+        async for scan in page_generator(retrieve_list_of_scans, "scans", client=self.__client, 
                                     project_names=by_project_name, tags_keys = CxOneService.COMMIT_TAG, tags_values=by_commit_hash):
             if CxOneService.PR_ID_TAG in scan['tags'] and str(scan['tags'][CxOneService.PR_ID_TAG]) == by_pr_id:
                 found_scans.append(scan['id'])
@@ -151,7 +154,7 @@ class CxOneService:
             }
         }
 
-        report_response = CxOneService.__get_json_or_fail(await self.__client.create_report(**create_payload))
+        report_response = CxOneService.__get_json_or_fail(await create_a_report(self.__client, **create_payload))
 
         if not 'reportId' in report_response.keys():
             raise CxOneException(f"Malformed response creating a report for scan id {scanid} in project {projectid}")
@@ -164,10 +167,10 @@ class CxOneService:
             while await asyncio.sleep(CxOneService.__report_poll_delay_seconds, 
                                       (datetime.now() - wait_start).total_seconds() < CxOneService.__report_generate_timeout_seconds):
                 
-                gen_status = CxOneService.__get_json_or_fail(await self.__client.get_report_generation_status(reportid, returnUrl=False))
+                gen_status = CxOneService.__get_json_or_fail(await retrieve_report_status (self.__client, reportid, returnUrl=False))
 
                 if not 'status' in gen_status.keys():
                     raise CxOneException(f"Malformed response obtaining report generation status for report id {reportid}")
                 else:
                     if 'completed' == gen_status['status']:
-                        return CxOneService.__get_json_or_fail(await self.__client.download_report(reportid))
+                        return CxOneService.__get_json_or_fail(await download_a_report(self.__client, reportid))
