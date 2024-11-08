@@ -65,7 +65,6 @@ COPY docker/nginx /opt/cxone/nginx
 
 COPY api_utils /opt/cxone/api_utils
 COPY config /opt/cxone/config
-COPY cxone_api /opt/cxone/cxone_api
 COPY cxone_service /opt/cxone/cxone_service
 COPY cxoneflow_logging /opt/cxone/cxoneflow_logging
 COPY orchestration /opt/cxone/orchestration

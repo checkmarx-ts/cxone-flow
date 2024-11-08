@@ -40,7 +40,6 @@ jobs:
       - name: Update version.txt
         run: |
             echo __version__=\"${{ inputs.tag }}\" > _version.py
-            echo ${{ inputs.tag }} > cxone_api/version.txt
 
       - name: Build and Push Docker Image
         run: |

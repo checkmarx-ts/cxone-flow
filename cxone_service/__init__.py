@@ -1,8 +1,8 @@
 from _agent import __agent__
 from _version import __version__
-from cxone_api.scanning import ScanInvoker, ScanInspector, ScanLoader, ScanFilterConfig
-from cxone_api.projects import ProjectRepoConfig
-from cxone_api import paged_api
+from cxone_api.high.scans import ScanInvoker, ScanInspector, ScanLoader, ScanFilterConfig
+from cxone_api.high.projects import ProjectRepoConfig
+from cxone_api.util import page_generator
 import logging,asyncio
 from datetime import datetime
 
@@ -61,7 +61,7 @@ class CxOneService:
     async def update_scan_pr_tags(self, by_project_name : str, by_pr_id : str, by_commit_hash : str, new_target_branch : str, new_state : str, new_status : str) -> list:
         scans_updated = []
 
-        async for scan in paged_api(self.__client.get_scans, "scans", statuses=CxOneService.UPDATABLE_SCANS_STATUSES,
+        async for scan in page_generator(self.__client.get_scans, "scans", statuses=CxOneService.UPDATABLE_SCANS_STATUSES,
                                     project_names=by_project_name, tags_keys = CxOneService.COMMIT_TAG, tags_values=by_commit_hash):
 
             # Qualify the PR identifier before updating since the search lacks the ability to filter by AND

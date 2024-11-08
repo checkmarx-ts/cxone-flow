@@ -4,7 +4,7 @@ from time import perf_counter_ns
 from _version import __version__
 from .exceptions import OrchestrationException
 from cxone_service import CxOneService
-from cxone_api.scanning import ScanInspector
+from cxone_api.high.scans import ScanInspector
 from scm_services import SCMService
 from scm_services.cloner import Cloner, CloneWorker, CloneAuthException
 from workflows.state_service import WorkflowStateService

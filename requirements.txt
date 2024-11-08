@@ -11,3 +11,4 @@ markdown
 aenum
 PyJWT
 cryptography
+https://github.com/checkmarx-ts/cxone-async-api/releases/download/1.0.0/cxone_api-1.0.0-py3-none-any.whl

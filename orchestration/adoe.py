@@ -6,7 +6,7 @@ from cxone_service import CxOneService
 from scm_services import SCMService
 from workflows.state_service import WorkflowStateService
 from pathlib import Path
-from cxone_api.scanning import ScanInspector
+from cxone_api.high.scans import ScanInspector
 from api_utils.auth_factories import EventContext
 from cxone_api.util import json_on_ok
 

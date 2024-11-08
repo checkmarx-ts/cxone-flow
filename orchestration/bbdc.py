@@ -7,7 +7,7 @@ from cxone_service import CxOneService
 from scm_services import SCMService
 from scm_services.cloner import Cloner
 from workflows.state_service import WorkflowStateService
-from cxone_api.scanning import ScanInspector
+from cxone_api.high.scans import ScanInspector
 
 class BitBucketDataCenterOrchestrator(OrchestratorBase):
 

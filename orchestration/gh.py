@@ -8,7 +8,7 @@ from scm_services import SCMService
 from scm_services.cloner import CloneWorker
 from workflows.state_service import WorkflowStateService
 from requests import Response
-from cxone_api.scanning import ScanInspector
+from cxone_api.high.scans import ScanInspector
 
 
 class GithubOrchestrator(OrchestratorBase):
