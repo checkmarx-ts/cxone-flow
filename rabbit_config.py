@@ -23,15 +23,21 @@ async def setup() -> None:
             # * Scan Annotation
             # * Scan Feedback
             # * Scan Await
+            # * SCA Resolver Scan
             # Bindings in each of these exchanges route the message to the correct queue
             scan_in_exchange = await channel.declare_exchange(WorkflowStateService.EXCHANGE_SCAN_INPUT, aio_pika.ExchangeType.FANOUT, durable=True)
             scan_await_exchange = await channel.declare_exchange(WorkflowStateService.EXCHANGE_SCAN_WAIT, aio_pika.ExchangeType.TOPIC, durable=True, internal=True)
             scan_annotate_exchange = await channel.declare_exchange(WorkflowStateService.EXCHANGE_SCAN_ANNOTATE, aio_pika.ExchangeType.TOPIC, durable=True, internal=True)
             scan_feedback_exchange = await channel.declare_exchange(WorkflowStateService.EXCHANGE_SCAN_FEEDBACK, aio_pika.ExchangeType.TOPIC, durable=True, internal=True)
+            sca_resolver_scan_exchange = await channel.declare_exchange(WorkflowStateService.EXCHANGE_RESOLVER_SCAN, aio_pika.ExchangeType.TOPIC, durable=True, internal=True)
+
+            # Bind "Scan In" Exchange to all the routing exchanges
             await scan_await_exchange.bind(scan_in_exchange)
             await scan_feedback_exchange.bind(scan_in_exchange)
             await scan_annotate_exchange.bind(scan_in_exchange)
+            await sca_resolver_scan_exchange.bind(scan_in_exchange)
 
+            
             # The awaited scans allows scans to soak until a timeout, then they go to the polling exchange where the
             # scan is polled to see the state or times out.
             polling_delivery_exchange = await channel.declare_exchange(WorkflowStateService.EXCHANGE_SCAN_POLLING, aio_pika.ExchangeType.TOPIC, durable=True, internal=True)

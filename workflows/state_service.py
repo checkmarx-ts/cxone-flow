@@ -15,13 +15,12 @@ from cxone_service import CxOneException
 import os
 
 class WorkflowStateService:
-
-
     EXCHANGE_SCAN_INPUT = "Scan In"
     EXCHANGE_SCAN_WAIT = "Scan Await"
     EXCHANGE_SCAN_ANNOTATE = "Scan Annotate"
     EXCHANGE_SCAN_FEEDBACK = "Scan Feedback"
     EXCHANGE_SCAN_POLLING = "Scan Polling Delivery"
+    EXCHANGE_RESOLVER_SCAN = "SCA Resolver Scan"
 
     QUEUE_SCAN_POLLING = "Polling Scans"
     QUEUE_SCAN_WAIT = "Awaited Scans"
