@@ -70,7 +70,7 @@ class WorkflowStateService:
         swm = ScanAwaitMessage.from_binary(msg.body)
 
         if swm.is_expired():
-            WorkflowStateService.log().warn(f"Scan id {swm.scanid} polling timeout expired at {swm.drop_by}. Polling for this scan has been stopped.")
+            WorkflowStateService.log().warning(f"Scan id {swm.scanid} polling timeout expired at {swm.drop_by}. Polling for this scan has been stopped.")
             await msg.ack()
         else:
             async with await (await self.mq_client()).channel() as write_channel:
