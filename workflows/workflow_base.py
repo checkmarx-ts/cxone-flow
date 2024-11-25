@@ -3,7 +3,7 @@ from typing import List
 from . import ResultSeverity, ResultStates
 
 
-class AbstractWorkflow:
+class AbstractFeedbackWorkflow:
     @property
     def excluded_severities(self) -> List[ResultSeverity]:
         raise NotImplementedError("excluded_severities")
