@@ -4,7 +4,7 @@ from cxone_service import CxOneService
 from cxone_service import CxOneService
 from scm_services import SCMService
 from .messaging import ScanAwaitMessage, ScanAnnotationMessage, ScanFeedbackMessage, PRDetails
-from .workflow_base import AbstractFeedbackWorkflow
+from .feedback_workflow_base import AbstractFeedbackWorkflow
 from . import ScanStates, ScanWorkflow, FeedbackWorkflow, ExecTypes, ResolverOps
 from cxone_api.exceptions import ResponseException
 from .pr import PullRequestAnnotation, PullRequestFeedback
