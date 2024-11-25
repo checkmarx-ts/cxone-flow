@@ -112,7 +112,7 @@ class CxOneService:
 
             if len(new_tags.keys()) > 0:
                 project_json['tags'] = new_tags | project_json['tags']
-                CxOneService.__succeed_or_throw(await update_a_project (self.__client, project_id, project_json))
+                CxOneService.__succeed_or_throw(await update_a_project (self.__client, project_id, **project_json))
 
         project_config = await ProjectRepoConfig.from_project_json(self.__client, project_json)
 
