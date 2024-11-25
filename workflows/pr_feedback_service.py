@@ -5,7 +5,7 @@ from cxone_service import CxOneService
 from scm_services import SCMService
 from .messaging import ScanAwaitMessage, ScanAnnotationMessage, ScanFeedbackMessage, PRDetails
 from .feedback_workflow_base import AbstractFeedbackWorkflow
-from . import ScanStates, ScanWorkflow, FeedbackWorkflow, ExecTypes, ResolverOps
+from . import ScanStates, ScanWorkflow, FeedbackWorkflow
 from cxone_api.exceptions import ResponseException
 from .pr import PullRequestAnnotation, PullRequestFeedback
 from .base_service import BaseWorkflowService
@@ -17,20 +17,15 @@ class PRFeedbackService(BaseWorkflowService):
     EXCHANGE_SCAN_ANNOTATE = "Scan Annotate"
     EXCHANGE_SCAN_FEEDBACK = "Scan Feedback"
     EXCHANGE_SCAN_POLLING = "Scan Polling Delivery"
-    EXCHANGE_RESOLVER_SCAN = "SCA Resolver Scan In"
 
     QUEUE_SCAN_POLLING = "Polling Scans"
     QUEUE_SCAN_WAIT = "Awaited Scans"
     QUEUE_ANNOTATE_PR = "PR Annotating"
     QUEUE_FEEDBACK_PR = "PR Feedback"
-    QUEUE_RESOLVER_EXEC = "Resolver Scan Requests"
-    QUEUE_RESOLVER_COMPLETE = "Finished Resolver Scans"
     
     ROUTEKEY_POLL_BINDING = F"{ScanStates.AWAIT}.*.*"
     ROUTEKEY_FEEDBACK_PR = f"{ScanStates.FEEDBACK}.{FeedbackWorkflow.PR}.*"
     ROUTEKEY_ANNOTATE_PR = f"{ScanStates.ANNOTATE}.{FeedbackWorkflow.PR}.*"
-    ROUTEKEY_EXEC_SCA_SCAN = f"{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN}.#"
-    ROUTEKEY_EXEC_SCA_SCAN_COMPLETE = f"{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN_COMPLETE}.#"
 
     
     @staticmethod
