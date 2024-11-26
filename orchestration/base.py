@@ -8,6 +8,7 @@ from cxone_api.high.scans import ScanInspector
 from scm_services import SCMService
 from scm_services.cloner import Cloner, CloneWorker, CloneAuthException
 from workflows.pr_feedback_service import PRFeedbackService
+from workflows.resolver_scan_service import ResolverScanService
 from workflows.messaging import PRDetails
 from api_utils.auth_factories import EventContext
 from typing import Dict
@@ -63,13 +64,14 @@ class OrchestratorBase:
         except:
             return None
 
-    async def execute(self, cxone_service: CxOneService, scm_service : SCMService, pr_service : PRFeedbackService):
+    async def execute(self, cxone_service: CxOneService, scm_service : SCMService, 
+                      pr_service : PRFeedbackService, resolver_service : ResolverScanService):
         raise NotImplementedError("execute")
     
     async def _get_clone_worker(self, scm_service : SCMService, clone_url : str, failures : int) -> CloneWorker:
         return await scm_service.cloner.clone(clone_url)
     
-    async def __exec_scan(self, cxone_service : CxOneService, scm_service : SCMService, tags) -> ScanInspector:
+    async def __exec_scan(self, cxone_service : CxOneService, scm_service : SCMService, resolver_service : ResolverScanService, tags) -> ScanInspector:
         protected_branches = await self._get_protected_branches(scm_service)
 
         target_branch, target_hash = await self._get_target_branch_and_hash()
@@ -134,7 +136,8 @@ class OrchestratorBase:
 
         OrchestratorBase.log().warning("Scan not executed.")
 
-    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
+    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, 
+                                          pr_service : PRFeedbackService, resolver_service : ResolverScanService):
         OrchestratorBase.log().debug("_execute_push_scan_workflow")
         
         _, hash = await self._get_source_branch_and_hash()
@@ -146,11 +149,12 @@ class OrchestratorBase:
             "service" : cxone_service.moniker
         }
 
-        return await self.__exec_scan(cxone_service, scm_service, scan_tags)
+        return await self.__exec_scan(cxone_service, scm_service, resolver_service, scan_tags)
 
 
 
-    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, 
+                                        pr_service : PRFeedbackService, resolver_service : ResolverScanService) -> ScanInspector:
         OrchestratorBase.log().debug("_execute_pr_scan_workflow")
 
         source_branch, source_hash = await self._get_source_branch_and_hash()
@@ -167,9 +171,9 @@ class OrchestratorBase:
             "service" : cxone_service.moniker
         }
 
-        inspector = await self.__exec_scan(cxone_service, scm_service, scan_tags)
+        inspector = await self.__exec_scan(cxone_service, scm_service, resolver_service, scan_tags)
         if inspector is not None:
-            await workflow_service.start_pr_scan_workflow(inspector.project_id, inspector.scan_id, 
+            await pr_service.start_pr_scan_workflow(inspector.project_id, inspector.scan_id, 
                                                         PRDetails(event_context=self.event_context, clone_url=self._repo_clone_url(scm_service.cloner), 
                                                         repo_project=self._repo_project_key, repo_slug=self._repo_slug, 
                                                         organization=self._repo_organization, pr_id=self._pr_id,
@@ -179,7 +183,7 @@ class OrchestratorBase:
 
         return inspector
 
-    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
+    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, pr_service : PRFeedbackService):
         _, source_hash = await self._get_source_branch_and_hash()
         target_branch, _ = await self._get_target_branch_and_hash()
 

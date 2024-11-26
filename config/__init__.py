@@ -134,7 +134,7 @@ class CxOneFlowConfig:
         return [entry[CxOneFlowConfig.__scm_service_tuple_index] for entry in CxOneFlowConfig.__ordered_scm_config_tuples[scm_config_key]]
 
     @staticmethod
-    def retrieve_services_by_route(clone_urls : str, scm_config_key : str) -> Tuple[CxOneService,SCMService,PRFeedbackService]:
+    def retrieve_services_by_route(clone_urls : str, scm_config_key : str) -> Tuple[CxOneService,SCMService,PRFeedbackService, ResolverScanService]:
         if type(clone_urls) is list:
             it_list = clone_urls
         else:

@@ -7,6 +7,7 @@ from cxone_service import CxOneService
 from scm_services import SCMService
 from scm_services.cloner import CloneWorker
 from workflows.pr_feedback_service import PRFeedbackService
+from workflows.resolver_scan_service import ResolverScanService
 from requests import Response
 from cxone_api.high.scans import ScanInspector
 
@@ -74,7 +75,8 @@ class GithubOrchestrator(OrchestratorBase):
     def is_diagnostic(self) -> bool:
         return self.__isdiagnostic
 
-    async def __log_app_install(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
+    async def __log_app_install(self, cxone_service : CxOneService, scm_service : SCMService, 
+                                pr_service : PRFeedbackService, resolver_service : ResolverScanService):
         sender = GithubOrchestrator.__install_sender_query.find(self.event_context.message)[0].value
         target = GithubOrchestrator.__install_target_query.find(self.event_context.message)[0].value
         target_type = GithubOrchestrator.__install_target_type_query.find(self.event_context.message)[0].value
@@ -165,11 +167,11 @@ class GithubOrchestrator(OrchestratorBase):
     def event_name(self) -> str:
         return self.__dispatch_event
 
-    async def execute(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
+    async def execute(self, cxone_service : CxOneService, scm_service : SCMService, pr_service : PRFeedbackService, resolver_service : ResolverScanService):
         if self.__dispatch_event not in GithubOrchestrator.__workflow_map.keys():
             GithubOrchestrator.log().error(f"Unhandled event type: {self.__dispatch_event}")
         else:
-            return await GithubOrchestrator.__workflow_map[self.__dispatch_event](self, cxone_service, scm_service, workflow_service)
+            return await GithubOrchestrator.__workflow_map[self.__dispatch_event](self, cxone_service, scm_service, pr_service, resolver_service)
 
     async def _get_clone_worker(self, scm_service : SCMService, clone_url : str, failures : int) -> CloneWorker:
         return await scm_service.cloner.clone(clone_url, self.event_context, failures > 0)
@@ -197,7 +199,8 @@ class GithubOrchestrator(OrchestratorBase):
         return hash == payload_hash
 
 
-    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
+    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, 
+                                          workflow_service : PRFeedbackService, resolver_service : ResolverScanService):
         self.__target_branch = self.__source_branch = OrchestratorBase.normalize_branch_name(
             GithubOrchestrator.__push_target_branch_query.find(self.event_context.message)[0].value)
         self.__target_hash = self.__source_hash = GithubOrchestrator.__push_target_hash_query.find(self.event_context.message)[0].value
@@ -248,18 +251,20 @@ class GithubOrchestrator(OrchestratorBase):
             self.__pr_status = "NO_REVIEWERS"
 
 
-    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, 
+                                        pr_service : PRFeedbackService, resolver_service : ResolverScanService) -> ScanInspector:
         self.__populate_common_pr_data()
 
         if self.__is_draft:
             GithubOrchestrator.log().info(f"Skipping draft PR {self.__pr_id}: {self.__pr_html_url}")
             return
         
-        return await OrchestratorBase._execute_pr_scan_workflow(self, cxone_service, scm_service, workflow_service)
+        return await OrchestratorBase._execute_pr_scan_workflow(self, cxone_service, scm_service, pr_service)
 
-    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
+    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, 
+                                              pr_service : PRFeedbackService, resolver_service : ResolverScanService):
         self.__populate_common_pr_data()
-        return await OrchestratorBase._execute_pr_tag_update_workflow(self, cxone_service, scm_service, workflow_service)
+        return await OrchestratorBase._execute_pr_tag_update_workflow(self, cxone_service, scm_service, pr_service)
 
     @property
     def _pr_id(self) -> str:

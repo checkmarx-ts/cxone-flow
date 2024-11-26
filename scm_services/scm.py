@@ -20,19 +20,19 @@ class SCMService:
         self.__display_url = display_url
 
     @property
-    def display_url(self):
+    def display_url(self) -> str:
         return self.__display_url
     
     @property
-    def moniker(self):
+    def moniker(self) -> str:
         return self.__moniker
 
     @property
-    def cloner(self):
+    def cloner(self) -> Cloner:
         return self.__cloner
     
     @property
-    def shared_secret(self):
+    def shared_secret(self) -> str:
         return self.__shared_secret
     
     def _form_url(self, url_path, anchor=None, **kwargs):
