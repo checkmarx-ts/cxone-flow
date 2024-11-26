@@ -11,12 +11,14 @@ from api_utils.auth_factories import AuthFactory, GithubAppAuthFactory
 from cxone_service import CxOneService
 from password_strength import PasswordPolicy
 from cxoneflow_logging import SecretRegistry
-from workflows.state_service import WorkflowStateService
+from workflows.pr_feedback_service import PRFeedbackService
+from workflows.resolver_scan_service import ResolverScanService
 from workflows.pull_request import PullRequestWorkflow
+from workflows.resolver_workflow import DummyResolverScanningWorkflow, ResolverScanningWorkflow
 from workflows import ResultSeverity, ResultStates
 from typing import Tuple, List
 from multiprocessing import cpu_count
-from typing import Dict, List
+from typing import Dict, List, Union
 
 
 def get_workers_count():
@@ -90,7 +92,8 @@ class CxOneFlowConfig:
 
     __cxone_service_tuple_index = 1
     __scm_service_tuple_index = 2
-    __workflow_service_tuple_index = 3
+    __pr_service_tuple_index = 3
+    __resolver_service_tuple_index = 4
 
     @staticmethod
     def log():
@@ -120,10 +123,10 @@ class CxOneFlowConfig:
         return list(CxOneFlowConfig.__scm_config_tuples_by_service_moniker.keys())
 
     @staticmethod
-    def retrieve_services_by_moniker(moniker : str) -> Tuple[CxOneService,SCMService,WorkflowStateService]:
+    def retrieve_services_by_moniker(moniker : str) -> Tuple[CxOneService,SCMService,PRFeedbackService,ResolverScanService]:
         service_tuple = CxOneFlowConfig.__scm_config_tuples_by_service_moniker[moniker]
         return service_tuple[CxOneFlowConfig.__cxone_service_tuple_index], service_tuple[CxOneFlowConfig.__scm_service_tuple_index], \
-            service_tuple[CxOneFlowConfig.__workflow_service_tuple_index]
+            service_tuple[CxOneFlowConfig.__pr_service_tuple_index], service_tuple[CxOneFlowConfig.__resolver_service_tuple_index]
 
 
     @staticmethod
@@ -131,7 +134,7 @@ class CxOneFlowConfig:
         return [entry[CxOneFlowConfig.__scm_service_tuple_index] for entry in CxOneFlowConfig.__ordered_scm_config_tuples[scm_config_key]]
 
     @staticmethod
-    def retrieve_services_by_route(clone_urls : str, scm_config_key : str) -> Tuple[CxOneService,SCMService,WorkflowStateService]:
+    def retrieve_services_by_route(clone_urls : str, scm_config_key : str) -> Tuple[CxOneService,SCMService,PRFeedbackService]:
         if type(clone_urls) is list:
             it_list = clone_urls
         else:
@@ -141,7 +144,7 @@ class CxOneFlowConfig:
             for entry in CxOneFlowConfig.__ordered_scm_config_tuples[scm_config_key]:
                 if entry[0].match(url):
                     return entry[CxOneFlowConfig.__cxone_service_tuple_index], entry[CxOneFlowConfig.__scm_service_tuple_index], \
-                    entry[CxOneFlowConfig.__workflow_service_tuple_index]
+                    entry[CxOneFlowConfig.__pr_service_tuple_index]
 
         CxOneFlowConfig.log().error(f"No route matched for {clone_urls}")
         raise RouteNotFoundException(clone_urls)
@@ -172,12 +175,13 @@ class CxOneFlowConfig:
                     index = 0
                     for repo_config_dict in CxOneFlowConfig.__raw[scm]:
 
-                        repo_matcher, cxone_service, scm_service, workflow_service_client = CxOneFlowConfig.__setup_scm(CxOneFlowConfig.__cloner_factories[scm], 
-                                                                                               CxOneFlowConfig.__auth_factories[scm], 
-                                                                                               CxOneFlowConfig.__scm_factories[scm],
-                                                                                               repo_config_dict, f"/{scm}[{index}]")
+                        repo_matcher, cxone_service, scm_service, pr_feedback_service, resolver_service = \
+                            CxOneFlowConfig.__setup_scm(CxOneFlowConfig.__cloner_factories[scm], 
+                                CxOneFlowConfig.__auth_factories[scm], 
+                                CxOneFlowConfig.__scm_factories[scm],
+                                repo_config_dict, f"/{scm}[{index}]")
                         
-                        scm_tuple = (repo_matcher, cxone_service, scm_service, workflow_service_client)
+                        scm_tuple = (repo_matcher, cxone_service, scm_service, pr_feedback_service, resolver_service)
                         if scm_service.moniker not in CxOneFlowConfig.__scm_config_tuples_by_service_moniker.keys():
                             CxOneFlowConfig.__scm_config_tuples_by_service_moniker[scm_service.moniker] = scm_tuple
                         else:
@@ -237,10 +241,67 @@ class CxOneFlowConfig:
 
     __default_amqp_url = "amqp://localhost:5672"
 
+
     @staticmethod
-    def __workflow_service_client_factory(config_path, moniker, **kwargs):
+    def __load_amqp_settings(config_path, **kwargs) -> Union[str, str, str, bool]:
+        amqp_dict = CxOneFlowConfig.__get_value_for_key_or_default("amqp", kwargs, None)
+        if not amqp_dict is None:
+            amqp_url = CxOneFlowConfig.__get_value_for_key_or_fail(config_path, "amqp-url", amqp_dict)
+            amqp_user = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(amqp_dict, "amqp-user", None)
+            amqp_password = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(amqp_dict, "amqp-password", None)
+            ssl_verify = CxOneFlowConfig.__get_value_for_key_or_default("ssl-verify", amqp_dict, CxOneFlowConfig.get_default_ssl_verify_value())
+            return amqp_url, amqp_user, amqp_password, ssl_verify
+        else:
+            return CxOneFlowConfig.__default_amqp_url, None, None, True
+       
+
+    @staticmethod
+    def __resolver_service_factory(config_path, moniker, **kwargs) -> ResolverScanService:
+         if kwargs is None or len(kwargs) == 0:
+            return ResolverScanService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, DummyResolverScanningWorkflow(), 
+                                       False, None, None, None, None)
+         else:
+            msg_signing_key = CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "private-key", kwargs)
+            
+            emit_resolver_logs = CxOneFlowConfig.__get_value_for_key_or_default("emit-resolver-logs", kwargs, False)
+
+            resolver_args_cfg = CxOneFlowConfig.__get_value_for_key_or_default("resolver-args", kwargs, [])
+
+            resolver_args = {}
+
+            def form_param(param : str):
+                 if len(param) == 1:
+                      return f"-{param}"
+                 else:
+                      return f"--{param}"
+
+            for cfg_element in resolver_args_cfg:
+                 if isinstance(cfg_element, Dict):
+                      resolver_args.update({form_param(k):v for (k,v) in cfg_element.items()})
+                 else:
+                      resolver_args[form_param(cfg_element)] = None
+                 
+            
+            default_tag = CxOneFlowConfig.__get_value_for_key_or_default("default-agent-tag", kwargs, None)
+            no_container_tag_list = CxOneFlowConfig.__get_value_for_key_or_default("agent-tags", kwargs, [])
+            container_agent_tag_dict = CxOneFlowConfig.__get_value_for_key_or_default("container-agent-tags", kwargs, {})
+                    
+            # the default tag must have a tag.
+            if default_tag is not None and not default_tag in no_container_tag_list + list(container_agent_tag_dict.keys()):
+                raise ConfigurationException.missing_keys(f"{config_path}/agent-tags or {config_path}/container-agent-tags", [default_tag])
+
+            amqp_url, amqp_user, amqp_password, ssl_verify = CxOneFlowConfig.__load_amqp_settings(config_path, **kwargs)
+           
+            return ResolverScanService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, 
+                                       ResolverScanningWorkflow(emit_resolver_logs, resolver_args), 
+                                       msg_signing_key, default_tag, container_agent_tag_dict, no_container_tag_list)
+
+    
+
+    @staticmethod
+    def __pr_feedback_service_factory(config_path, moniker, **kwargs) -> PRFeedbackService:
         if kwargs is None or len(kwargs.keys()) == 0:
-            return WorkflowStateService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, CxOneFlowConfig.__server_base_url, 
+            return PRFeedbackService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, CxOneFlowConfig.__server_base_url, 
                                         PullRequestWorkflow())
         else:
 
@@ -266,22 +327,13 @@ class CxOneFlowConfig:
                 int(CxOneFlowConfig.__get_value_for_key_or_default("scan-timeout-hours", scan_monitor_dict, 48)) \
                 )
 
-            amqp_dict = CxOneFlowConfig.__get_value_for_key_or_default("amqp", kwargs, None)
-
             max_poll_interval = int(CxOneFlowConfig.__get_value_for_key_or_default("poll-max-interval-seconds", scan_monitor_dict, 600))
             poll_backoff = int(CxOneFlowConfig.__get_value_for_key_or_default("poll-backoff-multiplier", scan_monitor_dict, 2))
 
-            if not amqp_dict is None:
-                amqp_url = CxOneFlowConfig.__get_value_for_key_or_fail(config_path, "amqp-url", amqp_dict)
-                amqp_user = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(amqp_dict, "amqp-user", None)
-                amqp_password = CxOneFlowConfig.__get_secret_from_value_of_key_or_default(amqp_dict, "amqp-password", None)
-                ssl_verify = CxOneFlowConfig.__get_value_for_key_or_default("ssl-verify", amqp_dict, CxOneFlowConfig.get_default_ssl_verify_value())
-                
-                return WorkflowStateService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, CxOneFlowConfig.__server_base_url, pr_workflow, \
-                                            max_poll_interval, poll_backoff)
-            else:
-                return WorkflowStateService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, True, CxOneFlowConfig.__server_base_url, pr_workflow, \
-                                            max_poll_interval, poll_backoff)
+            amqp_url, amqp_user, amqp_password, ssl_verify = CxOneFlowConfig.__load_amqp_settings(config_path, **kwargs)
+
+            return PRFeedbackService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, CxOneFlowConfig.__server_base_url, pr_workflow, \
+                                        max_poll_interval, poll_backoff)
 
             
 
@@ -383,8 +435,11 @@ class CxOneFlowConfig:
         cxone_client = CxOneFlowConfig.__cxone_client_factory(f"{config_path}/cxone", 
                                                             **(CxOneFlowConfig.__get_value_for_key_or_fail(config_path, 'cxone', config_dict)))
         
-        workflow_service_client = CxOneFlowConfig.__workflow_service_client_factory(f"{config_path}/feedback", service_moniker, 
+        pr_feedback_service = CxOneFlowConfig.__pr_feedback_service_factory(f"{config_path}/feedback", service_moniker, 
                                                                 **(CxOneFlowConfig.__get_value_for_key_or_default('feedback', config_dict, {})))
+        
+        resolver_service = CxOneFlowConfig.__resolver_service_factory(f"{config_path}/resolver", service_moniker, 
+                                                                **(CxOneFlowConfig.__get_value_for_key_or_default('resolver', config_dict, {})))
 
         scan_config_dict = CxOneFlowConfig.__get_value_for_key_or_default('scan-config', config_dict, {} )
 
@@ -429,7 +484,7 @@ class CxOneFlowConfig:
         scm_service = scm_class(display_url, service_moniker, api_session, scm_shared_secret, 
                                 CxOneFlowConfig.__cloner_factory(api_session, cloner_factory, clone_auth_dict, clone_config_path))
 
-        return repo_matcher, cxone_service, scm_service, workflow_service_client
+        return repo_matcher, cxone_service, scm_service, pr_feedback_service, resolver_service
 
     @staticmethod
     def __has_basic_auth(config_dict : Dict) -> bool:

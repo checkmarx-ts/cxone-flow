@@ -6,7 +6,7 @@ from .exceptions import OrchestrationException
 from cxone_service import CxOneService
 from scm_services import SCMService
 from scm_services.cloner import Cloner
-from workflows.state_service import WorkflowStateService
+from workflows.pr_feedback_service import PRFeedbackService
 from cxone_api.high.scans import ScanInspector
 
 class BitBucketDataCenterOrchestrator(OrchestratorBase):
@@ -75,17 +75,17 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
         return hash == payload_hash
 
 
-    async def __workflow_dispatcher(self, dispatch_map : dict, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def __workflow_dispatcher(self, dispatch_map : dict, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
         if self.__event not in dispatch_map.keys():
             BitBucketDataCenterOrchestrator.log().error(f"Unhandled event type: {self.__event}")
             return 
         
         return await dispatch_map[self.__event](self, cxone_service, scm_service, workflow_service)
 
-    async def execute(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def execute(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
         return await self.__workflow_dispatcher(BitBucketDataCenterOrchestrator.__workflow_map, cxone_service, scm_service, workflow_service)
 
-    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
 
         self.__source_branch = self.__target_branch = None
         self.__source_hash = self.__target_hash = None
@@ -132,14 +132,14 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
         else:
             self.__pr_status = "/".join(statuses)
 
-    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService) -> ScanInspector:
         if await self.__is_pr_draft():
             BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
             return
         self.__populate_common_pr_data()
         return await OrchestratorBase._execute_pr_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
-    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
         if await self.__is_pr_draft():
             BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
             return

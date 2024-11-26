@@ -4,7 +4,7 @@ from jsonpath_ng import parse
 from cxone_api.util import CloneUrlParser
 from cxone_service import CxOneService
 from scm_services import SCMService
-from workflows.state_service import WorkflowStateService
+from workflows.pr_feedback_service import PRFeedbackService
 from pathlib import Path
 from cxone_api.high.scans import ScanInspector
 from api_utils.auth_factories import EventContext
@@ -62,7 +62,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
     def event_name(self) -> str:
         return self.__event
 
-    async def execute(self, cxone_service: CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def execute(self, cxone_service: CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
         # Get clone urls from repo details since ADO doesn't include all clone protocols in the event.
         repo_details = json_on_ok(await scm_service.exec("GET", f"/{self.__collection}/{self.__repo_key}/_apis/git/repositories/{self.__repo_slug}"))
         http_clone_url = urllib.parse.urlparse(self.__remote_url)
@@ -130,14 +130,14 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
         return bool(AzureDevOpsEnterpriseOrchestrator.__pr_draft_query.find(self.event_context.message)[0].value)
 
 
-    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
         self.__source_branch = self.__target_branch = OrchestratorBase.normalize_branch_name(
             [x.value for x in list(self.__push_target_branch_query.find(self.event_context.message))][0])
         self.__source_hash = self.__target_hash = [x.value for x in list(self.__push_target_hash_query.find(self.event_context.message))][0]
 
         return await OrchestratorBase._execute_push_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
-    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService) -> ScanInspector:
         if await self.__is_pr_draft():
             AzureDevOpsEnterpriseOrchestrator.log().info(f"Skipping draft PR {AzureDevOpsEnterpriseOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
             return

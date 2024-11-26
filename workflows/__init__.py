@@ -17,7 +17,14 @@ class ScanStates(__base_enum):
     AWAIT = "await"
     FEEDBACK = "feedback"
     ANNOTATE = "annotate"
+    EXECUTE = "exec"
 
+class ExecTypes(__base_enum):
+    RESOLVER = "sca-resolver"
+
+class ResolverOps(__base_enum):
+    SCAN = "run-scan"
+    SCAN_COMPLETE = "scan-complete"
 
 class GoofyEnum(MultiValueEnum):
     def __repr__(self):

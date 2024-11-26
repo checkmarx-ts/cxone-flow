@@ -1,13 +1,13 @@
 import aio_pika, logging, pamqp.commands, pamqp.base
 from datetime import timedelta
-from .state_service import WorkflowStateService
+from .pr_feedback_service import PRFeedbackService
 from . import ScanWorkflow, ScanStates, ResultSeverity, ResultStates
-from .workflow_base import AbstractWorkflow
+from .feedback_workflow_base import AbstractFeedbackWorkflow
 from .messaging import ScanAwaitMessage, ScanFeedbackMessage, ScanAnnotationMessage
 from .messaging.util import compute_drop_by_timestamp
 from typing import List
 
-class PullRequestWorkflow(AbstractWorkflow):
+class PullRequestWorkflow(AbstractFeedbackWorkflow):
 
 
     @staticmethod
@@ -59,7 +59,7 @@ class PullRequestWorkflow(AbstractWorkflow):
 
     async def __publish(self, mq_client : aio_pika.abc.AbstractRobustConnection, topic : str, msg : aio_pika.abc.AbstractMessage, scanid : str, moniker : str):
         async with await mq_client.channel() as channel:
-            exchange = await channel.get_exchange(WorkflowStateService.EXCHANGE_SCAN_INPUT)
+            exchange = await channel.get_exchange(PRFeedbackService.EXCHANGE_SCAN_INPUT)
 
             if exchange:
                 PullRequestWorkflow.__log_publish_result(await exchange.publish(msg, routing_key = topic),

@@ -32,7 +32,7 @@ class PRFeedbackService(BaseWorkflowService):
     def log():
         return logging.getLogger("PRFeedbackService")
 
-    def __init__(self, moniker, amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool, server_base_url : str, pr_workflow : AbstractFeedbackWorkflow, 
+    def __init__(self, moniker : str, amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool, server_base_url : str, pr_workflow : AbstractFeedbackWorkflow, 
                  max_interval_seconds : timedelta = 600, backoff_scalar : int = 2):
         
         super().__init__(amqp_url, amqp_user, amqp_password, ssl_verify)

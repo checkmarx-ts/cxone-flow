@@ -6,7 +6,7 @@ from jsonpath_ng import parse
 from cxone_service import CxOneService
 from scm_services import SCMService
 from scm_services.cloner import CloneWorker
-from workflows.state_service import WorkflowStateService
+from workflows.pr_feedback_service import PRFeedbackService
 from requests import Response
 from cxone_api.high.scans import ScanInspector
 
@@ -74,7 +74,7 @@ class GithubOrchestrator(OrchestratorBase):
     def is_diagnostic(self) -> bool:
         return self.__isdiagnostic
 
-    async def __log_app_install(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def __log_app_install(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
         sender = GithubOrchestrator.__install_sender_query.find(self.event_context.message)[0].value
         target = GithubOrchestrator.__install_target_query.find(self.event_context.message)[0].value
         target_type = GithubOrchestrator.__install_target_type_query.find(self.event_context.message)[0].value
@@ -165,7 +165,7 @@ class GithubOrchestrator(OrchestratorBase):
     def event_name(self) -> str:
         return self.__dispatch_event
 
-    async def execute(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def execute(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
         if self.__dispatch_event not in GithubOrchestrator.__workflow_map.keys():
             GithubOrchestrator.log().error(f"Unhandled event type: {self.__dispatch_event}")
         else:
@@ -197,7 +197,7 @@ class GithubOrchestrator(OrchestratorBase):
         return hash == payload_hash
 
 
-    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
         self.__target_branch = self.__source_branch = OrchestratorBase.normalize_branch_name(
             GithubOrchestrator.__push_target_branch_query.find(self.event_context.message)[0].value)
         self.__target_hash = self.__source_hash = GithubOrchestrator.__push_target_hash_query.find(self.event_context.message)[0].value
@@ -248,7 +248,7 @@ class GithubOrchestrator(OrchestratorBase):
             self.__pr_status = "NO_REVIEWERS"
 
 
-    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService) -> ScanInspector:
         self.__populate_common_pr_data()
 
         if self.__is_draft:
@@ -257,7 +257,7 @@ class GithubOrchestrator(OrchestratorBase):
         
         return await OrchestratorBase._execute_pr_scan_workflow(self, cxone_service, scm_service, workflow_service)
 
-    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : WorkflowStateService):
+    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
         self.__populate_common_pr_data()
         return await OrchestratorBase._execute_pr_tag_update_workflow(self, cxone_service, scm_service, workflow_service)
 

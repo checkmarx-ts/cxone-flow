@@ -3,11 +3,14 @@ from dataclasses import dataclass
 from .. import ScanStates, ScanWorkflow
 
 @dataclass(frozen=True)
-class ScanMessage(BaseMessage):
+class ScanHeader(BaseMessage):
     moniker: str
-    scanid: str
-    projectid : str
     state: ScanStates
     workflow: ScanWorkflow
+
+@dataclass(frozen=True)
+class ScanMessage(ScanHeader):
+    scanid: str
+    projectid : str
     workflow_details : dict
 
