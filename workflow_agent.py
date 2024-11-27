@@ -13,8 +13,8 @@ async def process_poll(msg : aio_pika.abc.AbstractIncomingMessage) -> None:
     try:
         __log.debug(f"Received scan polling message on channel {msg.channel.number}: {msg.info()}")
         sm = ScanAwaitMessage.from_binary(msg.body)
-        cxone, _, wf = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
-        await wf.execute_poll_scan_workflow(msg, cxone)
+        services = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
+        await services.pr.execute_poll_scan_workflow(msg, services.cxone)
     except BaseException as ex:
         __log.exception(ex)
 
@@ -23,8 +23,8 @@ async def process_pr_annotate(msg : aio_pika.abc.AbstractIncomingMessage) -> Non
     try:
         __log.debug(f"Received PR annotation message on channel {msg.channel.number}: {msg.info()}")
         sm = ScanAnnotationMessage.from_binary(msg.body)
-        cxone, scm, wf = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
-        await wf.execute_pr_annotate_workflow(msg, cxone, scm)
+        services = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
+        await services.pr.execute_pr_annotate_workflow(msg, services.cxone, services.scm)
     except BaseException as ex:
         __log.exception(ex)
 
@@ -32,8 +32,8 @@ async def process_pr_feedback(msg : aio_pika.abc.AbstractIncomingMessage) -> Non
     try:
         __log.debug(f"Received PR feedback message on channel {msg.channel.number}: {msg.info()}")
         sm = ScanFeedbackMessage.from_binary(msg.body)
-        cxone, scm, wf = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
-        await wf.execute_pr_feedback_workflow(msg, cxone, scm)
+        services = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
+        await services.pr.execute_pr_feedback_workflow(msg, services.cxone, services.scm)
     except BaseException as ex:
         __log.exception(ex)
 
@@ -55,10 +55,10 @@ async def spawn_agents():
 
     async with asyncio.TaskGroup() as g:
         for moniker in CxOneFlowConfig.get_service_monikers():
-            _, _, pr_service, resolver_service = CxOneFlowConfig.retrieve_services_by_moniker(moniker)
-            g.create_task(agent(process_poll, await pr_service.mq_client(), moniker, PRFeedbackService.QUEUE_SCAN_POLLING))
-            g.create_task(agent(process_pr_annotate, await pr_service.mq_client(), moniker, PRFeedbackService.QUEUE_ANNOTATE_PR))
-            g.create_task(agent(process_pr_feedback, await pr_service.mq_client(), moniker, PRFeedbackService.QUEUE_FEEDBACK_PR))
+            services = CxOneFlowConfig.retrieve_services_by_moniker(moniker)
+            g.create_task(agent(process_poll, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_SCAN_POLLING))
+            g.create_task(agent(process_pr_annotate, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_ANNOTATE_PR))
+            g.create_task(agent(process_pr_feedback, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_FEEDBACK_PR))
    
 
 if __name__ == '__main__':

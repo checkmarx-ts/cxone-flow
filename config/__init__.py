@@ -19,6 +19,7 @@ from workflows import ResultSeverity, ResultStates
 from typing import Tuple, List
 from multiprocessing import cpu_count
 from typing import Dict, List, Union
+from services import CxOneFlowServices
 
 
 def get_workers_count():
@@ -90,11 +91,6 @@ class RouteNotFoundException(Exception):
 class CxOneFlowConfig:
     __shared_secret_policy = PasswordPolicy.from_names(length=20, uppercase=3, numbers=3, special=2)
 
-    __cxone_service_tuple_index = 1
-    __scm_service_tuple_index = 2
-    __pr_service_tuple_index = 3
-    __resolver_service_tuple_index = 4
-
     @staticmethod
     def log():
         return logging.getLogger("CxOneFlowConfig")
@@ -120,31 +116,28 @@ class CxOneFlowConfig:
     
     @staticmethod
     def get_service_monikers():
-        return list(CxOneFlowConfig.__scm_config_tuples_by_service_moniker.keys())
+        return list(CxOneFlowConfig.__scm_services_config_by_service_moniker.keys())
 
     @staticmethod
-    def retrieve_services_by_moniker(moniker : str) -> Tuple[CxOneService,SCMService,PRFeedbackService,ResolverScanService]:
-        service_tuple = CxOneFlowConfig.__scm_config_tuples_by_service_moniker[moniker]
-        return service_tuple[CxOneFlowConfig.__cxone_service_tuple_index], service_tuple[CxOneFlowConfig.__scm_service_tuple_index], \
-            service_tuple[CxOneFlowConfig.__pr_service_tuple_index], service_tuple[CxOneFlowConfig.__resolver_service_tuple_index]
+    def retrieve_services_by_moniker(moniker : str) -> CxOneFlowServices:
+        return CxOneFlowConfig.__scm_services_config_by_service_moniker[moniker]
 
 
     @staticmethod
     def retrieve_scm_services(scm_config_key : str) -> List[SCMService]:
-        return [entry[CxOneFlowConfig.__scm_service_tuple_index] for entry in CxOneFlowConfig.__ordered_scm_config_tuples[scm_config_key]]
+        return [entry.scm for entry in CxOneFlowConfig.__ordered_scm_services_config[scm_config_key]]
 
     @staticmethod
-    def retrieve_services_by_route(clone_urls : str, scm_config_key : str) -> Tuple[CxOneService,SCMService,PRFeedbackService, ResolverScanService]:
+    def retrieve_services_by_route(clone_urls : str, scm_config_key : str) -> CxOneFlowServices:
         if type(clone_urls) is list:
             it_list = clone_urls
         else:
             it_list = [clone_urls]
 
         for url in it_list:
-            for entry in CxOneFlowConfig.__ordered_scm_config_tuples[scm_config_key]:
-                if entry[0].match(url):
-                    return entry[CxOneFlowConfig.__cxone_service_tuple_index], entry[CxOneFlowConfig.__scm_service_tuple_index], \
-                    entry[CxOneFlowConfig.__pr_service_tuple_index]
+            for entry in CxOneFlowConfig.__ordered_scm_services_config[scm_config_key]:
+                if entry.matcher.match(url):
+                    return entry
 
         CxOneFlowConfig.log().error(f"No route matched for {clone_urls}")
         raise RouteNotFoundException(clone_urls)
@@ -175,22 +168,20 @@ class CxOneFlowConfig:
                     index = 0
                     for repo_config_dict in CxOneFlowConfig.__raw[scm]:
 
-                        repo_matcher, cxone_service, scm_service, pr_feedback_service, resolver_service = \
-                            CxOneFlowConfig.__setup_scm(CxOneFlowConfig.__cloner_factories[scm], 
+                        services = CxOneFlowConfig.__setup_scm(CxOneFlowConfig.__cloner_factories[scm], 
                                 CxOneFlowConfig.__auth_factories[scm], 
                                 CxOneFlowConfig.__scm_factories[scm],
                                 repo_config_dict, f"/{scm}[{index}]")
                         
-                        scm_tuple = (repo_matcher, cxone_service, scm_service, pr_feedback_service, resolver_service)
-                        if scm_service.moniker not in CxOneFlowConfig.__scm_config_tuples_by_service_moniker.keys():
-                            CxOneFlowConfig.__scm_config_tuples_by_service_moniker[scm_service.moniker] = scm_tuple
+                        if services.scm.moniker not in CxOneFlowConfig.__scm_services_config_by_service_moniker.keys():
+                            CxOneFlowConfig.__scm_services_config_by_service_moniker[services.scm.moniker] = services
                         else:
-                             raise ConfigurationException(f"Service {scm_service.moniker} is defined more than once.")
+                             raise ConfigurationException(f"Service {services.scm.moniker} is defined more than once.")
 						
-                        if not scm in CxOneFlowConfig.__ordered_scm_config_tuples:
-                            CxOneFlowConfig.__ordered_scm_config_tuples[scm] = [scm_tuple]
+                        if not scm in CxOneFlowConfig.__ordered_scm_services_config:
+                            CxOneFlowConfig.__ordered_scm_services_config[scm] = [services]
                         else:
-                            CxOneFlowConfig.__ordered_scm_config_tuples[scm].append(scm_tuple)
+                            CxOneFlowConfig.__ordered_scm_services_config[scm].append(services)
 
                         index += 1
         except Exception as ex:
@@ -233,7 +224,7 @@ class CxOneFlowConfig:
 
     @staticmethod
     def __get_value_for_key_or_default(key, config_dict, default):
-        if not key in config_dict.keys():
+        if config_dict is None or not key in config_dict.keys():
             return default
         else:
             return config_dict[key]
@@ -259,7 +250,7 @@ class CxOneFlowConfig:
     def __resolver_service_factory(config_path, moniker, **kwargs) -> ResolverScanService:
          if kwargs is None or len(kwargs) == 0:
             return ResolverScanService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, DummyResolverScanningWorkflow(), 
-                                       False, None, None, None, None)
+                                       False, None, None, None, None, None)
          else:
             msg_signing_key = CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "private-key", kwargs)
             
@@ -283,8 +274,15 @@ class CxOneFlowConfig:
                  
             
             default_tag = CxOneFlowConfig.__get_value_for_key_or_default("default-agent-tag", kwargs, None)
+            tag_key = CxOneFlowConfig.__get_value_for_key_or_default("resolver-tag-key", kwargs, "resolver")
             no_container_tag_list = CxOneFlowConfig.__get_value_for_key_or_default("agent-tags", kwargs, [])
             container_agent_tag_dict = CxOneFlowConfig.__get_value_for_key_or_default("container-agent-tags", kwargs, {})
+
+            # Make sure tags are not duplicate
+            tag_intersection = list(set(no_container_tag_list) & set(list(container_agent_tag_dict.keys())))
+            if len(tag_intersection) > 0:
+                 raise ConfigurationException(f"{config_path} contains duplicate resolver tags {tag_intersection}")
+                 
                     
             # the default tag must have a tag.
             if default_tag is not None and not default_tag in no_container_tag_list + list(container_agent_tag_dict.keys()):
@@ -294,7 +292,7 @@ class CxOneFlowConfig:
            
             return ResolverScanService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, 
                                        ResolverScanningWorkflow(emit_resolver_logs, resolver_args), 
-                                       msg_signing_key, default_tag, container_agent_tag_dict, no_container_tag_list)
+                                       msg_signing_key, default_tag, tag_key, container_agent_tag_dict, no_container_tag_list)
 
     
 
@@ -399,8 +397,8 @@ class CxOneFlowConfig:
         return None
 
 
-    __ordered_scm_config_tuples = {}
-    __scm_config_tuples_by_service_moniker = {}
+    __ordered_scm_services_config = {}
+    __scm_services_config_by_service_moniker = {}
 
     @staticmethod
     def __scm_api_auth_factory(api_url : str, api_auth_factory, config_dict, config_path):
@@ -427,7 +425,7 @@ class CxOneFlowConfig:
         return retval
 
     @staticmethod
-    def __setup_scm(cloner_factory, api_auth_factory, scm_class, config_dict, config_path):
+    def __setup_scm(cloner_factory, api_auth_factory, scm_class, config_dict, config_path) -> CxOneFlowServices:
         repo_matcher = re.compile(CxOneFlowConfig.__get_value_for_key_or_fail(config_path, 'repo-match', config_dict), re.IGNORECASE)
 
         service_moniker = CxOneFlowConfig.__get_value_for_key_or_fail(config_path, 'service-name', config_dict)
@@ -484,7 +482,7 @@ class CxOneFlowConfig:
         scm_service = scm_class(display_url, service_moniker, api_session, scm_shared_secret, 
                                 CxOneFlowConfig.__cloner_factory(api_session, cloner_factory, clone_auth_dict, clone_config_path))
 
-        return repo_matcher, cxone_service, scm_service, pr_feedback_service, resolver_service
+        return CxOneFlowServices(repo_matcher, cxone_service, scm_service, pr_feedback_service, resolver_service)
 
     @staticmethod
     def __has_basic_auth(config_dict : Dict) -> bool:

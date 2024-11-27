@@ -5,7 +5,7 @@ from cxone_api.high.projects import ProjectRepoConfig
 from cxone_api.low.projects import retrieve_list_of_projects, create_a_project, update_a_project
 from cxone_api.low.reports import create_a_report, retrieve_report_status, download_a_report
 from cxone_api.low.scans import retrieve_list_of_scans, update_scan_tags
-from cxone_api.util import page_generator
+from cxone_api.util import page_generator, json_on_ok
 import logging,asyncio
 from datetime import datetime
 
@@ -30,7 +30,7 @@ class CxOneService:
     def log():
         return logging.getLogger("CxOneService")
 
-    __minimum_engine_selection = ['sast']
+    __minimum_engine_selection = {'sast' : {} }
 
     def __init__(self, moniker, cxone_client, default_engines, default_scan_tags, default_project_tags):
         self.__client = cxone_client
@@ -60,6 +60,17 @@ class CxOneService:
             raise CxOneException(f"Method: {response.request.method} Url: {response.request.url} Status: {response.status_code}")
         else:
             return response
+        
+    async def get_resolver_tag_for_project(self, project_config : ProjectRepoConfig, tag_key : str, default_tag : str) -> str:
+        selected_tag = default_tag
+
+        if tag_key in project_config.tags.keys():
+            possible_tag = project_config.tags[tag_key]
+            if possible_tag is not None and len(possible_tag) > 0:
+                selected_tag = possible_tag
+
+        return selected_tag
+
 
     async def update_scan_pr_tags(self, by_project_name : str, by_pr_id : str, by_commit_hash : str, new_target_branch : str, new_state : str, new_status : str) -> list:
         scans_updated = []
@@ -80,16 +91,20 @@ class CxOneService:
                     scans_updated.append(scan['id'])
                 else:
                     CxOneService.log().debug(scan)
-                    CxOneService.log().warn(f"Unable to update tags for scan id {scan['id']}: Response was {update_response.status_code}:{update_response.text}")
+                    CxOneService.log().warning(f"Unable to update tags for scan id {scan['id']}: Response was {update_response.status_code}:{update_response.text}")
 
         return scans_updated
     
-    def __create_engine_config_dict(self, project_config : dict):
-        pass
 
+    async def sca_selected(self, project_config : ProjectRepoConfig, branch : str) -> bool:
+        if 'sca' in self.__default_engine_config.keys():
+            return True
 
-    async def execute_scan(self, zip_path : str, project_name : str, commit_branch : str, repo_url : str, scan_tags : dict ={}):
+        # TODO: better way to do this?        
+        return False
+       
 
+    async def __create_or_retrieve_project(self, project_name : str) -> dict:
         projects_response = CxOneService.__get_json_or_fail (await retrieve_list_of_projects(self.__client, name=project_name))
 
         if int(projects_response['filteredTotalCount']) == 0:
@@ -113,17 +128,29 @@ class CxOneService:
             if len(new_tags.keys()) > 0:
                 project_json['tags'] = new_tags | project_json['tags']
                 CxOneService.__succeed_or_throw(await update_a_project (self.__client, project_id, **project_json))
+            
+        return project_json
 
-        project_config = await ProjectRepoConfig.from_project_json(self.__client, project_json)
+    async def __get_engine_config_for_scan(self, project_config : ProjectRepoConfig, commit_branch : str) -> dict:
+        enabled_scanners = await project_config.get_enabled_scanners(commit_branch)
+        return_engine_config = dict(self.__default_engine_config)
 
-        scan__filter_cfg = await ScanFilterConfig.from_project_id(self.__client, project_id)
-        engine_config = scan__filter_cfg.compute_filters_with_defaults(self.__default_engine_config)
+        for missing_engine in [engine for engine in enabled_scanners if engine not in return_engine_config.keys()]:
+            return_engine_config[missing_engine] = {}
 
-        if engine_config is None:
-            engine_config = await project_config.get_enabled_scanners(commit_branch)
+        scan__filter_cfg = await ScanFilterConfig.from_project_id(self.__client, project_config.project_id)
+        return_engine_config = scan__filter_cfg.compute_filters_with_defaults(return_engine_config)
 
-        if len(engine_config) == 0:
-            engine_config = CxOneService.__minimum_engine_selection
+        if len(return_engine_config) == 0:
+            return_engine_config = CxOneService.__minimum_engine_selection
+        
+        return return_engine_config
+    
+    async def load_project_config(self, project_name : str) -> ProjectRepoConfig:
+        return await ProjectRepoConfig.from_project_json(self.__client, await self.__create_or_retrieve_project(project_name))
+
+    async def execute_scan(self, zip_path : str, project_config : ProjectRepoConfig, commit_branch : str, repo_url : str, scan_tags : dict ={}):
+        engine_config = await self.__get_engine_config_for_scan(project_config, commit_branch)
 
         return CxOneService.__get_json_or_fail(await ScanInvoker.scan_get_response(self.__client, 
                 project_config, commit_branch, engine_config, scan_tags | self.__default_scan_tags, zip_path))

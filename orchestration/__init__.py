@@ -19,12 +19,11 @@ class OrchestrationDispatch:
 
         try:
             OrchestrationDispatch.log().debug(f"Service lookup: {orchestrator.route_urls}")
-            cxone_service, scm_service, pr_service, resolver_service = CxOneFlowConfig.retrieve_services_by_route(orchestrator.route_urls, 
-                                                                                                                  orchestrator.config_key)
+            services = CxOneFlowConfig.retrieve_services_by_route(orchestrator.route_urls, orchestrator.config_key)
             OrchestrationDispatch.log().debug(f"Service lookup success: {orchestrator.route_urls}")
 
-            if await orchestrator.is_signature_valid(scm_service.shared_secret):
-                return await orchestrator.execute(cxone_service, scm_service, pr_service, resolver_service)
+            if await orchestrator.is_signature_valid(services.scm.shared_secret):
+                return await orchestrator.execute(services)
             else:
                 OrchestrationDispatch.log().warning(f"Payload signature validation failed, webhook payload ignored.")
         except RouteNotFoundException as ex:

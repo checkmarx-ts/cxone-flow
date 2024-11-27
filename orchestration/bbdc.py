@@ -3,12 +3,9 @@ from api_utils.auth_factories import EventContext
 from api_utils import signature
 from jsonpath_ng import parse
 from .exceptions import OrchestrationException
-from cxone_service import CxOneService
 from scm_services import SCMService
-from scm_services.cloner import Cloner
-from workflows.pr_feedback_service import PRFeedbackService
-from workflows.resolver_scan_service import ResolverScanService
 from cxone_api.high.scans import ScanInspector
+from services import CxOneFlowServices
 
 class BitBucketDataCenterOrchestrator(OrchestratorBase):
 
@@ -76,19 +73,17 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
         return hash == payload_hash
 
 
-    async def __workflow_dispatcher(self, dispatch_map : dict, cxone_service : CxOneService, scm_service : SCMService, workflow_service : PRFeedbackService):
+    async def __workflow_dispatcher(self, dispatch_map : dict, services : CxOneFlowServices):
         if self.__event not in dispatch_map.keys():
             BitBucketDataCenterOrchestrator.log().error(f"Unhandled event type: {self.__event}")
             return 
         
-        return await dispatch_map[self.__event](self, cxone_service, scm_service, workflow_service)
+        return await dispatch_map[self.__event](self, services)
 
-    async def execute(self, cxone_service : CxOneService, scm_service : SCMService, 
-                      pr_service : PRFeedbackService, resolver_service : ResolverScanService):
-        return await self.__workflow_dispatcher(BitBucketDataCenterOrchestrator.__workflow_map, cxone_service, scm_service, pr_service, resolver_service)
+    async def execute(self, services : CxOneFlowServices):
+        return await self.__workflow_dispatcher(BitBucketDataCenterOrchestrator.__workflow_map, services)
 
-    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, 
-                                          pr_service : PRFeedbackService, resolver_service : ResolverScanService):
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices):
 
         self.__source_branch = self.__target_branch = None
         self.__source_hash = self.__target_hash = None
@@ -106,7 +101,7 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
         self.__repo_slug = BitBucketDataCenterOrchestrator.__push_repo_slug_query.find(self.event_context.message)[0].value
         self.__repo_name = BitBucketDataCenterOrchestrator.__push_repo_name_query.find(self.event_context.message)[0].value
         
-        return await OrchestratorBase._execute_push_scan_workflow(self, cxone_service, scm_service, pr_service, resolver_service)
+        return await OrchestratorBase._execute_push_scan_workflow(self, services)
 
     async def __is_pr_draft(self) -> bool:
         return bool(BitBucketDataCenterOrchestrator.__pr_draft_query.find(self.event_context.message)[0].value)
@@ -135,23 +130,21 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
         else:
             self.__pr_status = "/".join(statuses)
 
-    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, 
-                                        pr_service : PRFeedbackService, resolver_service : ResolverScanService) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
         if await self.__is_pr_draft():
             BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
             return
         self.__populate_common_pr_data()
-        return await OrchestratorBase._execute_pr_scan_workflow(self, cxone_service, scm_service, pr_service, resolver_service)
+        return await OrchestratorBase._execute_pr_scan_workflow(self, services)
 
-    async def _execute_pr_tag_update_workflow(self, cxone_service : CxOneService, scm_service : SCMService, 
-                                              pr_service : PRFeedbackService, resolver_service : ResolverScanService):
+    async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices):
         if await self.__is_pr_draft():
             BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
             return
 
         self.__populate_common_pr_data()
 
-        return await OrchestratorBase._execute_pr_tag_update_workflow(self, cxone_service, scm_service, pr_service)
+        return await OrchestratorBase._execute_pr_tag_update_workflow(self, services)
 
 
     async def _get_target_branch_and_hash(self) -> tuple:

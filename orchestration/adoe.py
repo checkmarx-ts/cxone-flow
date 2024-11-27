@@ -2,15 +2,12 @@ from .base import OrchestratorBase
 import base64, urllib, urllib.parse
 from jsonpath_ng import parse
 from cxone_api.util import CloneUrlParser
-from cxone_service import CxOneService
 from scm_services import SCMService
-from workflows.pr_feedback_service import PRFeedbackService
-from workflows.resolver_scan_service import ResolverScanService
 from pathlib import Path
 from cxone_api.high.scans import ScanInspector
 from api_utils.auth_factories import EventContext
 from cxone_api.util import json_on_ok
-
+from services import CxOneFlowServices
 class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
     __diag_id = "f844ec47-a9db-4511-8281-8b63f4eaf94e"
@@ -63,16 +60,15 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
     def event_name(self) -> str:
         return self.__event
 
-    async def execute(self, cxone_service: CxOneService, scm_service : SCMService, 
-                      pr_service : PRFeedbackService, resolver_service : ResolverScanService):
+    async def execute(self, services : CxOneFlowServices):
         # Get clone urls from repo details since ADO doesn't include all clone protocols in the event.
-        repo_details = json_on_ok(await scm_service.exec("GET", f"/{self.__collection}/{self.__repo_key}/_apis/git/repositories/{self.__repo_slug}"))
+        repo_details = json_on_ok(await services.scm.exec("GET", f"/{self.__collection}/{self.__repo_key}/_apis/git/repositories/{self.__repo_slug}"))
         http_clone_url = urllib.parse.urlparse(self.__remote_url)
         self.__clone_urls = {
             http_clone_url.scheme : self.__remote_url,
             "ssh" : repo_details['sshUrl']
         }
-        return await AzureDevOpsEnterpriseOrchestrator.__workflow_map[self.__event](self, cxone_service, scm_service, pr_service, resolver_service)
+        return await AzureDevOpsEnterpriseOrchestrator.__workflow_map[self.__event](self, services)
 
     @property
     def is_diagnostic(self):
@@ -132,16 +128,14 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
         return bool(AzureDevOpsEnterpriseOrchestrator.__pr_draft_query.find(self.event_context.message)[0].value)
 
 
-    async def _execute_push_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, 
-                                          pr_service : PRFeedbackService, resolver_service : ResolverScanService):
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices):
         self.__source_branch = self.__target_branch = OrchestratorBase.normalize_branch_name(
             [x.value for x in list(self.__push_target_branch_query.find(self.event_context.message))][0])
         self.__source_hash = self.__target_hash = [x.value for x in list(self.__push_target_hash_query.find(self.event_context.message))][0]
 
-        return await OrchestratorBase._execute_push_scan_workflow(self, cxone_service, scm_service, pr_service, resolver_service)
+        return await OrchestratorBase._execute_push_scan_workflow(self, services)
 
-    async def _execute_pr_scan_workflow(self, cxone_service : CxOneService, scm_service : SCMService, 
-                                        pr_service : PRFeedbackService, resolver_service : ResolverScanService) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
         if await self.__is_pr_draft():
             AzureDevOpsEnterpriseOrchestrator.log().info(f"Skipping draft PR {AzureDevOpsEnterpriseOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
             return
@@ -161,13 +155,13 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
         self.__pr_state = AzureDevOpsEnterpriseOrchestrator.__pr_state_query.find(self.event_context.message)[0].value
 
-        existing_scans = await cxone_service.find_pr_scans(await self.get_cxone_project_name(), self.__pr_id, self.__source_hash)
+        existing_scans = await services.cxone.find_pr_scans(await self.get_cxone_project_name(), self.__pr_id, self.__source_hash)
 
         if len(existing_scans) > 0:
             # This is a scan tag update, not a scan.
-            return await OrchestratorBase._execute_pr_tag_update_workflow(self, cxone_service, scm_service, pr_service)
+            return await OrchestratorBase._execute_pr_tag_update_workflow(self, services)
         else:
-            repo_details = await scm_service.exec("GET", f"{self.__collection}/{self._repo_project_key}/_apis/git/repositories/{self.__repository_id}")
+            repo_details = await services.scm.exec("GET", f"{self.__collection}/{self._repo_project_key}/_apis/git/repositories/{self.__repository_id}")
 
             if not repo_details.ok:
                 AzureDevOpsEnterpriseOrchestrator.log().error(f"Response [{repo_details.status_code}] to request for repository details, event handling aborted.")
@@ -175,7 +169,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
             self.__default_branches = [OrchestratorBase.normalize_branch_name(repo_details.json()['defaultBranch'])]
             
-            return await OrchestratorBase._execute_pr_scan_workflow(self, cxone_service, scm_service, pr_service, resolver_service)
+            return await OrchestratorBase._execute_pr_scan_workflow(self, services)
 
 
     

@@ -6,14 +6,17 @@ that is compatible with other methods of deployment.
 """
 from _agent import __agent__
 from flask import Flask, request, Response, send_from_directory
-from orchestration import OrchestrationDispatch, BitBucketDataCenterOrchestrator, \
-    AzureDevOpsEnterpriseOrchestrator, GithubOrchestrator
+from orchestration import OrchestrationDispatch
+from orchestration.bbdc import  BitBucketDataCenterOrchestrator
+from orchestration.adoe import AzureDevOpsEnterpriseOrchestrator
+from orchestration.gh import GithubOrchestrator
 import json, logging, os
 from config import CxOneFlowConfig, ConfigurationException, get_config_path
 from time import perf_counter_ns
 from task_management import TaskManager
 import cxoneflow_logging as cof_logging
 from api_utils.auth_factories import EventContext, HeaderFilteredEventContext
+
 
 cof_logging.bootstrap()
 

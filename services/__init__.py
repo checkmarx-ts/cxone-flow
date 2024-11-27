@@ -5,7 +5,7 @@ from scm_services import SCMService
 from workflows.pr_feedback_service import PRFeedbackService
 from workflows.resolver_scan_service import ResolverScanService
 
-@dataclass
+@dataclass(frozen=True)
 class CxOneFlowServices:
     matcher : Pattern
     cxone : CxOneService

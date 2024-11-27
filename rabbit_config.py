@@ -15,9 +15,9 @@ async def setup() -> None:
 
     for moniker in monikers:
         __log.info(f"Configuring RabbitMQ for {moniker}")
-        _,_,pr_service,resolver_service = CxOneFlowConfig.retrieve_services_by_moniker(moniker)
+        services = CxOneFlowConfig.retrieve_services_by_moniker(moniker)
 
-        pr_rmq = await pr_service.mq_client()
+        pr_rmq = await services.pr.mq_client()
 
         async with pr_rmq.channel() as channel:
             # All scans come in to the Scan In exchange.  It fans out to:
@@ -66,7 +66,7 @@ async def setup() -> None:
             await pr_annotate_queue.bind(scan_annotate_exchange, PRFeedbackService.ROUTEKEY_ANNOTATE_PR)
 
 
-        resolver_rmq = await resolver_service.mq_client()
+        resolver_rmq = await services.resolver.mq_client()
         async with resolver_rmq.channel() as channel:
             # Resolver scan queue configuration
             sca_resolver_scan_exchange = await channel.declare_exchange(ResolverScanService.EXCHANGE_RESOLVER_SCAN, aio_pika.ExchangeType.TOPIC, durable=True, internal=True)
