@@ -1,9 +1,9 @@
 import aio_pika
 from typing import List
 from . import ResultSeverity, ResultStates
+from .base_workflow import AbstractAsyncWorkflow
 
-
-class AbstractFeedbackWorkflow:
+class AbstractFeedbackWorkflow(AbstractAsyncWorkflow):
     @property
     def excluded_severities(self) -> List[ResultSeverity]:
         raise NotImplementedError("excluded_severities")

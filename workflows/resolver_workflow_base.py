@@ -1,6 +1,7 @@
 import aio_pika
+from .base_workflow import AbstractAsyncWorkflow
 
-class AbstractResolverWorkflow:
+class AbstractResolverWorkflow(AbstractAsyncWorkflow):
 
     @property
     def is_enabled(self) -> bool:
