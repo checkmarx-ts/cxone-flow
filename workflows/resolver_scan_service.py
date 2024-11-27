@@ -25,7 +25,7 @@ class ResolverScanService(BaseWorkflowService):
     
     @property
     def skip(self) -> bool:
-        return not self.__workflow.is_enabled()
+        return not self.__workflow.is_enabled
     
     @property
     def tag_key(self) -> str:
@@ -42,7 +42,7 @@ class ResolverScanService(BaseWorkflowService):
 
         return ret_list
     
-    async def request_resolver_scan(self, scanner_tag : str, cloner : Cloner) -> bool:
+    async def request_resolver_scan(self, scanner_tag : str, cloner : Cloner, clone_url : str) -> bool:
         return await self.__workflow.resolver_scan_kickoff(await self.mq_client(), self.__service_moniker, scanner_tag)
     
 

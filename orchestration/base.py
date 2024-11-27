@@ -139,13 +139,12 @@ class OrchestratorBase:
 
         if target_branch in protected_branches:
             project_config = await services.cxone.load_project_config(await self.get_cxone_project_name())
-            resolver_tag = await services.cxone.get_resolver_tag_for_project(project_config, 
-                                                                            services.resolver.tag_key, services.resolver.default_tag)
-            
-            # TODO: Only defer scan if SCA is selected
-            if False:
-            # if not resolver_service.skip and resolver_tag is not None:
-                resolver_service.request_resolver_scan(resolver_tag, services.scm.cloner)
+
+            if not services.resolver.skip and await services.cxone.sca_selected(project_config, source_branch):
+                resolver_tag = await services.cxone.get_resolver_tag_for_project(project_config, 
+                                                                                services.resolver.tag_key, services.resolver.default_tag)
+                if resolver_tag is not None:
+                    await services.resolver.request_resolver_scan(resolver_tag, services.scm.cloner, clone_url)
                 
                 return None, OrchestratorBase.ScanAction.DEFERRED
             else:

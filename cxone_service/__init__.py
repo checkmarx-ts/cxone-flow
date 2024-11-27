@@ -100,8 +100,7 @@ class CxOneService:
         if 'sca' in self.__default_engine_config.keys():
             return True
 
-        # TODO: better way to do this?        
-        return False
+        return 'sca' in (await self.__get_engine_config_for_scan(project_config, branch)).keys()
        
 
     async def __create_or_retrieve_project(self, project_name : str) -> dict:
