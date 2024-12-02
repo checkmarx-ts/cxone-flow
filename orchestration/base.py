@@ -7,6 +7,7 @@ from cxone_api.high.scans import ScanInspector
 from scm_services import SCMService
 from cxone_service import CxOneService
 from scm_services.cloner import Cloner, CloneWorker, CloneAuthException
+from workflows.exceptions import WorkflowException
 from workflows.messaging import PRDetails
 from workflows import ScanWorkflow
 from api_utils.auth_factories import EventContext
@@ -142,15 +143,17 @@ class OrchestratorBase:
             project_config = await services.cxone.load_project_config(await self.get_cxone_project_name())
 
             if not services.resolver.skip and await services.cxone.sca_selected(project_config, source_branch):
-                resolver_tag = await services.cxone.get_resolver_tag_for_project(project_config, 
-                                                                                services.resolver.project_tag_key, services.resolver.default_tag)
-                if resolver_tag is not None:
-                    await services.resolver.request_resolver_scan(resolver_tag, services.scm.cloner, clone_url, workflow, self.__event_context)
-                
-                return None, OrchestratorBase.ScanAction.DEFERRED
-            else:
-                return await self.__exec_immediate_scan(services.cxone, services.scm, clone_url, source_hash, 
-                                              source_branch, project_config, scan_tags)
+                try:
+                    resolver_tag = await services.cxone.get_resolver_tag_for_project(project_config, 
+                                                                                    services.resolver.project_tag_key, services.resolver.default_tag)
+                    if resolver_tag is not None:
+                        if await services.resolver.request_resolver_scan(resolver_tag, services.scm.cloner, clone_url, workflow, self.__event_context):
+                            return None, OrchestratorBase.ScanAction.DEFERRED
+                except WorkflowException as ex:
+                    OrchestratorBase.log().exception("Resolver workflow exception, SCA scan will run resolver server-side.", ex)
+
+            return await self.__exec_immediate_scan(services.cxone, services.scm, clone_url, source_hash, 
+                                            source_branch, project_config, scan_tags)
         else:
             OrchestratorBase.log().info(f"{clone_url}:{source_hash}:{source_branch} is not related to any protected branch: {protected_branches}")
             return None, OrchestratorBase.ScanAction.SKIPPED

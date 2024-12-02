@@ -66,6 +66,9 @@ class ResolverScanService(BaseWorkflowService):
     def make_routekey_for_tag(tag : str):
         return f"{ResolverScanService.ROUTEKEY_EXEC_SCA_SCAN_STUB}.{tag}.#"
 
+    def make_topic_for_tag(self, tag : str):
+        return f"{ResolverScanService.ROUTEKEY_EXEC_SCA_SCAN_STUB}.{tag}.{self.__service_moniker}"
+
     @staticmethod
     def make_queuename_for_tag(tag : str):
         return f"{ResolverScanService.QUEUE_RESOLVER_EXEC_STUB}:{urllib.parse.quote(tag)}"
@@ -93,7 +96,7 @@ class ResolverScanService(BaseWorkflowService):
                                    event_context=event_context)
         
         return await self.__workflow.resolver_scan_kickoff(await self.mq_client(), 
-                                                           ResolverScanService.make_routekey_for_tag(scanner_tag), 
+                                                           self.make_topic_for_tag(scanner_tag), 
                                                            msg, ResolverScanService.EXCHANGE_RESOLVER_SCAN)
                 
     
