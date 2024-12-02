@@ -1,26 +1,46 @@
 from .base_service import BaseWorkflowService
-from . import ScanStates, ExecTypes, ResolverOps
+from . import ScanStates, ExecTypes, ResolverOps, ScanWorkflow
 from .resolver_workflow_base import AbstractResolverWorkflow
 from scm_services.cloner import Cloner
-from typing import List
+from typing import List, Tuple
+from .exceptions import WorkflowException
+from .messaging.v1.delegated_scan import DelegatedScanDetails
+import urllib, re, pickle
+from api_utils.auth_factories import EventContext
 
 class ResolverScanService(BaseWorkflowService):
+
+
+    __tag_validation_re = re.compile("[^0-9a-zA-z-_]+")
+
     EXCHANGE_RESOLVER_SCAN = "SCA Resolver Scan In"
-    QUEUE_RESOLVER_EXEC = "Resolver Scan Requests"
     QUEUE_RESOLVER_COMPLETE = "Finished Resolver Scans"
-    ROUTEKEY_EXEC_SCA_SCAN = f"{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN}.#"
     ROUTEKEY_EXEC_SCA_SCAN_COMPLETE = f"{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN_COMPLETE}.#"
 
+    QUEUE_RESOLVER_EXEC_STUB = "Resolver Req"
+    ROUTEKEY_EXEC_SCA_SCAN_STUB = f"{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN}"
+
+    @staticmethod
+    def __validate_tags(keys : List[str]):
+        for k in keys:
+            if ResolverScanService.__tag_validation_re.search(k):
+                raise WorkflowException.invalid_tag(k)
+
     def __init__(self, moniker : str, amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool, 
-                 workflow : AbstractResolverWorkflow, 
-                 signing_key : str, default_tag : str, tag_key : str, container_handler_tags : dict, non_container_handler_tags : list):
+                 workflow : AbstractResolverWorkflow, default_tag : str, project_tag_key : str, 
+                 container_handler_tags : dict, non_container_handler_tags : list):
         super().__init__(amqp_url, amqp_user, amqp_password, ssl_verify)
         self.__service_moniker = moniker
-        self.__signing_key = signing_key
         self.__default_tag = default_tag
-        self.__tag_key = tag_key
+        self.__project_tag_key = project_tag_key
         self.__workflow = workflow
+
+        if container_handler_tags is not None:
+            ResolverScanService.__validate_tags(list(container_handler_tags.keys()))
         self.__container_tags = container_handler_tags
+
+        if non_container_handler_tags is not None:
+            ResolverScanService.__validate_tags(non_container_handler_tags)
         self.__nocontainer_tags = non_container_handler_tags
     
     @property
@@ -28,8 +48,8 @@ class ResolverScanService(BaseWorkflowService):
         return not self.__workflow.is_enabled
     
     @property
-    def tag_key(self) -> str:
-        return self.__tag_key
+    def project_tag_key(self) -> str:
+        return self.__project_tag_key
 
     @property
     def default_tag(self) -> str:
@@ -42,8 +62,39 @@ class ResolverScanService(BaseWorkflowService):
 
         return ret_list
     
-    async def request_resolver_scan(self, scanner_tag : str, cloner : Cloner, clone_url : str) -> bool:
-        return await self.__workflow.resolver_scan_kickoff(await self.mq_client(), self.__service_moniker, scanner_tag)
+    @staticmethod
+    def make_routekey_for_tag(tag : str):
+        return f"{ResolverScanService.ROUTEKEY_EXEC_SCA_SCAN_STUB}.{tag}.#"
+
+    @staticmethod
+    def make_queuename_for_tag(tag : str):
+        return f"{ResolverScanService.QUEUE_RESOLVER_EXEC_STUB}:{urllib.parse.quote(tag)}"
+    
+    @property
+    def queue_and_topic_tuples(self) -> List[Tuple[str, str]]:
+        ret_list = []
+        for tag in self.agent_tags:
+            ret_list.append((ResolverScanService.make_queuename_for_tag(tag), 
+                             ResolverScanService.make_routekey_for_tag(tag)))
+        
+        return ret_list
+    
+    async def request_resolver_scan(self, scanner_tag : str, cloner : Cloner, clone_url : str, scan_workflow : ScanWorkflow, 
+                                    event_context : EventContext, **kwargs) -> bool:
+        
+        if scanner_tag not in self.agent_tags:
+            raise WorkflowException.unknown_resolver_tag(scanner_tag, clone_url)
+        
+        msg = DelegatedScanDetails(moniker=self.__service_moniker,
+                                   state=ScanStates.EXECUTE,
+                                   workflow=scan_workflow,
+                                   clone_url=clone_url, 
+                                   pickled_cloner=pickle.dumps(cloner, protocol=pickle.HIGHEST_PROTOCOL), 
+                                   event_context=event_context)
+        
+        return await self.__workflow.resolver_scan_kickoff(await self.mq_client(), 
+                                                           ResolverScanService.make_routekey_for_tag(scanner_tag), 
+                                                           msg, ResolverScanService.EXCHANGE_RESOLVER_SCAN)
+                
     
 
-    # await self.__workflow_map[ScanWorkflow.PR].workflow_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))

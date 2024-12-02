@@ -1,15 +1,20 @@
 from ..scan_message import ScanHeader
+from ..base_message import BaseMessage
 from dataclasses import dataclass
 from api_utils.auth_factories import EventContext
 from typing import Dict
-from scm_services.cloner import Cloner
-
 
 @dataclass(frozen=True)
-class DelegatedScanMessage(ScanHeader):
+class DelegatedScanDetails(ScanHeader):
     clone_url : str
-    cloner : Cloner
+    pickled_cloner : bytearray
     event_context : EventContext
-    additional_args : Dict
+    schema: str = "v1"
+
+@dataclass(frozen=True)
+class DelegatedScanMessage(BaseMessage):
+    details : DelegatedScanDetails
+    details_signature : str
     emit_logs : bool
     schema: str = "v1"
+

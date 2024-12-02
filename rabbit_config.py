@@ -69,10 +69,15 @@ async def setup() -> None:
         resolver_rmq = await services.resolver.mq_client()
         async with resolver_rmq.channel() as channel:
             # Resolver scan queue configuration
-            sca_resolver_scan_exchange = await channel.declare_exchange(ResolverScanService.EXCHANGE_RESOLVER_SCAN, aio_pika.ExchangeType.TOPIC, durable=True, internal=True)
-            resolver_scans_exec_queue = await channel.declare_queue(ResolverScanService.QUEUE_RESOLVER_EXEC, durable=True, arguments={'x-queue-type' : "quorum"})
-            await resolver_scans_exec_queue.bind(sca_resolver_scan_exchange, ResolverScanService.ROUTEKEY_EXEC_SCA_SCAN)
+            sca_resolver_scan_exchange = await channel.declare_exchange(ResolverScanService.EXCHANGE_RESOLVER_SCAN, aio_pika.ExchangeType.TOPIC, durable=True)
 
+            # Make a queue for each tag, bind it with an associated topic.
+            for queue, topic in services.resolver.queue_and_topic_tuples:
+                cur_queue = await channel.declare_queue(queue, durable=True, arguments={'x-queue-type' : "quorum"})
+                await cur_queue.bind(sca_resolver_scan_exchange, topic)
+
+
+            # Completed scan messaging
             resolver_scans_complete_queue = await channel.declare_queue(ResolverScanService.QUEUE_RESOLVER_COMPLETE, durable=True, 
                                                                         arguments={'x-queue-type' : "quorum"})
             await resolver_scans_complete_queue.bind(sca_resolver_scan_exchange, ResolverScanService.ROUTEKEY_EXEC_SCA_SCAN_COMPLETE)

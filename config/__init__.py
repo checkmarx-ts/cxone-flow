@@ -250,31 +250,15 @@ class CxOneFlowConfig:
     def __resolver_service_factory(config_path, moniker, **kwargs) -> ResolverScanService:
          if kwargs is None or len(kwargs) == 0:
             return ResolverScanService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, DummyResolverScanningWorkflow(), 
-                                       False, None, None, None, None, None)
+                                       False, None, None, None, None)
          else:
             msg_signing_key = CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "private-key", kwargs)
             
             emit_resolver_logs = CxOneFlowConfig.__get_value_for_key_or_default("emit-resolver-logs", kwargs, False)
-
-            resolver_args_cfg = CxOneFlowConfig.__get_value_for_key_or_default("resolver-args", kwargs, [])
-
-            resolver_args = {}
-
-            def form_param(param : str):
-                 if len(param) == 1:
-                      return f"-{param}"
-                 else:
-                      return f"--{param}"
-
-            for cfg_element in resolver_args_cfg:
-                 if isinstance(cfg_element, Dict):
-                      resolver_args.update({form_param(k):v for (k,v) in cfg_element.items()})
-                 else:
-                      resolver_args[form_param(cfg_element)] = None
-                 
+                
             
             default_tag = CxOneFlowConfig.__get_value_for_key_or_default("default-agent-tag", kwargs, None)
-            tag_key = CxOneFlowConfig.__get_value_for_key_or_default("resolver-tag-key", kwargs, "resolver")
+            project_tag_key = CxOneFlowConfig.__get_value_for_key_or_default("resolver-tag-key", kwargs, "resolver")
             no_container_tag_list = CxOneFlowConfig.__get_value_for_key_or_default("agent-tags", kwargs, [])
             container_agent_tag_dict = CxOneFlowConfig.__get_value_for_key_or_default("container-agent-tags", kwargs, {})
 
@@ -291,8 +275,8 @@ class CxOneFlowConfig:
             amqp_url, amqp_user, amqp_password, ssl_verify = CxOneFlowConfig.__load_amqp_settings(config_path, **kwargs)
            
             return ResolverScanService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, 
-                                       ResolverScanningWorkflow(emit_resolver_logs, resolver_args), 
-                                       msg_signing_key, default_tag, tag_key, container_agent_tag_dict, no_container_tag_list)
+                                       ResolverScanningWorkflow(emit_resolver_logs, msg_signing_key), 
+                                       default_tag, project_tag_key, container_agent_tag_dict, no_container_tag_list)
 
     
 

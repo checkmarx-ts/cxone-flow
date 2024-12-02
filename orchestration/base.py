@@ -8,6 +8,7 @@ from scm_services import SCMService
 from cxone_service import CxOneService
 from scm_services.cloner import Cloner, CloneWorker, CloneAuthException
 from workflows.messaging import PRDetails
+from workflows import ScanWorkflow
 from api_utils.auth_factories import EventContext
 from enum import Enum
 from typing import Tuple
@@ -127,7 +128,7 @@ class OrchestratorBase:
 
 
     
-    async def __orchestrate_scan(self, services : CxOneFlowServices, tags) -> Tuple[ScanInspector, ScanAction]:
+    async def __orchestrate_scan(self, services : CxOneFlowServices, scan_tags : dict, workflow : ScanWorkflow) -> Tuple[ScanInspector, ScanAction]:
         protected_branches = await self._get_protected_branches(services.scm)
 
         target_branch, target_hash = await self._get_target_branch_and_hash()
@@ -142,14 +143,14 @@ class OrchestratorBase:
 
             if not services.resolver.skip and await services.cxone.sca_selected(project_config, source_branch):
                 resolver_tag = await services.cxone.get_resolver_tag_for_project(project_config, 
-                                                                                services.resolver.tag_key, services.resolver.default_tag)
+                                                                                services.resolver.project_tag_key, services.resolver.default_tag)
                 if resolver_tag is not None:
-                    await services.resolver.request_resolver_scan(resolver_tag, services.scm.cloner, clone_url)
+                    await services.resolver.request_resolver_scan(resolver_tag, services.scm.cloner, clone_url, workflow, self.__event_context)
                 
                 return None, OrchestratorBase.ScanAction.DEFERRED
             else:
                 return await self.__exec_immediate_scan(services.cxone, services.scm, clone_url, source_hash, 
-                                              source_branch, project_config, tags)
+                                              source_branch, project_config, scan_tags)
         else:
             OrchestratorBase.log().info(f"{clone_url}:{source_hash}:{source_branch} is not related to any protected branch: {protected_branches}")
             return None, OrchestratorBase.ScanAction.SKIPPED
@@ -161,12 +162,12 @@ class OrchestratorBase:
 
         scan_tags = {
             CxOneService.COMMIT_TAG : hash,
-            "workflow" : "push",
+            "workflow" : ScanWorkflow.PUSH,
             "cxone-flow" : __version__,
             "service" : services.cxone.moniker
         }
 
-        _, action = await self.__orchestrate_scan(services, scan_tags)
+        _, action = await self.__orchestrate_scan(services, scan_tags, ScanWorkflow.PUSH)
 
         return action
 
@@ -184,12 +185,12 @@ class OrchestratorBase:
             CxOneService.PR_TARGET_TAG : target_branch,
             CxOneService.PR_STATUS_TAG : self._pr_status,
             CxOneService.PR_STATE_TAG : self._pr_state,
-            "workflow" : "pull-request",
+            "workflow" : ScanWorkflow.PR,
             "cxone-flow" : __version__,
             "service" : services.cxone.moniker
         }
 
-        inspector, scan_action = await self.__orchestrate_scan(services, scan_tags)
+        inspector, scan_action = await self.__orchestrate_scan(services, scan_tags, ScanWorkflow.PR)
         if inspector is not None and scan_action is OrchestratorBase.ScanAction.EXECUTING:
             await services.pr.start_pr_scan_workflow(inspector.project_id, inspector.scan_id, 
                                                         PRDetails(event_context=self.event_context, clone_url=self._repo_clone_url(services.scm.cloner), 

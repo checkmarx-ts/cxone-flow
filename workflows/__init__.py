@@ -7,11 +7,10 @@ class __base_enum(Enum):
 
 
 class ScanWorkflow(__base_enum):
-    PR = "pr"
+    PR = "pull-request"
     PUSH = "push"
-
 class FeedbackWorkflow(__base_enum):
-    PR = "pr"
+    PR = "pull-request"
 
 class ScanStates(__base_enum):
     AWAIT = "await"

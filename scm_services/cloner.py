@@ -48,7 +48,12 @@ class Cloner:
     __ssh_protocols = ['ssh']
 
     def __init__(self):
-        self.__env = dict(os.environ)
+        self.__additional_env = {}
+
+    @property
+    def __running_env(self):
+        cur_os_env = dict(os.environ)
+        cur_os_env.update(self.__additional_env)
 
     @classmethod
     def log(clazz) -> logging.Logger:
@@ -104,7 +109,7 @@ class Cloner:
                 shutil.copyfileobj(source, dest)
                 retval.__keyfile = dest.file.name
 
-        retval.__env['GIT_SSH_COMMAND'] = f"ssh -i '{shlex.quote(retval.__keyfile)}' -oIdentitiesOnly=yes -oStrictHostKeyChecking=accept-new -oHostKeyAlgorithms=+ssh-rsa -oPubkeyAcceptedAlgorithms=+ssh-rsa"
+        retval.__additional_env['GIT_SSH_COMMAND'] = f"ssh -i '{shlex.quote(retval.__keyfile)}' -oIdentitiesOnly=yes -oStrictHostKeyChecking=accept-new -oHostKeyAlgorithms=+ssh-rsa -oPubkeyAcceptedAlgorithms=+ssh-rsa"
         retval.__clone_cmd_stub = ["git", "clone"]
 
         return retval
@@ -148,14 +153,14 @@ class Cloner:
         clone_output_loc = tempfile.TemporaryDirectory(delete=False)
         cmd = await self._get_clone_cmd_stub(event_context, force_reauth) + [fixed_clone_url, clone_output_loc.name]
         Cloner.log().debug(cmd)
-        thread = asyncio.to_thread(subprocess.run, cmd, capture_output=True, env=self.__env, check=True)
+        thread = asyncio.to_thread(subprocess.run, cmd, capture_output=True, env=self.__running_env, check=True)
         
         return CloneWorker(thread, clone_output_loc)
 
     async def reset_head(self, code_path, hash):
         try:
             result = await (asyncio.to_thread(subprocess.run, ["git", "reset", "--hard", hash], \
-                                capture_output=True, env=self.__env, check=True, cwd=code_path))
+                                capture_output=True, env=self.__running_env, check=True, cwd=code_path))
             
             self.log().debug(f"Reset task: return code [{result.returncode}] stdout: [{result.stdout}] stderr: [{result.stderr}]")
 
