@@ -5,7 +5,7 @@ password-strength==0.0.3.post2
 jsonpath-ng==1.7.0
 Gunicorn==23.0.0
 requests==2.32.3
-aio-pika==0.10.1
+aio-pika==9.5.3
 dataclasses-json==0.6.7
 markdown==3.7
 aenum==3.1.15
