@@ -1,6 +1,7 @@
 import asyncio, aio_pika, logging
 import cxoneflow_logging as cof_logging
-from config import CxOneFlowConfig, ConfigurationException, get_config_path
+from config import ConfigurationException, get_config_path
+from config.server import CxOneFlowConfig
 from workflows.pr_feedback_service import PRFeedbackService
 from workflows.resolver_scan_service import ResolverScanService
 

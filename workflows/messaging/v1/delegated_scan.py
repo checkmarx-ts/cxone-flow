@@ -9,6 +9,7 @@ class DelegatedScanDetails(ScanHeader):
     clone_url : str
     pickled_cloner : bytearray
     event_context : EventContext
+    container_tag : str = None
     schema: str = "v1"
 
 @dataclass(frozen=True)

@@ -93,7 +93,9 @@ class ResolverScanService(BaseWorkflowService):
                                    workflow=scan_workflow,
                                    clone_url=clone_url, 
                                    pickled_cloner=pickle.dumps(cloner, protocol=pickle.HIGHEST_PROTOCOL), 
-                                   event_context=event_context)
+                                   event_context=event_context,
+                                   container_tag=None if scanner_tag not in self.__container_tags.keys() 
+                                   else self.__container_tags[scanner_tag])
         
         return await self.__workflow.resolver_scan_kickoff(await self.mq_client(), 
                                                            self.make_topic_for_tag(scanner_tag), 

@@ -11,7 +11,8 @@ from orchestration.bbdc import  BitBucketDataCenterOrchestrator
 from orchestration.adoe import AzureDevOpsEnterpriseOrchestrator
 from orchestration.gh import GithubOrchestrator
 import json, logging, os
-from config import CxOneFlowConfig, ConfigurationException, get_config_path
+from config import ConfigurationException, get_config_path
+from config.server import CxOneFlowConfig
 from time import perf_counter_ns
 from task_management import TaskManager
 import cxoneflow_logging as cof_logging

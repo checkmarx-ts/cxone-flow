@@ -1,9 +1,11 @@
 import logging, asyncio, aio_pika, os
 import cxoneflow_logging as cof_logging
-from config import CxOneFlowConfig, ConfigurationException, get_config_path
+from config import ConfigurationException, get_config_path
+from config.server import CxOneFlowConfig
 from workflows.pr_feedback_service import PRFeedbackService
 from workflows.messaging import ScanAwaitMessage, ScanAnnotationMessage, ScanFeedbackMessage
 from typing import Any, Callable, Awaitable
+from agent import mq_agent
 
 cof_logging.bootstrap()
 
@@ -37,28 +39,15 @@ async def process_pr_feedback(msg : aio_pika.abc.AbstractIncomingMessage) -> Non
     except BaseException as ex:
         __log.exception(ex)
 
-async def agent(coro : Callable[[aio_pika.abc.AbstractIncomingMessage], Awaitable[Any]],  mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, 
-                queue : str):
-
-    async with mq_client.channel() as channel:
-        await channel.set_qos(prefetch_count=2)
-        q = await channel.get_queue(queue)
-
-        await q.consume(coro, arguments = {
-            "moniker" : moniker}, consumer_tag = f"{coro.__name__}.{moniker}.{os.getpid()}")
-
-        while True:
-            await asyncio.Future()
-
 
 async def spawn_agents():
 
     async with asyncio.TaskGroup() as g:
         for moniker in CxOneFlowConfig.get_service_monikers():
             services = CxOneFlowConfig.retrieve_services_by_moniker(moniker)
-            g.create_task(agent(process_poll, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_SCAN_POLLING))
-            g.create_task(agent(process_pr_annotate, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_ANNOTATE_PR))
-            g.create_task(agent(process_pr_feedback, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_FEEDBACK_PR))
+            g.create_task(mq_agent(process_poll, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_SCAN_POLLING))
+            g.create_task(mq_agent(process_pr_annotate, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_ANNOTATE_PR))
+            g.create_task(mq_agent(process_pr_feedback, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_FEEDBACK_PR))
    
 
 if __name__ == '__main__':

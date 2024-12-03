@@ -1,7 +1,8 @@
 from api_utils import verify_signature
 from .base import OrchestratorBase
 import logging
-from config import CxOneFlowConfig, RouteNotFoundException
+from config import RouteNotFoundException
+from config.server import CxOneFlowConfig
 
 
 class OrchestrationDispatch:
