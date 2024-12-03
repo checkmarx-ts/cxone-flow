@@ -190,7 +190,7 @@ class GithubOrchestrator(OrchestratorBase):
             return False
         
         hashalg,hash = sig.split("=")
-        payload_hash = signature.get(hashalg, shared_secret, self.event_context.raw_event_payload)
+        payload_hash = signature.hmac(hashalg, shared_secret, self.event_context.raw_event_payload)
 
         return hash == payload_hash
 

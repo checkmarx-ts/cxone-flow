@@ -19,7 +19,7 @@ def verify_signature(signature_header, secret, body) -> bool:
     if not algorithm in hashlib.algorithms_available:
         return False
 
-    generated_hash = signature.get(algorithm, secret, body)
+    generated_hash = signature.hmac(algorithm, secret, body)
 
     return generated_hash == hash
 

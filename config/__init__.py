@@ -252,10 +252,9 @@ class CxOneFlowConfig:
             return ResolverScanService(moniker, CxOneFlowConfig.__default_amqp_url, None, None, DummyResolverScanningWorkflow(), 
                                        False, None, None, None, None)
          else:
-            msg_signing_key = CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(config_path, "private-key", kwargs)
+            msg_private_key = CxOneFlowConfig.__get_secret_from_value_of_key_or_fail(f"{config_path}/payload-signature", "private-key", kwargs)
             
             emit_resolver_logs = CxOneFlowConfig.__get_value_for_key_or_default("emit-resolver-logs", kwargs, False)
-                
             
             default_tag = CxOneFlowConfig.__get_value_for_key_or_default("default-agent-tag", kwargs, None)
             project_tag_key = CxOneFlowConfig.__get_value_for_key_or_default("resolver-tag-key", kwargs, "resolver")
@@ -275,7 +274,7 @@ class CxOneFlowConfig:
             amqp_url, amqp_user, amqp_password, ssl_verify = CxOneFlowConfig.__load_amqp_settings(config_path, **kwargs)
            
             return ResolverScanService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, 
-                                       ResolverScanningWorkflow(emit_resolver_logs, msg_signing_key), 
+                                       ResolverScanningWorkflow(emit_resolver_logs, msg_private_key), 
                                        default_tag, project_tag_key, container_agent_tag_dict, no_container_tag_list)
 
     
