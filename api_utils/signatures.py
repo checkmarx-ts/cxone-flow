@@ -50,12 +50,12 @@ class AsymmetricSignatureVerifier:
         self.__public_key.verify(signature, data, AsymmetricSignatureVerifier._padding, AsymmetricSignatureVerifier._hash_alg)
 
 
-class AsymmetricSignature(AsymmetricSignatureVerifier):
+class AsymmetricSignatureSignerVerifier(AsymmetricSignatureVerifier):
 
     @staticmethod
     def from_private_key(private_key : bytearray) -> Any:
 
-        self = AsymmetricSignature()
+        self = AsymmetricSignatureSignerVerifier()
 
         self.__private_key = load_pem_private_key(private_key, None)
 

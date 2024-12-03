@@ -19,7 +19,7 @@ class AuthFactoryException(BaseException):
 @dataclass
 class EventContext:
     raw_event_payload : bytes = field(repr=False)
-    headers : Dict
+    headers : Dict = field(default_factory=lambda: {})
     message : Dict = field(init=False)
 
     def __post_init__(self):

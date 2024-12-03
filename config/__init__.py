@@ -274,7 +274,7 @@ class CxOneFlowConfig:
             amqp_url, amqp_user, amqp_password, ssl_verify = CxOneFlowConfig.__load_amqp_settings(config_path, **kwargs)
            
             return ResolverScanService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, 
-                                       ResolverScanningWorkflow(emit_resolver_logs, msg_private_key), 
+                                       ResolverScanningWorkflow.from_private_key(emit_resolver_logs, bytes(msg_private_key, "UTF-8")), 
                                        default_tag, project_tag_key, container_agent_tag_dict, no_container_tag_list)
 
     

@@ -1,8 +1,9 @@
 from .resolver_workflow_base import AbstractResolverWorkflow
-import aio_pika, logging
+import aio_pika
 from .messaging.v1.delegated_scan import DelegatedScanMessage, DelegatedScanDetails
-from api_utils import signature
-
+from api_utils.signatures import AsymmetricSignatureSignerVerifier, AsymmetricSignatureVerifier
+from .exceptions import WorkflowException
+from typing import Any
 
 class DummyResolverScanningWorkflow(AbstractResolverWorkflow):
     @property
@@ -16,12 +17,20 @@ class DummyResolverScanningWorkflow(AbstractResolverWorkflow):
 
 class ResolverScanningWorkflow(AbstractResolverWorkflow):
 
-    __signature_alg = "sha3_512"
-
-    def __init__(self, emit_resolver_logs : bool, signing_key : str):
+    @staticmethod
+    def from_private_key(emit_resolver_logs : bool, private_key : bytearray) -> Any:
+        self = ResolverScanningWorkflow()
         self.__emit_logs = emit_resolver_logs
-        self.__signing_key = signing_key
+        self.__signer = self.__verifier = AsymmetricSignatureSignerVerifier.from_private_key(private_key)
+        return self
 
+    @staticmethod
+    def from_public_key(emit_resolver_logs : bool, public_key : bytearray) -> Any:
+        self = ResolverScanningWorkflow()
+        self.__emit_logs = emit_resolver_logs
+        self.__signer = None
+        self.__verifier = AsymmetricSignatureVerifier.from_public_key(public_key)
+        return self
 
     @property
     def emit_logs(self) -> bool:
@@ -37,8 +46,11 @@ class ResolverScanningWorkflow(AbstractResolverWorkflow):
     
     async def resolver_scan_kickoff(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, msg : DelegatedScanDetails, exchange : str):
 
+        if self.__signer is None:
+            raise WorkflowException("The payload signature private key was not provided, can't kick off a resolver scan.")
+
         msg = DelegatedScanMessage(details=msg, 
-                                   details_signature=signature.get(ResolverScanningWorkflow.__signature_alg, self.__signing_key, msg.to_binary()),
+                                   details_signature=self.__signer.sign(msg.to_binary()),
                                    emit_logs=self.__emit_logs)
         
         await self._publish(mq_client, route_key, self.__msg_factory(msg), "Resolver Scan Workflow", exchange)

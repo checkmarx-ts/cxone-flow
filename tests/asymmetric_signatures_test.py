@@ -1,5 +1,5 @@
 import unittest
-from api_utils.signatures import AsymmetricSignature, AsymmetricSignatureVerifier
+from api_utils.signatures import AsymmetricSignatureSignerVerifier, AsymmetricSignatureVerifier
 
 class TestAsymmetricSignatures(unittest.TestCase):
 
@@ -33,7 +33,7 @@ class TestAsymmetricSignatures(unittest.TestCase):
         for test in TestAsymmetricSignatures.__key_pair_tuples.keys():
             with self.subTest(test):
                 private, _ = TestAsymmetricSignatures.__get_pub_priv_by_name(test)
-                obj = AsymmetricSignature.from_private_key(private)
+                obj = AsymmetricSignatureSignerVerifier.from_private_key(private)
 
                 try:
                     obj.verify(obj.sign(TestAsymmetricSignatures.__test_data), TestAsymmetricSignatures.__test_data)
@@ -46,7 +46,7 @@ class TestAsymmetricSignatures(unittest.TestCase):
         for test in TestAsymmetricSignatures.__key_pair_tuples.keys():
             with self.subTest(test):
                 private, _ = TestAsymmetricSignatures.__get_pub_priv_by_name(test)
-                obj = AsymmetricSignature.from_private_key(private)
+                obj = AsymmetricSignatureSignerVerifier.from_private_key(private)
 
                 try:
                     obj.verify(obj.sign(TestAsymmetricSignatures.__test_data), TestAsymmetricSignatures.__test_data2)
@@ -59,7 +59,7 @@ class TestAsymmetricSignatures(unittest.TestCase):
         for test in TestAsymmetricSignatures.__key_pair_tuples.keys():
             with self.subTest(test):
                 private, public = TestAsymmetricSignatures.__get_pub_priv_by_name(test)
-                signer = AsymmetricSignature.from_private_key(private)
+                signer = AsymmetricSignatureSignerVerifier.from_private_key(private)
 
                 verifier = AsymmetricSignatureVerifier.from_public_key(public)
 
@@ -74,7 +74,7 @@ class TestAsymmetricSignatures(unittest.TestCase):
         for test in TestAsymmetricSignatures.__key_pair_tuples.keys():
             with self.subTest(test):
                 private, public = TestAsymmetricSignatures.__get_pub_priv_by_name(test)
-                signer = AsymmetricSignature.from_private_key(private)
+                signer = AsymmetricSignatureSignerVerifier.from_private_key(private)
 
                 verifier = AsymmetricSignatureVerifier.from_public_key(public)
 
@@ -86,7 +86,7 @@ class TestAsymmetricSignatures(unittest.TestCase):
 
     def test_with_none_private(self):
         try:
-            AsymmetricSignature.from_private_key(None)
+            AsymmetricSignatureSignerVerifier.from_private_key(None)
             self.assertTrue(False)
         except:
             self.assertTrue(True)
@@ -103,7 +103,7 @@ class TestAsymmetricSignatures(unittest.TestCase):
             with self.subTest(test):
                 try:
                     _, public = TestAsymmetricSignatures.__get_pub_priv_by_name(test)
-                    AsymmetricSignature.from_private_key(public)
+                    AsymmetricSignatureSignerVerifier.from_private_key(public)
                     self.assertTrue(False)
                 except:
                     self.assertTrue(True)
