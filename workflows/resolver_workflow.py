@@ -6,8 +6,9 @@ from .exceptions import WorkflowException
 from typing import Any
 
 class DummyResolverScanningWorkflow(AbstractResolverWorkflow):
+
     @property
-    def is_enabled() -> bool:
+    def is_enabled(self) -> bool:
         return False
 
     @property

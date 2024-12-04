@@ -17,6 +17,7 @@ from workflows.resolver_workflow import DummyResolverScanningWorkflow, ResolverS
 from workflows import ResultSeverity, ResultStates
 from services import CxOneFlowServices
 from typing import List, Dict
+from cxone_api import CxOneClient
 
 class CxOneFlowConfig(CommonConfig):
     __shared_secret_policy = PasswordPolicy.from_names(length=20, uppercase=3, numbers=3, special=2)
@@ -96,10 +97,10 @@ class CxOneFlowConfig(CommonConfig):
             raise
 
     @staticmethod
-    def __resolver_service_factory(config_path, moniker, **kwargs) -> ResolverScanService:
+    def __resolver_service_factory(cxone_client : CxOneClient, config_path, moniker, **kwargs) -> ResolverScanService:
          if kwargs is None or len(kwargs) == 0:
-            return ResolverScanService(moniker, CommonConfig._default_amqp_url, None, None, DummyResolverScanningWorkflow(), 
-                                       False, None, None, None, None)
+            return ResolverScanService(moniker, cxone_client, CommonConfig._default_amqp_url, None, None, True, DummyResolverScanningWorkflow(), 
+                                       None, None, None, None)
          else:
             msg_private_key = CxOneFlowConfig._get_secret_from_value_of_key_or_fail(f"{config_path}/payload-signature", "private-key", kwargs)
             
@@ -114,7 +115,6 @@ class CxOneFlowConfig(CommonConfig):
             tag_intersection = list(set(no_container_tag_list) & set(list(container_agent_tag_dict.keys())))
             if len(tag_intersection) > 0:
                  raise ConfigurationException(f"{config_path} contains duplicate resolver tags {tag_intersection}")
-                 
                     
             # the default tag must have a tag.
             if default_tag is not None and not default_tag in no_container_tag_list + list(container_agent_tag_dict.keys()):
@@ -122,7 +122,7 @@ class CxOneFlowConfig(CommonConfig):
 
             amqp_url, amqp_user, amqp_password, ssl_verify = CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
            
-            return ResolverScanService(moniker, amqp_url, amqp_user, amqp_password, ssl_verify, 
+            return ResolverScanService(moniker, cxone_client, amqp_url, amqp_user, amqp_password, ssl_verify, 
                                        ResolverScanningWorkflow.from_private_key(emit_resolver_logs, bytes(msg_private_key, "UTF-8")), 
                                        default_tag, project_tag_key, container_agent_tag_dict, no_container_tag_list)
 
@@ -205,7 +205,7 @@ class CxOneFlowConfig(CommonConfig):
         pr_feedback_service = CxOneFlowConfig.__pr_feedback_service_factory(f"{config_path}/feedback", service_moniker, 
                                                                 **(CxOneFlowConfig._get_value_for_key_or_default('feedback', config_dict, {})))
         
-        resolver_service = CxOneFlowConfig.__resolver_service_factory(f"{config_path}/resolver", service_moniker, 
+        resolver_service = CxOneFlowConfig.__resolver_service_factory(cxone_client, f"{config_path}/resolver", service_moniker, 
                                                                 **(CxOneFlowConfig._get_value_for_key_or_default('resolver', config_dict, {})))
 
         scan_config_dict = CxOneFlowConfig._get_value_for_key_or_default('scan-config', config_dict, {} )

@@ -147,7 +147,7 @@ class OrchestratorBase:
                     resolver_tag = await services.cxone.get_resolver_tag_for_project(project_config, 
                                                                                     services.resolver.project_tag_key, services.resolver.default_tag)
                     if resolver_tag is not None:
-                        if await services.resolver.request_resolver_scan(resolver_tag, services.scm.cloner, clone_url, workflow, self.__event_context):
+                        if await services.resolver.request_resolver_scan(resolver_tag, project_config, services.scm.cloner, clone_url, workflow, self.__event_context):
                             return None, OrchestratorBase.ScanAction.DEFERRED
                 except WorkflowException as ex:
                     OrchestratorBase.log().exception("Resolver workflow exception, SCA scan will run resolver server-side.", ex)
@@ -165,7 +165,7 @@ class OrchestratorBase:
 
         scan_tags = {
             CxOneService.COMMIT_TAG : hash,
-            "workflow" : ScanWorkflow.PUSH,
+            "workflow" : str(ScanWorkflow.PUSH),
             "cxone-flow" : __version__,
             "service" : services.cxone.moniker
         }
@@ -188,7 +188,7 @@ class OrchestratorBase:
             CxOneService.PR_TARGET_TAG : target_branch,
             CxOneService.PR_STATUS_TAG : self._pr_status,
             CxOneService.PR_STATE_TAG : self._pr_state,
-            "workflow" : ScanWorkflow.PR,
+            "workflow" : str(ScanWorkflow.PR),
             "cxone-flow" : __version__,
             "service" : services.cxone.moniker
         }

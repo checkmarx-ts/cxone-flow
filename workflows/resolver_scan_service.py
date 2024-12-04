@@ -7,6 +7,9 @@ from .exceptions import WorkflowException
 from .messaging.v1.delegated_scan import DelegatedScanDetails
 import urllib, re, pickle
 from api_utils.auth_factories import EventContext
+from cxone_api.high.projects import ProjectRepoConfig
+from cxone_api.high.scans import ScanFilterConfig
+from cxone_api import CxOneClient
 
 class ResolverScanService(BaseWorkflowService):
 
@@ -26,7 +29,7 @@ class ResolverScanService(BaseWorkflowService):
             if ResolverScanService.__tag_validation_re.search(k):
                 raise WorkflowException.invalid_tag(k)
 
-    def __init__(self, moniker : str, amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool, 
+    def __init__(self, moniker : str, cxone_client : CxOneClient, amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool, 
                  workflow : AbstractResolverWorkflow, default_tag : str, project_tag_key : str, 
                  container_handler_tags : dict, non_container_handler_tags : list):
         super().__init__(amqp_url, amqp_user, amqp_password, ssl_verify)
@@ -34,6 +37,7 @@ class ResolverScanService(BaseWorkflowService):
         self.__default_tag = default_tag
         self.__project_tag_key = project_tag_key
         self.__workflow = workflow
+        self.__client = cxone_client
 
         if container_handler_tags is not None:
             ResolverScanService.__validate_tags(list(container_handler_tags.keys()))
@@ -82,14 +86,16 @@ class ResolverScanService(BaseWorkflowService):
         
         return ret_list
     
-    async def request_resolver_scan(self, scanner_tag : str, cloner : Cloner, clone_url : str, scan_workflow : ScanWorkflow, 
-                                    event_context : EventContext, **kwargs) -> bool:
+    async def request_resolver_scan(self, scanner_tag : str, project_config : ProjectRepoConfig, cloner : Cloner, clone_url : str, scan_workflow : ScanWorkflow, 
+                                    event_context : EventContext) -> bool:
         
         if scanner_tag not in self.agent_tags:
             raise WorkflowException.unknown_resolver_tag(scanner_tag, clone_url)
-        
+       
         msg = DelegatedScanDetails(moniker=self.__service_moniker,
                                    state=ScanStates.EXECUTE,
+                                   project_name=project_config.name,
+                                   file_filters=(await ScanFilterConfig.from_repo_config(self.__client, project_config)).compute_filters("sca"),
                                    workflow=scan_workflow,
                                    clone_url=clone_url, 
                                    pickled_cloner=pickle.dumps(cloner, protocol=pickle.HIGHEST_PROTOCOL), 

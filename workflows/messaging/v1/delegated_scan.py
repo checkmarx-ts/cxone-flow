@@ -7,6 +7,8 @@ from typing import Dict
 @dataclass(frozen=True)
 class DelegatedScanDetails(ScanHeader):
     clone_url : str
+    file_filters : str
+    project_name : str
     pickled_cloner : bytearray
     event_context : EventContext
     container_tag : str = None

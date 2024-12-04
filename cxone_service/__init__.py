@@ -137,7 +137,7 @@ class CxOneService:
         for missing_engine in [engine for engine in enabled_scanners if engine not in return_engine_config.keys()]:
             return_engine_config[missing_engine] = {}
 
-        scan__filter_cfg = await ScanFilterConfig.from_project_id(self.__client, project_config.project_id)
+        scan__filter_cfg = await ScanFilterConfig.from_repo_config(self.__client, project_config)
         return_engine_config = scan__filter_cfg.compute_filters_with_defaults(return_engine_config)
 
         if len(return_engine_config) == 0:
