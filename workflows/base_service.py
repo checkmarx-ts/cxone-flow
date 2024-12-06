@@ -1,7 +1,8 @@
 import urllib.parse, aio_pika, logging, asyncio, os
 from ssl import create_default_context, CERT_NONE
 from cxoneflow_logging import SecretRegistry
-
+from workflows.messaging.base_message import BaseMessage
+from typing import Any
 
 class BaseWorkflowService:
 
@@ -53,3 +54,11 @@ class BaseWorkflowService:
                                                     ssl_context=ctx)
         return self.__client
 
+    async def _safe_deserialize_body(self, msg : aio_pika.abc.AbstractIncomingMessage, msg_class : BaseMessage) -> Any:
+        try:
+            ret_val = msg_class.from_binary(msg.body)
+            return ret_val
+        except BaseException as ex:
+            BaseWorkflowService.log().exception(ex)
+            await msg.nack(requeue=False)
+            raise

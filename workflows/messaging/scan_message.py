@@ -1,9 +1,9 @@
-from .base_message import BaseMessage
+from .base_message import StampedMessage
 from dataclasses import dataclass
 from .. import ScanStates, ScanWorkflow
 
 @dataclass(frozen=True)
-class ScanHeader(BaseMessage):
+class ScanHeader(StampedMessage):
     moniker: str
     state: ScanStates
     workflow: ScanWorkflow

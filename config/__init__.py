@@ -1,7 +1,7 @@
 from _version import __version__
 from _agent import __agent__
 from typing import Tuple, List, Union
-import os, logging, cxone_api as cx
+import os, logging, cxone_api as cx, yaml
 from multiprocessing import cpu_count
 from pathlib import Path
 from cxoneflow_logging import SecretRegistry
@@ -80,6 +80,11 @@ class CommonConfig:
     @classmethod
     def log(clazz):
         return logging.getLogger(clazz.__name__)
+    
+    @staticmethod
+    def load_yaml(file_path : str):
+        with open(file_path, "rt") as cfg:
+            return yaml.safe_load(cfg)
 
     @staticmethod
     def get_default_ssl_verify_value():

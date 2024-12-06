@@ -61,8 +61,7 @@ class CxOneFlowConfig(CommonConfig):
         try:
             CxOneFlowConfig.log().info(f"Loading configuration from {config_file_path}")
 
-            with open(config_file_path, "rt") as cfg:
-                raw_yaml = yaml.safe_load(cfg)
+            raw_yaml = CommonConfig.load_yaml(config_file_path)
 
             CxOneFlowConfig.__server_base_url = CxOneFlowConfig._get_value_for_key_or_fail("", "server-base-url", raw_yaml)
             CommonConfig._secret_root = CxOneFlowConfig._get_value_for_key_or_fail("", "secret-root-path", raw_yaml)
@@ -104,7 +103,7 @@ class CxOneFlowConfig(CommonConfig):
          else:
             msg_private_key = CxOneFlowConfig._get_secret_from_value_of_key_or_fail(f"{config_path}/payload-signature", "private-key", kwargs)
             
-            emit_resolver_logs = CxOneFlowConfig._get_value_for_key_or_default("emit-resolver-logs", kwargs, False)
+            capture_resolver_logs = CxOneFlowConfig._get_value_for_key_or_default("capture-resolver-logs", kwargs, False)
             
             default_tag = CxOneFlowConfig._get_value_for_key_or_default("default-agent-tag", kwargs, None)
             project_tag_key = CxOneFlowConfig._get_value_for_key_or_default("resolver-tag-key", kwargs, "resolver")
@@ -123,7 +122,7 @@ class CxOneFlowConfig(CommonConfig):
             amqp_url, amqp_user, amqp_password, ssl_verify = CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
            
             return ResolverScanService(moniker, cxone_client, amqp_url, amqp_user, amqp_password, ssl_verify, 
-                                       ResolverScanningWorkflow.from_private_key(emit_resolver_logs, bytes(msg_private_key, "UTF-8")), 
+                                       ResolverScanningWorkflow.from_private_key(capture_resolver_logs, bytes(msg_private_key, "UTF-8")), 
                                        default_tag, project_tag_key, container_agent_tag_dict, no_container_tag_list)
 
     

@@ -50,7 +50,7 @@ class PRFeedbackService(BaseWorkflowService):
 
         requeue_on_finally = True
 
-        swm = ScanAwaitMessage.from_binary(msg.body)
+        swm = await self._safe_deserialize_body(msg, ScanAwaitMessage)
 
         if swm.is_expired():
             PRFeedbackService.log().warning(f"Scan id {swm.scanid} polling timeout expired at {swm.drop_by}. Polling for this scan has been stopped.")
@@ -102,7 +102,7 @@ class PRFeedbackService(BaseWorkflowService):
 
 
     async def execute_pr_annotate_workflow(self, msg : aio_pika.abc.AbstractIncomingMessage, cxone_service : CxOneService, scm_service : SCMService):
-        am = ScanAnnotationMessage.from_binary(msg.body)
+        am = await self._safe_deserialize_body(msg, ScanAnnotationMessage)
         pr_details = PRDetails.from_dict(am.workflow_details)
 
         try:
@@ -127,8 +127,9 @@ class PRFeedbackService(BaseWorkflowService):
 
 
     async def execute_pr_feedback_workflow(self, msg : aio_pika.abc.AbstractIncomingMessage, cxone_service : CxOneService, scm_service : SCMService):
-        am = ScanFeedbackMessage.from_binary(msg.body)
+        am = await self._safe_deserialize_body(msg, ScanFeedbackMessage)
         pr_details = PRDetails.from_dict(am.workflow_details)
+        
         try:
             if await self.__workflow_map[ScanWorkflow.PR].is_enabled():
                 report = await cxone_service.retrieve_report(am.projectid, am.scanid)

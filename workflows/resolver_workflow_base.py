@@ -1,16 +1,19 @@
 import aio_pika
 from .base_workflow import AbstractAsyncWorkflow
-from .messaging.v1.delegated_scan import DelegatedScanDetails
+from .messaging.v1.delegated_scan import DelegatedScanMessage, DelegatedScanDetails
 
 class AbstractResolverWorkflow(AbstractAsyncWorkflow):
 
     @property
-    def emit_logs(self) -> bool:
+    def capture_logs(self) -> bool:
         raise NotImplementedError("emit_logs")
 
     @property
     def is_enabled(self) -> bool:
         raise NotImplementedError("is_enabled")
+    
+    def get_signature(self, details : DelegatedScanDetails) -> bytearray:
+        raise NotImplementedError("get_signature")
 
-    async def resolver_scan_kickoff(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, msg : DelegatedScanDetails, exchange : str) -> bool:
+    async def resolver_scan_kickoff(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, msg : DelegatedScanMessage, exchange : str) -> bool:
         raise NotImplementedError("request_scan")

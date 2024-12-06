@@ -9,8 +9,15 @@ async def mq_agent(coro : Callable[[aio_pika.abc.AbstractIncomingMessage], Await
         await channel.set_qos(prefetch_count=prefetch)
         q = await channel.get_queue(queue)
 
+        if hasattr(coro, "__name__"):
+            name = coro.__name__
+        elif hasattr(coro, "__class__"):
+            name = coro.__class__.__name__
+        else:
+            name = "unknown"
+
         await q.consume(coro, arguments = {
-            "moniker" : moniker}, consumer_tag = f"{coro.__name__}.{moniker}.{os.getpid()}")
+            "moniker" : moniker}, consumer_tag = f"{name}.{moniker}.{os.getpid()}")
 
         while True:
             await asyncio.Future()

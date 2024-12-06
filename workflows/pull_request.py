@@ -27,17 +27,17 @@ class PullRequestWorkflow(AbstractFeedbackWorkflow):
 
 
     def __feedback_msg_factory(self, projectid : str, scanid : str, moniker : str, **kwargs) -> aio_pika.Message:
-        return aio_pika.Message(ScanFeedbackMessage(projectid=projectid, scanid=scanid, moniker=moniker, state=ScanStates.FEEDBACK,
+        return aio_pika.Message(ScanFeedbackMessage.factory(projectid=projectid, scanid=scanid, moniker=moniker, state=ScanStates.FEEDBACK,
                                                     workflow=ScanWorkflow.PR, workflow_details=kwargs).to_binary(), 
                                                     delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
 
     def __annotation_msg_factory(self, projectid : str, scanid : str, moniker : str, annotation : str, **kwargs) -> aio_pika.Message:
-        return aio_pika.Message(ScanAnnotationMessage(projectid=projectid, scanid=scanid, moniker=moniker, annotation=annotation, state=ScanStates.ANNOTATE,
+        return aio_pika.Message(ScanAnnotationMessage.factory(projectid=projectid, scanid=scanid, moniker=moniker, annotation=annotation, state=ScanStates.ANNOTATE,
                                                     workflow=ScanWorkflow.PR, workflow_details=kwargs).to_binary(), 
                                                     delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
     
     def __await_msg_factory(self, projectid : str, scanid : str, moniker : str, **kwargs) -> aio_pika.Message:
-        return aio_pika.Message(ScanAwaitMessage(projectid=projectid, scanid=scanid, drop_by=compute_drop_by_timestamp(self.__scan_timeout), moniker=moniker, 
+        return aio_pika.Message(ScanAwaitMessage.factory(projectid=projectid, scanid=scanid, drop_by=compute_drop_by_timestamp(self.__scan_timeout), moniker=moniker, 
                                                  state=ScanStates.AWAIT, workflow_details=kwargs,
                                                  workflow=ScanWorkflow.PR).to_binary(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
                                                  expiration=self.__interval)

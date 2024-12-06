@@ -2,10 +2,13 @@ from dataclasses import dataclass, asdict, make_dataclass, field
 from dataclasses_json import dataclass_json
 from datetime import datetime, UTC
 
+
 @dataclass_json
 @dataclass(frozen=True)
 class BaseMessage:
-    timestamp : str = field(default=datetime.now(UTC).isoformat(), init=False)
+    @classmethod
+    def factory(clazz, **kwargs):
+        return clazz(**kwargs)
 
     def as_dict(self):
         return asdict(self)
@@ -23,3 +26,11 @@ class BaseMessage:
         return clazz.from_json(decoded)
     
 
+@dataclass_json
+@dataclass(frozen=True)
+class StampedMessage(BaseMessage):
+    timestamp : str
+
+    @classmethod
+    def factory(clazz, **kwargs):
+        return clazz(timestamp=datetime.now(UTC).isoformat(), **kwargs)

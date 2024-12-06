@@ -1,5 +1,6 @@
 import unittest
 from api_utils.signatures import AsymmetricSignatureSignerVerifier, AsymmetricSignatureVerifier
+from workflows.messaging.base_message import StampedMessage
 
 class TestAsymmetricSignatures(unittest.TestCase):
 
@@ -31,16 +32,28 @@ class TestAsymmetricSignatures(unittest.TestCase):
 
     def test_sig_from_private_success(self):
         for test in TestAsymmetricSignatures.__key_pair_tuples.keys():
-            with self.subTest(test):
-                private, _ = TestAsymmetricSignatures.__get_pub_priv_by_name(test)
+            msg = StampedMessage.factory()
+
+            private, public = TestAsymmetricSignatures.__get_pub_priv_by_name(test)
+
+            with self.subTest(f"{test} private only"):
                 obj = AsymmetricSignatureSignerVerifier.from_private_key(private)
 
                 try:
-                    obj.verify(obj.sign(TestAsymmetricSignatures.__test_data), TestAsymmetricSignatures.__test_data)
+                    obj.verify(obj.sign(msg.to_binary()), msg.to_binary())
                     self.assertTrue(True)
                 except:
                     self.assertTrue(False)
 
+            with self.subTest(f"{test} private sign public verify"):
+                signer = AsymmetricSignatureSignerVerifier.from_private_key(private)
+                verifier = AsymmetricSignatureVerifier.from_public_key(public)
+
+                try:
+                    verifier.verify(signer.sign(msg.to_binary()), msg.to_binary())
+                    self.assertTrue(True)
+                except:
+                    self.assertTrue(False)
 
     def test_sig_fail_from_private(self):
         for test in TestAsymmetricSignatures.__key_pair_tuples.keys():
@@ -54,6 +67,18 @@ class TestAsymmetricSignatures(unittest.TestCase):
                 except:
                     self.assertTrue(True)
 
+    def test_serialized_msg_sig_success(self):
+
+        for test in TestAsymmetricSignatures.__key_pair_tuples.keys():
+            with self.subTest(test):
+                private,public_ = TestAsymmetricSignatures.__get_pub_priv_by_name(test)
+                obj = AsymmetricSignatureSignerVerifier.from_private_key(private)
+
+                try:
+                    obj.verify(obj.sign(TestAsymmetricSignatures.__test_data), TestAsymmetricSignatures.__test_data)
+                    self.assertTrue(True)
+                except:
+                    self.assertTrue(False)
 
     def test_sig_from_public_success(self):
         for test in TestAsymmetricSignatures.__key_pair_tuples.keys():

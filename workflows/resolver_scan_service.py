@@ -4,7 +4,7 @@ from .resolver_workflow_base import AbstractResolverWorkflow
 from scm_services.cloner import Cloner
 from typing import List, Tuple
 from .exceptions import WorkflowException
-from .messaging.v1.delegated_scan import DelegatedScanDetails
+from .messaging.v1.delegated_scan import DelegatedScanMessage, DelegatedScanDetails
 import urllib, re, pickle
 from api_utils.auth_factories import EventContext
 from cxone_api.high.projects import ProjectRepoConfig
@@ -91,17 +91,28 @@ class ResolverScanService(BaseWorkflowService):
         
         if scanner_tag not in self.agent_tags:
             raise WorkflowException.unknown_resolver_tag(scanner_tag, clone_url)
-       
-        msg = DelegatedScanDetails(moniker=self.__service_moniker,
-                                   state=ScanStates.EXECUTE,
-                                   project_name=project_config.name,
-                                   file_filters=(await ScanFilterConfig.from_repo_config(self.__client, project_config)).compute_filters("sca"),
-                                   workflow=scan_workflow,
-                                   clone_url=clone_url, 
-                                   pickled_cloner=pickle.dumps(cloner, protocol=pickle.HIGHEST_PROTOCOL), 
-                                   event_context=event_context,
-                                   container_tag=None if scanner_tag not in self.__container_tags.keys() 
-                                   else self.__container_tags[scanner_tag])
+        
+        # Bug workaround
+        filters = (await ScanFilterConfig.from_repo_config(self.__client, project_config)).compute_filters("sca")
+        if isinstance(filters, dict):
+            filters = filters['filter']
+
+        details_msg = DelegatedScanDetails(
+            clone_url=clone_url, 
+            file_filters=filters,
+            project_name=project_config.name,
+            pickled_cloner=pickle.dumps(cloner, protocol=pickle.HIGHEST_PROTOCOL), 
+            event_context=event_context,
+            container_tag=None if scanner_tag not in self.__container_tags.keys() 
+                else self.__container_tags[scanner_tag])
+        
+        msg = DelegatedScanMessage.factory(
+            moniker=self.__service_moniker, 
+            state=ScanStates.EXECUTE,
+            workflow=scan_workflow,
+            capture_logs=self.__workflow.capture_logs,
+            details = details_msg,
+            details_signature=self.__workflow.get_signature(details_msg))
         
         return await self.__workflow.resolver_scan_kickoff(await self.mq_client(), 
                                                            self.make_topic_for_tag(scanner_tag), 
