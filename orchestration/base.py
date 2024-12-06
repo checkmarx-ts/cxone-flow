@@ -147,7 +147,8 @@ class OrchestratorBase:
                     resolver_tag = await services.cxone.get_resolver_tag_for_project(project_config, 
                                                                                     services.resolver.project_tag_key, services.resolver.default_tag)
                     if resolver_tag is not None:
-                        if await services.resolver.request_resolver_scan(resolver_tag, project_config, services.scm.cloner, clone_url, workflow, self.__event_context):
+                        if await services.resolver.request_resolver_scan(resolver_tag, project_config, services.scm.cloner, clone_url, source_hash, 
+                                                                         workflow, self.__event_context):
                             return None, OrchestratorBase.ScanAction.DEFERRED
                         else:
                             OrchestratorBase.log().warning(f"Resolver scan request failed for tag {resolver_tag}, proceeding with scanning via other engines.")

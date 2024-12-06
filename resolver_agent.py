@@ -7,7 +7,7 @@ from workflows.resolver_scan_service import ResolverScanService
 
 cof_logging.bootstrap()
 
-__log = logging.getLogger("ResolverAgent")
+__log = logging.getLogger("ResolverRunnerAgent")
 
 async def spawn_agents():
     async with asyncio.TaskGroup() as g:

@@ -86,8 +86,8 @@ class ResolverScanService(BaseWorkflowService):
         
         return ret_list
     
-    async def request_resolver_scan(self, scanner_tag : str, project_config : ProjectRepoConfig, cloner : Cloner, clone_url : str, scan_workflow : ScanWorkflow, 
-                                    event_context : EventContext) -> bool:
+    async def request_resolver_scan(self, scanner_tag : str, project_config : ProjectRepoConfig, cloner : Cloner, 
+                                    clone_url : str, commit_hash :str, scan_workflow : ScanWorkflow, event_context : EventContext) -> bool:
         
         if scanner_tag not in self.agent_tags:
             raise WorkflowException.unknown_resolver_tag(scanner_tag, clone_url)
@@ -99,6 +99,7 @@ class ResolverScanService(BaseWorkflowService):
 
         details_msg = DelegatedScanDetails(
             clone_url=clone_url, 
+            commit_hash=commit_hash,
             file_filters=filters,
             project_name=project_config.name,
             pickled_cloner=pickle.dumps(cloner, protocol=pickle.HIGHEST_PROTOCOL), 

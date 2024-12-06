@@ -146,11 +146,11 @@ class Cloner:
     async def _get_clone_cmd_stub(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> List:
         return self.__clone_cmd_stub
     
-    async def clone(self, clone_url, event_context : EventContext=None, force_reauth : bool=False) -> CloneWorker:
+    async def clone(self, clone_url, event_context : EventContext=None, force_reauth : bool=False, temp_root : str=None) -> CloneWorker:
         Cloner.log().debug(f"Clone Execution for: {clone_url}")
 
         fixed_clone_url = await self._fix_clone_url(clone_url, event_context, force_reauth)
-        clone_output_loc = tempfile.TemporaryDirectory(delete=False)
+        clone_output_loc = tempfile.TemporaryDirectory(delete=False, prefix=temp_root)
         cmd = await self._get_clone_cmd_stub(event_context, force_reauth) + [fixed_clone_url, clone_output_loc.name]
         Cloner.log().debug(cmd)
         thread = asyncio.to_thread(subprocess.run, cmd, capture_output=True, env=self.__running_env, check=True)

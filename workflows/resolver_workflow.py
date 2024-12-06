@@ -1,6 +1,6 @@
 from .resolver_workflow_base import AbstractResolverWorkflow
 import aio_pika
-from .messaging.v1.delegated_scan import DelegatedScanMessage, DelegatedScanDetails
+from .messaging.v1.delegated_scan import DelegatedScanMessage, DelegatedScanDetails, DelegatedScanResultMessage, DelegatedScanMessageBase
 from api_utils.signatures import AsymmetricSignatureSignerVerifier, AsymmetricSignatureVerifier
 from .exceptions import WorkflowException
 from typing import Any
@@ -41,8 +41,7 @@ class ResolverScanningWorkflow(AbstractResolverWorkflow):
     def is_enabled(self) -> bool:
         return True
 
-
-    def __msg_factory(self, msg : DelegatedScanMessage) -> aio_pika.Message:
+    def __msg_factory(self, msg : DelegatedScanMessageBase) -> aio_pika.Message:
         return aio_pika.Message(msg.to_binary(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
 
     def get_signature(self, details : DelegatedScanDetails) -> bytearray:
@@ -50,6 +49,18 @@ class ResolverScanningWorkflow(AbstractResolverWorkflow):
             raise WorkflowException("The payload signature private key was not provided, this instance can't sign messages.")
 
         return self.__signer.sign(details.to_binary())
+
+    def validate_signature(self, signature : bytearray, payload : bytearray) -> bool:
+        try:
+            self.__verifier.verify(signature, payload)
+        except Exception as ex:
+            ResolverScanningWorkflow.log().exception("Signature validation error.", ex)
+            return False
+        return True
+    
+    async def deliver_resolver_results(self, mq_client : aio_pika.abc.AbstractRobustConnection, 
+                                       route_key : str, msg : DelegatedScanResultMessage, exchange : str) -> bool:
+        return await self._publish(mq_client, route_key, self.__msg_factory(msg), "Resolver Scan Results", exchange)
     
     async def resolver_scan_kickoff(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, 
                                     msg : DelegatedScanMessage, exchange : str) -> bool:

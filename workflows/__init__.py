@@ -17,6 +17,7 @@ class ScanStates(__base_enum):
     FEEDBACK = "feedback"
     ANNOTATE = "annotate"
     EXECUTE = "exec"
+    DONE = "finished"
 
 class ExecTypes(__base_enum):
     RESOLVER = "sca-resolver"
