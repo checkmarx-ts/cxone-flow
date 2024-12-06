@@ -51,9 +51,7 @@ class ResolverScanningWorkflow(AbstractResolverWorkflow):
 
         return self.__signer.sign(details.to_binary())
     
-    async def resolver_scan_kickoff(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, msg : DelegatedScanMessage, exchange : str):
-
+    async def resolver_scan_kickoff(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, 
+                                    msg : DelegatedScanMessage, exchange : str) -> bool:
+        return await self._publish(mq_client, route_key, self.__msg_factory(msg), "Resolver Scan Workflow", exchange)
         
-        await self._publish(mq_client, route_key, self.__msg_factory(msg), "Resolver Scan Workflow", exchange)
-
-        return True

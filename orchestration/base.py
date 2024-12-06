@@ -149,6 +149,9 @@ class OrchestratorBase:
                     if resolver_tag is not None:
                         if await services.resolver.request_resolver_scan(resolver_tag, project_config, services.scm.cloner, clone_url, workflow, self.__event_context):
                             return None, OrchestratorBase.ScanAction.DEFERRED
+                        else:
+                            OrchestratorBase.log().warning(f"Resolver scan request failed for tag {resolver_tag}, proceeding with scanning via other engines.")
+
                 except WorkflowException as ex:
                     OrchestratorBase.log().exception("Resolver workflow exception, SCA scan will run resolver server-side.", ex)
 
