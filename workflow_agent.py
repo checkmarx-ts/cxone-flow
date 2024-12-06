@@ -1,10 +1,11 @@
-import logging, asyncio, aio_pika, os
+import logging, asyncio, aio_pika
 import cxoneflow_logging as cof_logging
 from config import ConfigurationException, get_config_path
 from config.server import CxOneFlowConfig
 from workflows.pr_feedback_service import PRFeedbackService
+from workflows.resolver_scan_service import ResolverScanService
 from workflows.messaging import ScanAwaitMessage, ScanAnnotationMessage, ScanFeedbackMessage
-from typing import Any, Callable, Awaitable
+from agent.resolver import ResolverResultsAgent
 from agent import mq_agent
 
 cof_logging.bootstrap()
@@ -48,6 +49,7 @@ async def spawn_agents():
             g.create_task(mq_agent(process_poll, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_SCAN_POLLING))
             g.create_task(mq_agent(process_pr_annotate, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_ANNOTATE_PR))
             g.create_task(mq_agent(process_pr_feedback, await services.pr.mq_client(), moniker, PRFeedbackService.QUEUE_FEEDBACK_PR))
+            g.create_task(mq_agent(ResolverResultsAgent(services), await services.resolver.mq_client(), moniker, ResolverScanService.QUEUE_RESOLVER_COMPLETE))
    
 
 if __name__ == '__main__':

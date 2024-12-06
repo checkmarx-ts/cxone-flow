@@ -1,5 +1,5 @@
 from .. import ConfigurationException, RouteNotFoundException, CommonConfig
-from agent.resolver import ResolverOpts, ResolverAgent
+from agent.resolver import ResolverOpts, ResolverRunnerAgent
 from typing import List
 
 class ResolverConfig(CommonConfig):
@@ -8,7 +8,7 @@ class ResolverConfig(CommonConfig):
 
 
     @staticmethod
-    def agent_handlers() -> List[ResolverAgent]:
+    def agent_handlers() -> List[ResolverRunnerAgent]:
         return ResolverConfig.__agents
 
     @staticmethod
@@ -22,8 +22,8 @@ class ResolverConfig(CommonConfig):
           proxy=CommonConfig._get_value_for_key_or_default("proxy", config_dict, None))
 
     @staticmethod
-    def __agent_factory(config_path : str, agent_tag : str, config_dict : dict) -> ResolverAgent:
-        return ResolverAgent(
+    def __agent_factory(config_path : str, agent_tag : str, config_dict : dict) -> ResolverRunnerAgent:
+        return ResolverRunnerAgent(
             agent_tag,
             bytes(CommonConfig._get_secret_from_value_of_key_or_fail(config_path, "public-key", config_dict), 'UTF-8'),
             ResolverConfig.__resolver_opts_factory(CommonConfig._get_value_for_key_or_default("resolver-opts", config_dict, None)),

@@ -2,7 +2,7 @@ from .base_service import BaseWorkflowService
 from . import ScanStates, ExecTypes, ResolverOps, ScanWorkflow
 from .resolver_workflow_base import AbstractResolverWorkflow
 from scm_services.cloner import Cloner
-from typing import List, Tuple
+from typing import List,Tuple,Type
 from .exceptions import WorkflowException
 from .messaging.v1.delegated_scan import DelegatedScanMessage, DelegatedScanDetails
 import urllib, re, pickle
@@ -86,8 +86,12 @@ class ResolverScanService(BaseWorkflowService):
         
         return ret_list
     
+    def signature_valid(self, signature : bytearray, payload : bytearray) -> bool:
+        return self.__workflow.validate_signature(signature, payload)
+    
     async def request_resolver_scan(self, scanner_tag : str, project_config : ProjectRepoConfig, cloner : Cloner, 
-                                    clone_url : str, commit_hash :str, scan_workflow : ScanWorkflow, event_context : EventContext) -> bool:
+                                    clone_url : str, commit_hash :str, scan_workflow : ScanWorkflow, 
+                                    event_context : EventContext, orchestrator : str) -> bool:
         
         if scanner_tag not in self.agent_tags:
             raise WorkflowException.unknown_resolver_tag(scanner_tag, clone_url)
@@ -104,6 +108,7 @@ class ResolverScanService(BaseWorkflowService):
             project_name=project_config.name,
             pickled_cloner=pickle.dumps(cloner, protocol=pickle.HIGHEST_PROTOCOL), 
             event_context=event_context,
+            orchestrator=orchestrator,
             container_tag=None if scanner_tag not in self.__container_tags.keys() 
                 else self.__container_tags[scanner_tag])
         

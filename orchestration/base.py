@@ -9,12 +9,14 @@ from cxone_service import CxOneService
 from scm_services.cloner import Cloner, CloneWorker, CloneAuthException
 from workflows.exceptions import WorkflowException
 from workflows.messaging import PRDetails
+from workflows.utils import AdditionalScanContentWriter
 from workflows import ScanWorkflow
 from api_utils.auth_factories import EventContext
 from enum import Enum
 from typing import Tuple
 from services import CxOneFlowServices
 from cxone_api.high.projects import ProjectRepoConfig
+
 
 class OrchestratorBase:
     
@@ -75,6 +77,9 @@ class OrchestratorBase:
 
     async def execute(self, services : CxOneFlowServices):
         raise NotImplementedError("execute")
+
+    async def execute_deferred(self, services : CxOneFlowServices, additional_content : AdditionalScanContentWriter):
+        raise NotImplementedError("execute_deferred")
     
     async def _get_clone_worker(self, scm_service : SCMService, clone_url : str, failures : int) -> CloneWorker:
         return await scm_service.cloner.clone(clone_url)
@@ -148,7 +153,7 @@ class OrchestratorBase:
                                                                                     services.resolver.project_tag_key, services.resolver.default_tag)
                     if resolver_tag is not None:
                         if await services.resolver.request_resolver_scan(resolver_tag, project_config, services.scm.cloner, clone_url, source_hash, 
-                                                                         workflow, self.__event_context):
+                                                                         workflow, self.__event_context, f"{self.__class__.__module__}.{self.__class__.__name__}"):
                             return None, OrchestratorBase.ScanAction.DEFERRED
                         else:
                             OrchestratorBase.log().warning(f"Resolver scan request failed for tag {resolver_tag}, proceeding with scanning via other engines.")
