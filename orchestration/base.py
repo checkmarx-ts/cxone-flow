@@ -13,7 +13,7 @@ from workflows.utils import AdditionalScanContentWriter
 from workflows import ScanWorkflow
 from api_utils.auth_factories import EventContext
 from enum import Enum
-from typing import Tuple
+from typing import Tuple, List
 from services import CxOneFlowServices
 from cxone_api.high.projects import ProjectRepoConfig
 
@@ -36,6 +36,15 @@ class OrchestratorBase:
 
     def __init__(self, event_context : EventContext):
         self.__event_context = event_context
+        self.__isdeferred = False
+
+    @property
+    def deferred_scan(self):
+        return self.__isdeferred
+
+    @deferred_scan.setter
+    def deferred_scan(self, value):
+        self.__isdeferred = value
 
     @property
     def config_key(self):
@@ -78,14 +87,16 @@ class OrchestratorBase:
     async def execute(self, services : CxOneFlowServices):
         raise NotImplementedError("execute")
 
-    async def execute_deferred(self, services : CxOneFlowServices, additional_content : AdditionalScanContentWriter):
+    async def execute_deferred(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]):
         raise NotImplementedError("execute_deferred")
     
     async def _get_clone_worker(self, scm_service : SCMService, clone_url : str, failures : int) -> CloneWorker:
         return await scm_service.cloner.clone(clone_url)
     
     async def __exec_immediate_scan(self, cxone_service : CxOneService, scm_service : SCMService, 
-        clone_url : str, source_hash : str, source_branch : str, project_config : ProjectRepoConfig, tags : dict) -> Tuple[ScanInspector, ScanAction]:
+        clone_url : str, source_hash : str, source_branch : str, 
+        project_config : ProjectRepoConfig, tags : dict, 
+        additional_content : List[AdditionalScanContentWriter]) -> Tuple[ScanInspector, ScanAction]:
         check = perf_counter_ns()
         
         OrchestratorBase.log().debug("Starting clone...")
@@ -99,6 +110,14 @@ class OrchestratorBase:
                     await scm_service.cloner.reset_head(code_path, source_hash)
 
                     OrchestratorBase.log().info(f"{clone_url} cloned in {perf_counter_ns() - check}ns")
+
+                    if additional_content is not None:
+                        check = perf_counter_ns()
+                        for ac in additional_content:
+                            written = await ac.write_content(code_path)
+                            OrchestratorBase.log().debug(f"Wrote additional content: {written}")
+                        OrchestratorBase.log().info(f"Additional content created in {perf_counter_ns() - check}ns")
+
                     check = perf_counter_ns()
 
                     with tempfile.NamedTemporaryFile(suffix='.zip') as zip_file:
@@ -134,7 +153,8 @@ class OrchestratorBase:
 
 
     
-    async def __orchestrate_scan(self, services : CxOneFlowServices, scan_tags : dict, workflow : ScanWorkflow) -> Tuple[ScanInspector, ScanAction]:
+    async def __orchestrate_scan(self, services : CxOneFlowServices, scan_tags : dict, workflow : ScanWorkflow, 
+                                 additional_content : List[AdditionalScanContentWriter]) -> Tuple[ScanInspector, ScanAction]:
         protected_branches = await self._get_protected_branches(services.scm)
 
         target_branch, target_hash = await self._get_target_branch_and_hash()
@@ -147,7 +167,7 @@ class OrchestratorBase:
         if target_branch in protected_branches:
             project_config = await services.cxone.load_project_config(await self.get_cxone_project_name())
 
-            if not services.resolver.skip and await services.cxone.sca_selected(project_config, source_branch):
+            if not self.deferred_scan and not services.resolver.skip and await services.cxone.sca_selected(project_config, source_branch):
                 try:
                     resolver_tag = await services.cxone.get_resolver_tag_for_project(project_config, 
                                                                                     services.resolver.project_tag_key, services.resolver.default_tag)
@@ -162,12 +182,12 @@ class OrchestratorBase:
                     OrchestratorBase.log().exception("Resolver workflow exception, SCA scan will run resolver server-side.", ex)
 
             return await self.__exec_immediate_scan(services.cxone, services.scm, clone_url, source_hash, 
-                                            source_branch, project_config, scan_tags)
+                                            source_branch, project_config, scan_tags, additional_content)
         else:
             OrchestratorBase.log().info(f"{clone_url}:{source_hash}:{source_branch} is not related to any protected branch: {protected_branches}")
             return None, OrchestratorBase.ScanAction.SKIPPED
 
-    async def _execute_push_scan_workflow(self, services : CxOneFlowServices) -> ScanAction:
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None) -> ScanAction:
         OrchestratorBase.log().debug("_execute_push_scan_workflow")
         
         _, hash = await self._get_source_branch_and_hash()
@@ -179,13 +199,13 @@ class OrchestratorBase:
             "service" : services.cxone.moniker
         }
 
-        _, action = await self.__orchestrate_scan(services, scan_tags, ScanWorkflow.PUSH)
+        _, action = await self.__orchestrate_scan(services, scan_tags, ScanWorkflow.PUSH, additional_content)
 
         return action
 
 
 
-    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanAction:
+    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None) -> ScanAction:
         OrchestratorBase.log().debug("_execute_pr_scan_workflow")
 
         source_branch, source_hash = await self._get_source_branch_and_hash()
@@ -202,7 +222,7 @@ class OrchestratorBase:
             "service" : services.cxone.moniker
         }
 
-        inspector, scan_action = await self.__orchestrate_scan(services, scan_tags, ScanWorkflow.PR)
+        inspector, scan_action = await self.__orchestrate_scan(services, scan_tags, ScanWorkflow.PR, additional_content)
         if inspector is not None and scan_action is OrchestratorBase.ScanAction.EXECUTING:
             await services.pr.start_pr_scan_workflow(inspector.project_id, inspector.scan_id, 
                                                         PRDetails.factory(event_context=self.event_context, clone_url=self._repo_clone_url(services.scm.cloner), 

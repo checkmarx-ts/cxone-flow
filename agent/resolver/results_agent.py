@@ -5,7 +5,7 @@ from api_utils.auth_factories import EventContext
 from orchestration.base import OrchestratorBase
 from orchestration import OrchestrationDispatch
 from workflows.utils import AdditionalScanContentWriter
-import aio_pika, gzip
+import aio_pika, gzip, importlib
 from typing import List
 
 class ResolverResultsAgent(BaseWorkflowService):
@@ -13,22 +13,26 @@ class ResolverResultsAgent(BaseWorkflowService):
     def __init__(self, services : CxOneFlowServices):
         self.__services = services
 
+
     @staticmethod
     def __orchestrator_factory(orchestrator_name : str, context : EventContext) -> OrchestratorBase:
-
-        module_name = ".".join(orchestrator_name.split(".")[:-1])
         class_name = orchestrator_name.split(".")[-1:].pop()
-        module = __import__(module_name)
+        module = importlib.import_module(".".join(orchestrator_name.split(".")[:-1]))
         return getattr(module, class_name)(context)
     
     @staticmethod
     def __additional_content_factory(resolver_content : bytearray, container_content : bytearray) -> List[AdditionalScanContentWriter]:
         ret_val = []
+
+        decoder = lambda x: gzip.decompress(x).decode()
+
         if resolver_content is not None:
-            ret_val.append(AdditionalScanContentWriter("/.cxsca-results.json", resolver_content, gzip.decompress))
+            ret_val.append(AdditionalScanContentWriter("/.cxsca-results.json", resolver_content, decoder))
 
         if container_content is not None:
-            ret_val.append(AdditionalScanContentWriter("/containers-resolution.json", container_content, gzip.decompress))
+            ret_val.append(AdditionalScanContentWriter("/containers-resolution.json", container_content, decoder))
+
+        return ret_val
 
     async def __call__(self, msg : aio_pika.abc.AbstractIncomingMessage):
         result_msg = await self._safe_deserialize_body(msg, DelegatedScanResultMessage)

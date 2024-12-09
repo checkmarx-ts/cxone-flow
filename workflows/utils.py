@@ -1,5 +1,6 @@
 from typing import Callable
 from pathlib import Path
+import aiofiles
 
 
 class AdditionalScanContentWriter:
@@ -8,6 +9,10 @@ class AdditionalScanContentWriter:
         self.__content = content
         self.__decoder = content_decoder if content_decoder is not None else lambda x: x
 
-    async def write_content(self, dest_path : str) -> None:
-        async with open(Path(dest_path.rstrip("/") / Path(self.__relative_path.lstrip("/"))), "rt") as f:
-            f.write(self.__decoder(self.__content))
+    async def write_content(self, dest_path : str) -> str:
+        dest_path = Path(dest_path.rstrip("/") / Path(self.__relative_path.lstrip("/")))
+
+        async with aiofiles.open(dest_path, "wt") as f:
+            await f.write(self.__decoder(self.__content))
+
+        return dest_path

@@ -8,6 +8,9 @@ from cxone_api.high.scans import ScanInspector
 from api_utils.auth_factories import EventContext
 from cxone_api.util import json_on_ok
 from services import CxOneFlowServices
+from typing import List
+from workflows.utils import AdditionalScanContentWriter
+
 class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
     __diag_id = "f844ec47-a9db-4511-8281-8b63f4eaf94e"
@@ -59,8 +62,8 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
     @property
     def event_name(self) -> str:
         return self.__event
-
-    async def execute(self, services : CxOneFlowServices):
+    
+    async def __common_execution_steps(self, services : CxOneFlowServices):
         # Get clone urls from repo details since ADO doesn't include all clone protocols in the event.
         repo_details = json_on_ok(await services.scm.exec("GET", f"/{self.__collection}/{self.__repo_key}/_apis/git/repositories/{self.__repo_slug}"))
         http_clone_url = urllib.parse.urlparse(self.__remote_url)
@@ -68,7 +71,15 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
             http_clone_url.scheme : self.__remote_url,
             "ssh" : repo_details['sshUrl']
         }
+
+    async def execute(self, services : CxOneFlowServices):
+        await self.__common_execution_steps(services)
         return await AzureDevOpsEnterpriseOrchestrator.__workflow_map[self.__event](self, services)
+
+    async def execute_deferred(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]):
+        self.deferred_scan = True
+        await self.__common_execution_steps(services)
+        return await AzureDevOpsEnterpriseOrchestrator.__workflow_map[self.__event](self, services, additional_content)
 
     @property
     def is_diagnostic(self):
@@ -128,14 +139,14 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
         return bool(AzureDevOpsEnterpriseOrchestrator.__pr_draft_query.find(self.event_context.message)[0].value)
 
 
-    async def _execute_push_scan_workflow(self, services : CxOneFlowServices):
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None):
         self.__source_branch = self.__target_branch = OrchestratorBase.normalize_branch_name(
             [x.value for x in list(self.__push_target_branch_query.find(self.event_context.message))][0])
         self.__source_hash = self.__target_hash = [x.value for x in list(self.__push_target_hash_query.find(self.event_context.message))][0]
 
-        return await OrchestratorBase._execute_push_scan_workflow(self, services)
+        return await OrchestratorBase._execute_push_scan_workflow(self, services, additional_content)
 
-    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None) -> ScanInspector:
         if await self.__is_pr_draft():
             AzureDevOpsEnterpriseOrchestrator.log().info(f"Skipping draft PR {AzureDevOpsEnterpriseOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
             return
@@ -169,7 +180,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
             self.__default_branches = [OrchestratorBase.normalize_branch_name(repo_details.json()['defaultBranch'])]
             
-            return await OrchestratorBase._execute_pr_scan_workflow(self, services)
+            return await OrchestratorBase._execute_pr_scan_workflow(self, services, additional_content)
 
 
     
