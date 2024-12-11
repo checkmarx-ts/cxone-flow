@@ -9,14 +9,22 @@ cof_logging.bootstrap()
 
 __log = logging.getLogger("ResolverRunnerAgent")
 
+
 async def spawn_agents():
     async with asyncio.TaskGroup() as g:
         for agent in ResolverConfig.agent_handlers():
-            g.create_task(mq_agent(agent, await agent.mq_client(), agent.tag, 
-                                   ResolverScanService.make_queuename_for_tag(agent.tag), 1))
+            g.create_task(
+                mq_agent(
+                    agent,
+                    await agent.mq_client(),
+                    agent.tag,
+                    ResolverScanService.make_queuename_for_tag(agent.tag),
+                    1,
+                )
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         ResolverConfig.bootstrap(get_config_path())
         asyncio.run(spawn_agents())

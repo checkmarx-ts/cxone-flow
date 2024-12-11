@@ -18,7 +18,6 @@ class ResolverConfig(CommonConfig):
           fail_on_manifest_failure=CommonConfig._get_value_for_key_or_default("fail-on-manifest-failure", config_dict, True),
           verbose_logging=CommonConfig._get_value_for_key_or_default("verbose-logging", config_dict, False),
           scan_containers=CommonConfig._get_value_for_key_or_default("scan-containers", config_dict, False),
-          ssl_verify=CommonConfig._get_value_for_key_or_default("ssl-verify", config_dict, True),
           proxy=CommonConfig._get_value_for_key_or_default("proxy", config_dict, None))
 
     @staticmethod
