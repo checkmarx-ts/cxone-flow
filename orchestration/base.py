@@ -111,7 +111,7 @@ class OrchestratorBase:
 
                     OrchestratorBase.log().info(f"{clone_url} cloned in {perf_counter_ns() - check}ns")
 
-                    if additional_content is not None:
+                    if additional_content is not None and len(additional_content) > 0:
                         check = perf_counter_ns()
                         for ac in additional_content:
                             written = await ac.write_content(code_path)

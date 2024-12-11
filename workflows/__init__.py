@@ -18,6 +18,7 @@ class ScanStates(__base_enum):
     ANNOTATE = "annotate"
     EXECUTE = "exec"
     DONE = "finished"
+    FAILURE = "failed"
 
 class ExecTypes(__base_enum):
     RESOLVER = "sca-resolver"

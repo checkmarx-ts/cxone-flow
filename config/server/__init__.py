@@ -99,7 +99,7 @@ class CxOneFlowConfig(CommonConfig):
     def __resolver_service_factory(cxone_client : CxOneClient, config_path, moniker, **kwargs) -> ResolverScanService:
          if kwargs is None or len(kwargs) == 0:
             return ResolverScanService(moniker, cxone_client, CommonConfig._default_amqp_url, None, None, True, DummyResolverScanningWorkflow(), 
-                                       None, None, None, None)
+                                       None, None, None)
          else:
             msg_private_key = CxOneFlowConfig._get_secret_from_value_of_key_or_fail(f"{config_path}/payload-signature", "private-key", kwargs)
             
@@ -107,23 +107,17 @@ class CxOneFlowConfig(CommonConfig):
             
             default_tag = CxOneFlowConfig._get_value_for_key_or_default("default-agent-tag", kwargs, None)
             project_tag_key = CxOneFlowConfig._get_value_for_key_or_default("resolver-tag-key", kwargs, "resolver")
-            no_container_tag_list = CxOneFlowConfig._get_value_for_key_or_default("agent-tags", kwargs, [])
-            container_agent_tag_dict = CxOneFlowConfig._get_value_for_key_or_default("container-agent-tags", kwargs, {})
+            agent_tag_list = list(set(CxOneFlowConfig._get_value_for_key_or_default("allowed-agent-tags", kwargs, [])))
 
-            # Make sure tags are not duplicate
-            tag_intersection = list(set(no_container_tag_list) & set(list(container_agent_tag_dict.keys())))
-            if len(tag_intersection) > 0:
-                 raise ConfigurationException(f"{config_path} contains duplicate resolver tags {tag_intersection}")
-                    
             # the default tag must have a tag.
-            if default_tag is not None and not default_tag in no_container_tag_list + list(container_agent_tag_dict.keys()):
-                raise ConfigurationException.missing_keys(f"{config_path}/agent-tags or {config_path}/container-agent-tags", [default_tag])
+            if default_tag is not None and not default_tag in agent_tag_list:
+                raise ConfigurationException.missing_keys(f"{config_path}/allowed-agent-tags", [default_tag])
 
             amqp_url, amqp_user, amqp_password, ssl_verify = CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
            
             return ResolverScanService(moniker, cxone_client, amqp_url, amqp_user, amqp_password, ssl_verify, 
                                        ResolverScanningWorkflow.from_private_key(capture_resolver_logs, bytes(msg_private_key, "UTF-8")), 
-                                       default_tag, project_tag_key, container_agent_tag_dict, no_container_tag_list)
+                                       default_tag, project_tag_key, agent_tag_list)
 
     
 

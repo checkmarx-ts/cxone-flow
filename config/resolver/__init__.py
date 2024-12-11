@@ -27,7 +27,9 @@ class ResolverConfig(CommonConfig):
             agent_tag,
             bytes(CommonConfig._get_secret_from_value_of_key_or_fail(config_path, "public-key", config_dict), 'UTF-8'),
             ResolverConfig.__resolver_opts_factory(CommonConfig._get_value_for_key_or_default("resolver-opts", config_dict, None)),
-            CommonConfig._get_value_for_key_or_default("toolkit-location", config_dict, "/opt/cx-supply-chain-toolkit"),
+            
+            None, # TODO: Make a container execution class that understands how to execute the container.
+            # CommonConfig._get_value_for_key_or_default("toolkit-location", config_dict, "/opt/cx-supply-chain-toolkit"),
             CommonConfig._get_value_for_key_or_default("resolver-work-path", config_dict, "/tmp/resolver"),
             CommonConfig._get_value_for_key_or_fail(config_path, "resolver-path", config_dict),
             CommonConfig._load_amqp_settings(config_path, **config_dict))

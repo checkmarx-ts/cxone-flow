@@ -1,6 +1,7 @@
 from dataclasses import dataclass, asdict, make_dataclass, field
 from dataclasses_json import dataclass_json
 from datetime import datetime, UTC
+import uuid
 
 
 @dataclass_json
@@ -30,7 +31,8 @@ class BaseMessage:
 @dataclass(frozen=True)
 class StampedMessage(BaseMessage):
     timestamp : str
+    correlation_id : str
 
     @classmethod
     def factory(clazz, **kwargs):
-        return clazz(timestamp=datetime.now(UTC).isoformat(), **kwargs)
+        return clazz(timestamp=datetime.now(UTC).isoformat(), correlation_id=uuid.uuid4(), **kwargs)

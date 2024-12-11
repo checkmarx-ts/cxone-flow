@@ -11,10 +11,10 @@ class AbstractAsyncWorkflow:
     @staticmethod
     def _log_publish_result(result : pamqp.base.Frame, log_msg : str) -> bool:
         if type(result) == pamqp.commands.Basic.Ack:
-            AbstractAsyncWorkflow.log().debug(f"Started {log_msg}")
+            AbstractAsyncWorkflow.log().debug(f"Published {log_msg}")
             return True
         else:
-            AbstractAsyncWorkflow.log().error(f"Unable to start {log_msg}")
+            AbstractAsyncWorkflow.log().error(f"Unable to publish {log_msg}")
             return False
 
 

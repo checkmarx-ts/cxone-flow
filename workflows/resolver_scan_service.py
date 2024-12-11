@@ -30,8 +30,7 @@ class ResolverScanService(BaseWorkflowService):
                 raise WorkflowException.invalid_tag(k)
 
     def __init__(self, moniker : str, cxone_client : CxOneClient, amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool, 
-                 workflow : AbstractResolverWorkflow, default_tag : str, project_tag_key : str, 
-                 container_handler_tags : dict, non_container_handler_tags : list):
+                 workflow : AbstractResolverWorkflow, default_tag : str, project_tag_key : str, allowed_agent_tags : list):
         super().__init__(amqp_url, amqp_user, amqp_password, ssl_verify)
         self.__service_moniker = moniker
         self.__default_tag = default_tag
@@ -39,13 +38,9 @@ class ResolverScanService(BaseWorkflowService):
         self.__workflow = workflow
         self.__client = cxone_client
 
-        if container_handler_tags is not None:
-            ResolverScanService.__validate_tags(list(container_handler_tags.keys()))
-        self.__container_tags = container_handler_tags
-
-        if non_container_handler_tags is not None:
-            ResolverScanService.__validate_tags(non_container_handler_tags)
-        self.__nocontainer_tags = non_container_handler_tags
+        if allowed_agent_tags is not None:
+            ResolverScanService.__validate_tags(allowed_agent_tags)
+        self.__agent_tags = allowed_agent_tags
     
     @property
     def skip(self) -> bool:
@@ -61,10 +56,7 @@ class ResolverScanService(BaseWorkflowService):
 
     @property
     def agent_tags(self) -> List:
-        ret_list = self.__nocontainer_tags if self.__nocontainer_tags is not None else []
-        ret_list = ret_list + (list(self.__container_tags.keys()) if self.__container_tags is not None else [])
-
-        return ret_list
+        return self.__agent_tags if self.__agent_tags is not None else []
     
     @staticmethod
     def make_routekey_for_tag(tag : str):
@@ -108,9 +100,7 @@ class ResolverScanService(BaseWorkflowService):
             project_name=project_config.name,
             pickled_cloner=pickle.dumps(cloner, protocol=pickle.HIGHEST_PROTOCOL), 
             event_context=event_context,
-            orchestrator=orchestrator,
-            container_tag=None if scanner_tag not in self.__container_tags.keys() 
-                else self.__container_tags[scanner_tag])
+            orchestrator=orchestrator)
         
         msg = DelegatedScanMessage.factory(
             moniker=self.__service_moniker, 

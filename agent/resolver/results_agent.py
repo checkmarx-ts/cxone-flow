@@ -5,6 +5,7 @@ from api_utils.auth_factories import EventContext
 from orchestration.base import OrchestratorBase
 from orchestration import OrchestrationDispatch
 from workflows.utils import AdditionalScanContentWriter
+from workflows import ScanStates
 import aio_pika, gzip, importlib
 from typing import List
 
@@ -42,6 +43,9 @@ class ResolverResultsAgent(BaseWorkflowService):
                                                  + f" with clone url {result_msg.details.clone_url} on service moniker {result_msg.moniker}.")
             else:
                 # Execute just like an event message was received.
+                if result_msg.state == ScanStates.FAILURE:
+                    ResolverResultsAgent.log().warning(f"Deferred scan correlation_id {result_msg.correlation_id} indicated failure with exit code {result_msg.exit_code}, scanning anyway.")
+
                 await OrchestrationDispatch.execute_deferred_scan (
                     ResolverResultsAgent.__orchestrator_factory(result_msg.details.orchestrator, result_msg.details.event_context),
                     ResolverResultsAgent.__additional_content_factory(result_msg.resolver_results, result_msg.container_results))
