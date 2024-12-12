@@ -144,7 +144,7 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
         self.__populate_common_pr_data()
         return await OrchestratorBase._execute_pr_scan_workflow(self, services, additional_content)
 
-    async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices):
+    async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices, *args):
         if await self.__is_pr_draft():
             BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
             return

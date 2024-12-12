@@ -261,7 +261,7 @@ class GithubOrchestrator(OrchestratorBase):
         
         return await OrchestratorBase._execute_pr_scan_workflow(self, services, additional_content)
 
-    async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices):
+    async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices, *args):
         self.__populate_common_pr_data()
         return await OrchestratorBase._execute_pr_tag_update_workflow(self, services)
 
