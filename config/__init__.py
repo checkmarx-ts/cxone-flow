@@ -151,7 +151,8 @@ class CommonConfig:
     def _load_amqp_settings(config_path, **kwargs) -> Union[str, str, str, bool]:
         amqp_dict = CommonConfig._get_value_for_key_or_default("amqp", kwargs, None)
         if not amqp_dict is None:
-            amqp_url = CommonConfig._get_value_for_key_or_fail(config_path, "amqp-url", amqp_dict)
+            amqp_url = CommonConfig._get_secret_from_value_of_key_or_default(amqp_dict, "amqp-url",             
+                CommonConfig._get_value_for_key_or_fail(config_path, "amqp-url", amqp_dict))
             amqp_user = CommonConfig._get_secret_from_value_of_key_or_default(amqp_dict, "amqp-user", None)
             amqp_password = CommonConfig._get_secret_from_value_of_key_or_default(amqp_dict, "amqp-password", None)
             ssl_verify = CommonConfig._get_value_for_key_or_default("ssl-verify", amqp_dict, CommonConfig.get_default_ssl_verify_value())
