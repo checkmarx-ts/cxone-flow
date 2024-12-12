@@ -49,8 +49,8 @@ class BaseWorkflowService:
 
 
                 self.__client = await aio_pika.connect_robust(self.__amqp_url, \
-                                                    login=self.__amqp_user if self.__amqp_user is not None else "guest", \
-                                                    password=self.__amqp_password if self.__amqp_password is not None else "guest", \
+                                                    login=self.__amqp_user, \
+                                                    password=self.__amqp_password, \
                                                     ssl_context=ctx)
         return self.__client
 

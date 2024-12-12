@@ -60,9 +60,9 @@ class ResolverScanningWorkflow(AbstractResolverWorkflow):
     
     async def deliver_resolver_results(self, mq_client : aio_pika.abc.AbstractRobustConnection, 
                                        route_key : str, msg : DelegatedScanResultMessage, exchange : str) -> bool:
-        return await self._publish(mq_client, route_key, self.__msg_factory(msg), "Resolver Scan Results", exchange)
+        return await self._publish(mq_client, route_key, self.__msg_factory(msg), f"Resolver Scan Results {route_key}", exchange)
     
     async def resolver_scan_kickoff(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, 
                                     msg : DelegatedScanMessage, exchange : str) -> bool:
-        return await self._publish(mq_client, route_key, self.__msg_factory(msg), "Resolver Scan Workflow", exchange)
+        return await self._publish(mq_client, route_key, self.__msg_factory(msg), f"Resolver Scan Workflow {route_key}", exchange)
         

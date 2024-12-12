@@ -31,7 +31,7 @@ class ResolverResultsAgent(BaseWorkflowService):
             ret_val.append(AdditionalScanContentWriter("/.cxsca-results.json", resolver_content, decoder))
 
         if container_content is not None:
-            ret_val.append(AdditionalScanContentWriter("/containers-resolution.json", container_content, decoder))
+            ret_val.append(AdditionalScanContentWriter("/.cxsca-container-results.json", container_content, decoder))
 
         return ret_val
 
