@@ -6,6 +6,9 @@ from typing import Any
 
 class BaseWorkflowService:
 
+    ELEMENT_PREFIX = "cx:"
+    TOPIC_PREFIX = "cx."
+
     def __init__(self, amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool):
         self.__lock = asyncio.Lock()
 

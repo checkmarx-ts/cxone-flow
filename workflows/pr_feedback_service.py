@@ -12,21 +12,28 @@ from .base_service import BaseWorkflowService
 from cxone_service import CxOneException
 
 class PRFeedbackService(BaseWorkflowService):
-    EXCHANGE_SCAN_INPUT = "Scan In"
-    EXCHANGE_SCAN_WAIT = "Scan Await"
-    EXCHANGE_SCAN_ANNOTATE = "Scan Annotate"
-    EXCHANGE_SCAN_FEEDBACK = "Scan Feedback"
-    EXCHANGE_SCAN_POLLING = "Scan Polling Delivery"
+    PR_ELEMENT_PREFIX = "pr:"
+    PR_TOPIC_PREFIX = "pr."
 
-    QUEUE_SCAN_POLLING = "Polling Scans"
-    QUEUE_SCAN_WAIT = "Awaited Scans"
-    QUEUE_ANNOTATE_PR = "PR Annotating"
-    QUEUE_FEEDBACK_PR = "PR Feedback"
+    EXCHANGE_SCAN_INPUT = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan In"
+    EXCHANGE_SCAN_WAIT = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Await"
+    EXCHANGE_SCAN_ANNOTATE = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Annotate"
+    EXCHANGE_SCAN_FEEDBACK = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Feedback"
+    EXCHANGE_SCAN_POLLING = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Polling Delivery"
+
+    QUEUE_SCAN_POLLING = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Polling Scans"
+    QUEUE_SCAN_WAIT = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Awaited Scans"
+    QUEUE_ANNOTATE_PR = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}PR Annotating"
+    QUEUE_FEEDBACK_PR = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}PR Feedback"
     
-    ROUTEKEY_POLL_BINDING = F"{ScanStates.AWAIT}.*.*"
-    ROUTEKEY_FEEDBACK_PR = f"{ScanStates.FEEDBACK}.{FeedbackWorkflow.PR}.*"
-    ROUTEKEY_ANNOTATE_PR = f"{ScanStates.ANNOTATE}.{FeedbackWorkflow.PR}.*"
+    ROUTEKEY_POLL_BINDING = f"{BaseWorkflowService.TOPIC_PREFIX}{PR_TOPIC_PREFIX}{ScanStates.AWAIT}.*.*"
+    ROUTEKEY_FEEDBACK_PR = f"{BaseWorkflowService.TOPIC_PREFIX}{PR_TOPIC_PREFIX}{ScanStates.FEEDBACK}.{FeedbackWorkflow.PR}.*"
+    ROUTEKEY_ANNOTATE_PR = f"{BaseWorkflowService.TOPIC_PREFIX}{PR_TOPIC_PREFIX}{ScanStates.ANNOTATE}.{FeedbackWorkflow.PR}.*"
 
+
+    @staticmethod
+    def make_topic(state : ScanStates, workflow : ScanWorkflow, moniker : str):
+        return f"{BaseWorkflowService.TOPIC_PREFIX}{PRFeedbackService.PR_TOPIC_PREFIX}{state}.{workflow}.{moniker}"
     
     @staticmethod
     def log():

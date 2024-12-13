@@ -43,7 +43,7 @@ class PullRequestWorkflow(AbstractFeedbackWorkflow):
                                                  expiration=self.__interval)
 
     async def workflow_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, **kwargs):
-        topic = f"{ScanStates.AWAIT}.{ScanWorkflow.PR}.{moniker}"
+        topic = PRFeedbackService.make_topic(ScanStates.AWAIT, ScanWorkflow.PR, moniker)
         await self._publish(mq_client, topic, self.__await_msg_factory(projectid, scanid, moniker, **kwargs), 
                             f"{topic} for scan id {scanid} on service {moniker}", PRFeedbackService.EXCHANGE_SCAN_INPUT)
     
@@ -51,12 +51,12 @@ class PullRequestWorkflow(AbstractFeedbackWorkflow):
         return self.__enabled
 
     async def feedback_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, **kwargs):
-        topic = f"{ScanStates.FEEDBACK}.{ScanWorkflow.PR}.{moniker}"
+        topic = PRFeedbackService.make_topic(ScanStates.FEEDBACK, ScanWorkflow.PR, moniker)
         await self._publish(mq_client, topic, self.__feedback_msg_factory(projectid, scanid, moniker, **kwargs), 
                             f"{topic} for scan id {scanid} on service {moniker}", PRFeedbackService.EXCHANGE_SCAN_INPUT)
         
     async def annotation_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, annotation : str, **kwargs):
-        topic = f"{ScanStates.ANNOTATE}.{ScanWorkflow.PR}.{moniker}"
+        topic = PRFeedbackService.make_topic(ScanStates.ANNOTATE, ScanWorkflow.PR, moniker)
         await self._publish(mq_client, topic, self.__annotation_msg_factory(projectid, scanid, moniker, annotation, **kwargs), 
                             f"{topic} for scan id {scanid} on service {moniker}", PRFeedbackService.EXCHANGE_SCAN_INPUT)
 

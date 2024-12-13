@@ -13,15 +13,17 @@ from cxone_api import CxOneClient
 
 class ResolverScanService(BaseWorkflowService):
 
-
     __tag_validation_re = re.compile("[^0-9a-zA-z-_]+")
 
-    EXCHANGE_RESOLVER_SCAN = "SCA Resolver Scan In"
-    QUEUE_RESOLVER_COMPLETE = "Finished Resolver Scans"
-    ROUTEKEY_EXEC_SCA_SCAN_COMPLETE = f"{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN_COMPLETE}.#"
+    RESOLVER_ELEMENT_PREFIX = "res:"
+    RESOLVER_TOPIC_PREFIX = "res."
 
-    QUEUE_RESOLVER_EXEC_STUB = "Resolver Req"
-    ROUTEKEY_EXEC_SCA_SCAN_STUB = f"{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN}"
+    EXCHANGE_RESOLVER_SCAN = f"{BaseWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}SCA Resolver Scan In"
+    QUEUE_RESOLVER_COMPLETE = f"{BaseWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Finished Resolver Scans"
+    ROUTEKEY_EXEC_SCA_SCAN_COMPLETE = f"{BaseWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN_COMPLETE}.#"
+
+    QUEUE_RESOLVER_EXEC_STUB = f"{BaseWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Resolver Req"
+    ROUTEKEY_EXEC_SCA_SCAN_STUB = f"{BaseWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN}"
 
     @staticmethod
     def __validate_tags(keys : List[str]):

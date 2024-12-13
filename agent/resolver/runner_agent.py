@@ -42,7 +42,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
 
     @property
     def route_key(self) -> str:
-        return f"exec.sca-resolver.scan-complete.{self.__tag}"
+        return f"{BaseWorkflowService.TOPIC_PREFIX}{ResolverScanService.RESOLVER_TOPIC_PREFIX}exec.sca-resolver.scan-complete.{self.__tag}"
 
     async def __send_failure_response(
         self,
