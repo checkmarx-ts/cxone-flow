@@ -23,9 +23,9 @@ class BaseWorkflowService:
         if '@' in netloc:
             SecretRegistry.register(netloc.split("@")[0])
 
-    @staticmethod
-    def log():
-        return logging.getLogger("BaseWorkflowService")
+    @classmethod
+    def log(clazz):
+        return logging.getLogger(clazz.__name__)
 
     @property
     def use_ssl(self):
