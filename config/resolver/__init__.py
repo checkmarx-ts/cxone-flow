@@ -13,12 +13,7 @@ class ResolverConfig(CommonConfig):
 
     @staticmethod
     def __resolver_opts_factory(config_dict : dict) -> ResolverOpts:
-      return ResolverOpts(
-          persistent_log_path=CommonConfig._get_value_for_key_or_default("persistent-log-path", config_dict, None),
-          fail_on_manifest_failure=CommonConfig._get_value_for_key_or_default("fail-on-manifest-failure", config_dict, True),
-          verbose_logging=CommonConfig._get_value_for_key_or_default("verbose-logging", config_dict, False),
-          scan_containers=CommonConfig._get_value_for_key_or_default("scan-containers", config_dict, False),
-          proxy=CommonConfig._get_value_for_key_or_default("proxy", config_dict, None))
+      return ResolverOpts(config_dict)
 
     @staticmethod
     def __agent_factory(config_path : str, agent_tag : str, config_dict : dict) -> ResolverRunnerAgent:
