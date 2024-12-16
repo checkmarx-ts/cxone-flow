@@ -1,5 +1,5 @@
 from workflows.base_service import BaseWorkflowService
-from workflows.messaging.v1.delegated_scan import DelegatedScanResultMessage
+from workflows.messaging import DelegatedScanResultMessage
 from services import CxOneFlowServices
 from api_utils.auth_factories import EventContext
 from orchestration.base import OrchestratorBase

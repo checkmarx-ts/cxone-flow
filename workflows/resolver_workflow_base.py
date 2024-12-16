@@ -1,6 +1,6 @@
 import aio_pika
 from .base_workflow import AbstractAsyncWorkflow
-from .messaging.v1.delegated_scan import DelegatedScanMessage, DelegatedScanDetails, DelegatedScanResultMessage
+from .messaging import DelegatedScanMessage, DelegatedScanDetails, DelegatedScanResultMessage
 
 class AbstractResolverWorkflow(AbstractAsyncWorkflow):
 

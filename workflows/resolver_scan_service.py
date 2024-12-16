@@ -4,7 +4,7 @@ from .resolver_workflow_base import AbstractResolverWorkflow
 from scm_services.cloner import Cloner
 from typing import List,Tuple,Type
 from .exceptions import WorkflowException
-from .messaging.v1.delegated_scan import DelegatedScanMessage, DelegatedScanDetails
+from .messaging import DelegatedScanMessage, DelegatedScanDetails
 import urllib, re, pickle
 from api_utils.auth_factories import EventContext
 from cxone_api.high.projects import ProjectRepoConfig

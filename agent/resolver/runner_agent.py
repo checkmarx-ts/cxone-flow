@@ -1,7 +1,7 @@
 from workflows.resolver_workflow import ResolverScanningWorkflow
 from workflows.base_service import BaseWorkflowService
 from workflows.resolver_scan_service import ResolverScanService
-from workflows.messaging.v1.delegated_scan import (
+from workflows.messaging import (
     DelegatedScanMessage,
     DelegatedScanResultMessage,
 )
@@ -63,12 +63,6 @@ class ResolverRunnerAgent(BaseWorkflowService):
         )
 
     def __msg_should_process(self, msg : DelegatedScanMessage, runner : ExecutionContext) -> bool:
-            if not __version__ == msg.details.cxoneflow_version:
-                ResolverRunnerAgent.log().error(
-                    f"Agent version {__version__} mismatch: Scan request coming from server version {msg.details.cxoneflow_version}."
-                )
-                return False
-    
             if not runner.can_execute:
                 ResolverRunnerAgent.log().error(
                     "The runner instance indicates it can't run."

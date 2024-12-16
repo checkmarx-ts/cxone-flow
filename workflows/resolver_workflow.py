@@ -1,6 +1,6 @@
 from .resolver_workflow_base import AbstractResolverWorkflow
 import aio_pika
-from .messaging.v1.delegated_scan import DelegatedScanMessage, DelegatedScanDetails, DelegatedScanResultMessage, DelegatedScanMessageBase
+from .messaging import DelegatedScanMessage, DelegatedScanDetails, DelegatedScanResultMessage, DelegatedScanMessageBase
 from api_utils.signatures import AsymmetricSignatureSignerVerifier, AsymmetricSignatureVerifier
 from .exceptions import WorkflowException
 from typing import Any
