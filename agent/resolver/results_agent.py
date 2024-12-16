@@ -45,7 +45,9 @@ class ResolverResultsAgent(BaseWorkflowService):
                 # Execute just like an event message was received.
                 if result_msg.state == ScanStates.FAILURE:
                     ResolverResultsAgent.log().warning(f"Deferred scan correlation_id {result_msg.correlation_id} indicated failure with exit code {result_msg.exit_code}, scanning anyway.")
-
+                
+                self.__services.resolver.capture_logs(result_msg.logs)
+                
                 await OrchestrationDispatch.execute_deferred_scan (
                     ResolverResultsAgent.__orchestrator_factory(result_msg.details.orchestrator, result_msg.details.event_context),
                     ResolverResultsAgent.__additional_content_factory(result_msg.resolver_results, result_msg.container_results))

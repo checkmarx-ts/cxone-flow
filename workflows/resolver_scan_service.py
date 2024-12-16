@@ -83,6 +83,10 @@ class ResolverScanService(BaseWorkflowService):
     def signature_valid(self, signature : bytearray, payload : bytearray) -> bool:
         return self.__workflow.validate_signature(signature, payload)
     
+    def capture_logs(self, logs : bytearray) -> None:
+        if self.__workflow.capture_logs:
+            self.log().info(f"Captured resolver logs: [{logs.decode()}]")
+    
     async def request_resolver_scan(self, scanner_tag : str, project_config : ProjectRepoConfig, cloner : Cloner, 
                                     clone_url : str, commit_hash :str, scan_workflow : ScanWorkflow, 
                                     event_context : EventContext, orchestrator : str) -> bool:
