@@ -1,11 +1,9 @@
-from .resolver_runner import ResolverRunner
+from .resolver_runner import ResolverRunner, ExecutionContext
 from .resolver_opts import ResolverOpts
 from typing import List
 import os
 
-
-class ShellRunner(ResolverRunner):
-
+class ShellExecutionContext(ExecutionContext):
     __resolver_name = "ScaResolver"
 
     def __init__(self, workpath: str, opts: ResolverOpts, resolver_path: str):
@@ -24,3 +22,12 @@ class ShellRunner(ResolverRunner):
             cmd = [ShellRunner.__resolver_name]
 
         return cmd
+
+class ShellRunner(ResolverRunner):
+
+    def __init__(self, workpath: str, opts: ResolverOpts, resolver_path: str):
+        super().__init__(workpath, opts)
+        self.__resolver_path = resolver_path
+
+    async def executor(self):
+        return ShellExecutionContext(self.work_path, self.resolver_opts, self.__resolver_path)

@@ -10,7 +10,7 @@ from scm_services.cloner import Cloner
 from typing import Tuple
 from .exceptions import ResolverAgentException
 import aio_pika, pickle, gzip, os, subprocess, tempfile
-from .resolver_runner import ResolverRunner
+from .resolver_runner import ResolverRunner, ExecutionContext
 from _version import __version__
 
 
@@ -62,14 +62,14 @@ class ResolverRunnerAgent(BaseWorkflowService):
             ResolverScanService.EXCHANGE_RESOLVER_SCAN,
         )
 
-    def __msg_should_process(self, msg : DelegatedScanMessage) -> bool:
+    def __msg_should_process(self, msg : DelegatedScanMessage, runner : ExecutionContext) -> bool:
             if not __version__ == msg.details.cxoneflow_version:
                 ResolverRunnerAgent.log().error(
                     f"Agent version {__version__} mismatch: Scan request coming from server version {msg.details.cxoneflow_version}."
                 )
                 return False
     
-            if not self.__runner.can_execute:
+            if not runner.can_execute:
                 ResolverRunnerAgent.log().error(
                     "The runner instance indicates it can't run."
                 )
@@ -81,7 +81,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
     async def __call__(self, msg: aio_pika.abc.AbstractIncomingMessage):
         scan_msg = await self._safe_deserialize_body(msg, DelegatedScanMessage)
         try:
-            async with self.__runner:
+            async with await self.__runner.executor() as runner:
 
                 ResolverRunnerAgent.log().debug("Message received")
 
@@ -95,7 +95,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
                     ResolverRunnerAgent.log().error(
                         f"Signature validation failed for tag {self.__tag} coming from service moniker {scan_msg.moniker}."
                     )
-                elif not self.__msg_should_process(scan_msg):
+                elif not self.__msg_should_process(scan_msg, runner):
                     await self.__send_failure_response(workflow, scan_msg)
                 else:
 
@@ -109,19 +109,19 @@ class ResolverRunnerAgent(BaseWorkflowService):
                             scan_msg.details.clone_url,
                             scan_msg.details.event_context,
                             False,
-                            self.__runner.clone_path,
+                            runner.clone_path.rstrip("/") + "/",
                         ) as clone_worker:
                             cloned_repo = await clone_worker.loc()
                             await cloner.reset_head(
                                 cloned_repo, scan_msg.details.commit_hash
                             )
 
-                            resolver_exec_result = await self.__runner.execute_resolver(scan_msg.details.project_name)
+                            resolver_exec_result = await runner.execute_resolver(scan_msg.details.project_name)
 
-                            with open(self.__runner.resolver_out_file, "rt") as f:
+                            with open(runner.result_resolver_out_file_path, "rt") as f:
                                 sca_results = gzip.compress(bytes(f.read(), "UTF-8"))
 
-                            with open(self.__runner.container_out_file, "rt") as f:
+                            with open(runner.result_container_out_file_path, "rt") as f:
                                 container_results = gzip.compress(bytes(f.read(), "UTF-8"))
 
                             resolver_run_logs = resolver_exec_result.stdout
