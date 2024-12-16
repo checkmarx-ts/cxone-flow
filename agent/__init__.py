@@ -37,11 +37,18 @@ class DictCmdLineOpts:
         return logging.getLogger(clazz.__name__)
 
     def __init__(self, opts_dict: Dict[str, str]):
-        self.__args_list = []
+        self.__opts_dict = opts_dict
 
-        for k in opts_dict:
+    def _compile(self, opt_processor : Dict[str, Callable[[str], str]]=None) -> List[str]:
+        ret_val = []
 
-            value = opts_dict[k]
+        for k in self.__opts_dict:
+
+            value = self.__opts_dict[k]
+            if opt_processor is None or k not in opt_processor.keys():
+                proc = lambda x: x
+            elif k in opt_processor.keys():
+                proc = opt_processor[k]
             
             if len(k) == 0 or not self._validate_arg(k, value):
                 self.log().warning(f"Command line option [{k}] is invalid, omitting.")
@@ -51,18 +58,23 @@ class DictCmdLineOpts:
                 continue
 
             if len(k) == 1:
-                self.__args_list.append(f"-{k}")
+                ret_val.append(f"-{k}")
             else:
-                self.__args_list.append(f"--{k}")
+                ret_val.append(f"--{k}")
 
             if value is not None:
-                self.__args_list.append(value)
+                ret_val.append(proc(value))
+
+        return ret_val
 
     def _validate_arg(self, arg_name : str, arg_value : str) -> bool:
         return True
+    
+    def has_one_of(self, arg_keys : List[str]) -> bool:
+        return len([x for x in arg_keys if x in self.__opts_dict.keys()]) > 0
 
-    def as_string(self) -> str:
-        return " ".join(self.__args_list)
+    def as_string(self, opt_processor : Dict[str, Callable[[str], str]]=None) -> str:
+        return " ".join(self._compile(opt_processor))
 
-    def as_args(self) -> List[str]:
-        return self.__args_list
+    def as_args(self, opt_processor : Dict[str, Callable[[str], str]]=None) -> List[str]:
+        return self._compile(opt_processor)

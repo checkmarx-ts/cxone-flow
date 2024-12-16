@@ -116,7 +116,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
                                 cloned_repo, scan_msg.details.commit_hash
                             )
 
-                            resolver_exec_result = await runner.execute_resolver(scan_msg.details.project_name)
+                            resolver_exec_result = await runner.execute_resolver(scan_msg.details.project_name, scan_msg.details.file_filters)
 
                             with open(runner.result_resolver_out_file_path, "rt") as f:
                                 sca_results = gzip.compress(bytes(f.read(), "UTF-8"))

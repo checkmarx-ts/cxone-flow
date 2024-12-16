@@ -42,6 +42,21 @@ class TestAgentTools(unittest.TestCase):
         o = DictCmdLineOpts({"" : "bar"})
         self.assertLessEqual(len(o.as_string()), 0)
 
+    def test_merge_short_option(self):
+        o = DictCmdLineOpts({"e" : "bar"})
+        args = o.as_args({"excludes" : lambda x: "foo," + x, "e" : lambda x: "foo," + x})
+        self.assertTrue("-e" in args and args[args.index('-e') + 1] == 'foo,bar')
+
+    def test_merge_long_option(self):
+        o = DictCmdLineOpts({"excludes" : "bar"})
+        args = o.as_args({"excludes" : lambda x: "foo," + x, "e" : lambda x: "foo," + x})
+        self.assertTrue("--excludes" in args and args[args.index('--excludes') + 1] == 'foo,bar')
+
+    def test_merge_missing_option(self):
+        o = DictCmdLineOpts({"foo-opt" : "bar"})
+        args = o.as_args({"excludes" : lambda x: "foo," + x, "e" : lambda x: "foo," + x})
+        self.assertTrue('--excludes' not in args and '-e' not in args)
+
 if __name__ == '__main__':
     unittest.main()
 

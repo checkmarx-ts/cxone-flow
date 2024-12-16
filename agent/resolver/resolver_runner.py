@@ -81,12 +81,28 @@ class ExecutionContext:
         raise NotImplemented("_get_resolver_exec_cmd")
 
 
-    async def execute_resolver(self, project_name: str) -> subprocess.CompletedProcess:
+    async def execute_resolver(self, project_name: str, exclusions : str) -> subprocess.CompletedProcess:
         cmd = self._get_resolver_exec_cmd()
+
+        def merge_exclusions(x : str):
+            return f"{x},{exclusions}"
+        
+        resolver_opts = self.__opts.as_args(
+                {
+                    "e" : merge_exclusions,
+                    "excludes" : merge_exclusions
+                }
+            )
+        
+        if not self.__opts.has_one_of(['excludes', 'e']):
+            exclude_opts = ['--excludes', exclusions]
+        else:
+            exclude_opts = []
 
         exec_opts = (
             ["offline"]
-            + self.__opts.as_args()
+            + resolver_opts
+            + exclude_opts
             + [
                 "--scan-path",
                 self.execution_clone_path,
