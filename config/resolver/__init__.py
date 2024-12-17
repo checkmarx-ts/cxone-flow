@@ -54,8 +54,9 @@ class ResolverConfig(CommonConfig):
 
             serviced_tags = ResolverConfig._get_value_for_key_or_fail("", "serviced-tags", raw_yaml)
 
-            for tag in serviced_tags:
-                ResolverConfig.__agents.append(ResolverConfig.__agent_factory(f"serviced-tags/{tag}", tag, serviced_tags[tag]))
+            if serviced_tags is not None:
+                for tag in serviced_tags:
+                    ResolverConfig.__agents.append(ResolverConfig.__agent_factory(f"serviced-tags/{tag}", tag, serviced_tags[tag]))
         except Exception as ex:
             ResolverConfig.log().exception(ex)
             raise

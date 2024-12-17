@@ -8,6 +8,7 @@
 **/*.yaml
 **/*.yml
 
+agent_packages
 manual
 secrets
 tests
