@@ -63,7 +63,7 @@ class ExecutionContext:
 
     @property
     def execution_resolver_out_file_path(self) -> str:
-        return self.result_resolver_out_file
+        return self.result_resolver_out_file_path
 
     @property
     def result_container_out_file_path(self) -> str:
@@ -71,7 +71,7 @@ class ExecutionContext:
 
     @property
     def execution_container_out_file_path(self) -> str:
-        return self.result_container_out_file
+        return self.result_container_out_file_path
 
     @property
     def can_execute(self):
