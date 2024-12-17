@@ -45,8 +45,7 @@ RUN apt-get update && \
     rm /etc/nginx/sites-enabled/default
 
 
-RUN mkdir -p /opt/cxone && \
-    mkdir -p /var/log/gunicorn && \
+RUN mkdir -p /var/log/gunicorn && \
     mkdir -p /var/log/cxoneflow && \
     mkdir -p /var/log/nginx && \
     chown root:root /var/log/gunicorn && \
