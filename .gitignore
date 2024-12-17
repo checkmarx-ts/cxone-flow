@@ -3,6 +3,7 @@
 *.yml
 *.log
 !.github/**/*.yml
+!agent_packages/**/*.yaml
 
 # drawio
 **/*.bkp
