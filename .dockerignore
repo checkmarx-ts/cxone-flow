@@ -1,0 +1,15 @@
+**/__pycache__
+
+**/.vscode
+**/.venv
+**/.vscode
+**/.gitignore
+**/*.yaml
+**/*.yml
+
+manual
+secrets
+tests
+test_data
+**/*.md
+LICENSE
