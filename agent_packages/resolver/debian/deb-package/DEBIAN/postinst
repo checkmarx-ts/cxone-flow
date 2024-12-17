@@ -1,0 +1,7 @@
+#!/bin/sh
+
+chown -R root:root /etc/cxoneflow-resolver-agent
+chown -R root:root /opt/cxoneflow-resolver-agent
+
+systemctl enable /opt/cxoneflow-resolver-agent/cxoneflow-resolver-agent.service
+systemctl start cxoneflow-resolver-agent

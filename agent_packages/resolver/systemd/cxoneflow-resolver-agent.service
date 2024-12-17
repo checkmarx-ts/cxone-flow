@@ -1,0 +1,14 @@
+ [Unit]
+ Description=CxOneFlow Resolver Agent
+ Documentation=https://github.com/checkmarx-ts/cxone-flow
+ After=network-online.target
+
+ [Service]
+ Restart=on-failure
+ ExecStart=/opt/cxoneflow-resolver-agent/resolver_agent
+ User=resolver
+ Group=resolver
+ Environment=CONFIG_YAML_PATH=/etc/cxoneflow-resolver-agent/config.yaml
+
+ [Install]
+ WantedBy=default.target

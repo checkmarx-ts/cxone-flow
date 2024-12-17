@@ -1,0 +1,15 @@
+#!/bin/sh
+
+getent passwd resolver > /dev/null
+
+if [ $? -ne 0 ];
+then
+  useradd -m --shell /usr/sbin/nologin resolver
+fi
+
+getent group docker > /dev/null
+
+if [ $? -eq 0 ];
+then
+  usermod -G docker resolver
+fi

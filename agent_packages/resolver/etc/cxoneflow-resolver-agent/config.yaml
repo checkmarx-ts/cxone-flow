@@ -1,0 +1,24 @@
+# This is a stub configuration file for the CxOneFlow Resolver Agent.
+# Please provide your required configuration options.
+
+# The resolver agent starts via systemd.  The systemd service will
+# not start until this file contains an actionable configuration.
+
+# The resolver agent runs as user "resolver" that is in group
+# "resolver".  The secret directory should have permissions
+# set as 510 owned by "root:resolver".
+
+# Any operational work directories should be owned by root:resolver
+# and have the permissions set to 770.
+
+# Some configuration options allow the name of a secret rather than
+# an explicit value.  This is the path where a file with the secret
+# name should be located.
+secret-root-path: /run/secrets
+
+# This is the element where this agents serviced tags are
+# configured. Please consult the CxOneFlow documentation
+# for details:
+#
+# https://github.com/checkmarx-ts/cxone-flow
+serviced-tags:
