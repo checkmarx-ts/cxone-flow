@@ -14,7 +14,7 @@ LABEL org.opencontainers.image.description Orchestrates scans for Checkmarx One
 USER root
 WORKDIR /opt/cxone
 
-COPY *.txt /opt/cxone
+COPY ./ /opt/cxone/
 COPY --from=cert /tmp/*.pem /opt/cxone/ssl/default/
 COPY docker/rabbitmq/rabbitmq.list /etc/apt/sources.list.d/rabbitmq.list
 COPY docker/etc/* /etc/
@@ -45,7 +45,7 @@ RUN apt-get update && \
     rm /etc/nginx/sites-enabled/default
 
 
-RUN mkdir -p /opt/cxone/artifacts && \
+RUN mkdir -p /opt/cxone && \
     mkdir -p /var/log/gunicorn && \
     mkdir -p /var/log/cxoneflow && \
     mkdir -p /var/log/nginx && \
@@ -54,24 +54,13 @@ RUN mkdir -p /opt/cxone/artifacts && \
     chown root:root /var/log/cxoneflow && \
     chmod 775 /var/log/cxoneflow
 
-
 COPY docker/rabbitmq/*.conf /opt/cxone/rabbitmq/
 ENV RABBITMQ_CONFIG_FILES=/opt/cxone/rabbitmq
 
-COPY *.py /opt/cxone/
 COPY docker/entrypoint.sh /opt/cxone
 COPY docker/*.py /opt/cxone
 COPY docker/nginx /opt/cxone/nginx
 
-COPY api_utils /opt/cxone/api_utils
-COPY config /opt/cxone/config
-COPY cxone_service /opt/cxone/cxone_service
-COPY cxoneflow_logging /opt/cxone/cxoneflow_logging
-COPY orchestration /opt/cxone/orchestration
-COPY scm_services /opt/cxone/scm_services
-COPY task_management /opt/cxone/task_management
-COPY workflows /opt/cxone/workflows
-COPY artifacts /opt/cxone/artifacts
-
+RUN rm -rf /opt/cxone/docker
 
 ENTRYPOINT ["/opt/cxone/entrypoint.sh"]

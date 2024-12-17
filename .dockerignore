@@ -3,6 +3,7 @@
 **/.vscode
 **/.venv
 **/.vscode
+**/.git
 **/.gitignore
 **/*.yaml
 **/*.yml
