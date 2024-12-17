@@ -84,7 +84,7 @@ class ResolverScanService(BaseWorkflowService):
         return self.__workflow.validate_signature(signature, payload)
     
     def capture_logs(self, logs : bytearray) -> None:
-        if self.__workflow.capture_logs:
+        if self.__workflow.capture_logs and logs is not None:
             self.log().info(f"Captured resolver logs: [{logs.decode()}]")
     
     async def request_resolver_scan(self, scanner_tag : str, project_config : ProjectRepoConfig, cloner : Cloner, 
