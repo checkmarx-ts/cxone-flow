@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'The version tag to use in the form of x.x'
+        description: 'The version tag to use in the form of x.x.x'
         required: true
         type: string
       prerelease:

@@ -17,6 +17,15 @@ jobs:
       - name: Build Docker Image
         run: |
           docker build -f docker/Dockerfile .
+
+  build-deb-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Code
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+
+      - name: Build Debian amd64 Package
+        run: agent_packages/resolver/debian/build-package.sh
    
   execute-unit-tests:
     runs-on: ubuntu-latest

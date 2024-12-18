@@ -84,9 +84,26 @@ jobs:
           name: release-notes
           path: release_notes/release_notes.pdf
 
+  compile-deb-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Code @ tag ${{ inputs.tag }}
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+
+      - name: Build deb package
+        run: agent_packages/resolver/debian/build-package.sh ${{ inputs.tag }}
+
+      - name: Upload deb amd64 package
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+        with:
+          name: deb-amd64
+          path: agent_packages/resolver/debian/*.deb
+
   publish-release:
     runs-on: ubuntu-latest
-    needs: [publish-container,compile-manual]
+    needs: [publish-container,compile-manual,compile-deb-amd64]
     steps:
       - name: Make release text
         run: |
@@ -112,6 +129,10 @@ jobs:
           mv cxone-flow.pdf cxone-flow-manual-${{ inputs.tag }}.pdf
           mv release_notes.pdf cxone-flow-release-notes-${{ inputs.tag }}.pdf
 
+      - name: Download deb-amd64
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: deb-amd64
 
       - name: Create GitHub Release
         id: create_release
@@ -119,7 +140,7 @@ jobs:
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: ./*.pdf
+          artifacts: ./*.pdf, ./*.deb
           bodyFile: release.md
           name: ${{ inputs.tag }}
           prerelease: ${{ inputs.prerelease }}
