@@ -13,7 +13,7 @@ from workflows.utils import AdditionalScanContentWriter
 from workflows import ScanWorkflow
 from api_utils.auth_factories import EventContext
 from enum import Enum
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 from services import CxOneFlowServices
 from cxone_api.high.projects import ProjectRepoConfig
 
@@ -87,7 +87,8 @@ class OrchestratorBase:
     async def execute(self, services : CxOneFlowServices):
         raise NotImplementedError("execute")
 
-    async def execute_deferred(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]):
+    async def execute_deferred(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter],
+                               scan_tags : Dict[str,str]):
         raise NotImplementedError("execute_deferred")
     
     async def _get_clone_worker(self, scm_service : SCMService, clone_url : str, failures : int) -> CloneWorker:
@@ -187,31 +188,36 @@ class OrchestratorBase:
             OrchestratorBase.log().info(f"{clone_url}:{source_hash}:{source_branch} is not related to any protected branch: {protected_branches}")
             return None, OrchestratorBase.ScanAction.SKIPPED
 
-    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None) -> ScanAction:
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None, 
+                                          scan_tags : Dict[str, str]=None) -> ScanAction:
         OrchestratorBase.log().debug("_execute_push_scan_workflow")
         
         _, hash = await self._get_source_branch_and_hash()
 
-        scan_tags = {
+        submitted_scan_tags = {
             CxOneService.COMMIT_TAG : hash,
             "workflow" : str(ScanWorkflow.PUSH),
             "cxone-flow" : __version__,
             "service" : services.cxone.moniker
         }
 
-        _, action = await self.__orchestrate_scan(services, scan_tags, ScanWorkflow.PUSH, additional_content)
+        if scan_tags is not None:
+            submitted_scan_tags.update(scan_tags)
+
+        _, action = await self.__orchestrate_scan(services, submitted_scan_tags, ScanWorkflow.PUSH, additional_content)
 
         return action
 
 
 
-    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None) -> ScanAction:
+    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None, 
+                                        scan_tags : Dict[str, str]=None) -> ScanAction:
         OrchestratorBase.log().debug("_execute_pr_scan_workflow")
 
         source_branch, source_hash = await self._get_source_branch_and_hash()
         target_branch, _ = await self._get_target_branch_and_hash()
 
-        scan_tags = {
+        submitted_scan_tags = {
             CxOneService.COMMIT_TAG : source_hash,
             CxOneService.PR_ID_TAG : self._pr_id,
             CxOneService.PR_TARGET_TAG : target_branch,
@@ -222,7 +228,10 @@ class OrchestratorBase:
             "service" : services.cxone.moniker
         }
 
-        inspector, scan_action = await self.__orchestrate_scan(services, scan_tags, ScanWorkflow.PR, additional_content)
+        if scan_tags is not None:
+            submitted_scan_tags.update(scan_tags)
+
+        inspector, scan_action = await self.__orchestrate_scan(services, submitted_scan_tags, ScanWorkflow.PR, additional_content)
         if inspector is not None and scan_action is OrchestratorBase.ScanAction.EXECUTING:
             await services.pr.start_pr_scan_workflow(inspector.project_id, inspector.scan_id, 
                                                         PRDetails.factory(event_context=self.event_context, clone_url=self._repo_clone_url(services.scm.cloner), 

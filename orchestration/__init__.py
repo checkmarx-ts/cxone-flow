@@ -3,7 +3,7 @@ from .base import OrchestratorBase
 import logging
 from config import RouteNotFoundException
 from config.server import CxOneFlowConfig
-from typing import List
+from typing import List, Dict
 from workflows.utils import AdditionalScanContentWriter
 
 class OrchestrationDispatch:
@@ -32,13 +32,14 @@ class OrchestrationDispatch:
             OrchestrationDispatch.log().warning(f"Event [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
 
     @staticmethod
-    async def execute_deferred_scan(orchestrator : OrchestratorBase, additional_scan_contant : List[AdditionalScanContentWriter]):
+    async def execute_deferred_scan(orchestrator : OrchestratorBase, additional_scan_contant : List[AdditionalScanContentWriter],
+                                    additional_scan_tags : Dict[str, str]):
         try:
             OrchestrationDispatch.log().debug(f"Service lookup: {orchestrator.route_urls}")
             services = CxOneFlowConfig.retrieve_services_by_route(orchestrator.route_urls, orchestrator.config_key)
             OrchestrationDispatch.log().debug(f"Service lookup success: {orchestrator.route_urls}")
 
-            return await orchestrator.execute_deferred(services, additional_scan_contant)
+            return await orchestrator.execute_deferred(services, additional_scan_contant, additional_scan_tags)
         except RouteNotFoundException as ex:
             OrchestrationDispatch.log().warning(f"Deferred scan for [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
 
