@@ -4,6 +4,7 @@ from agent import mq_agent
 from config.resolver import ResolverConfig
 from config import ConfigurationException, get_config_path
 from workflows.resolver_scan_service import ResolverScanService
+from _version import __version__
 
 cof_logging.bootstrap()
 
@@ -11,6 +12,7 @@ __log = logging.getLogger("ResolverRunnerAgent")
 
 
 async def spawn_agents():
+    __log.info(f"Resolver Agent {__version__} Startup")
     async with asyncio.TaskGroup() as g:
         for agent in ResolverConfig.agent_handlers():
             g.create_task(
