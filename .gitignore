@@ -9,6 +9,7 @@
 agent_packages/**/*-package/etc/**
 agent_packages/**/*-package/opt/**
 agent_packages/**/*-package/DEBIAN/control
+**/*.deb
 
 # drawio
 **/*.bkp
