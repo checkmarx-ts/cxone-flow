@@ -6,7 +6,8 @@
 
 # The resolver agent runs as user "resolver" that is in group
 # "resolver".  The secret directory should have permissions
-# set as 510 owned by "root:resolver".
+# set as 510 owned by "root:resolver".  The contents inside the
+# secret directory should have the permissions 640.
 
 # Any operational work directories should be owned by root:resolver
 # and have the permissions set to 770.

@@ -32,8 +32,8 @@ class ResolverConfig(CommonConfig):
             return ToolkitRunner(work_path, opts,
                                  CommonConfig._get_value_for_key_or_fail(f"{config_path}/run-with-container", "supply-chain-toolkit-path", container_runner_cfg),
                                  CommonConfig._get_value_for_key_or_fail(f"{config_path}/run-with-container", "container-image-tag", container_runner_cfg),
-                                 CommonConfig._get_value_for_key_or_default("use-running-uid", container_runner_cfg, False),
-                                 CommonConfig._get_value_for_key_or_default("use-running-gid", container_runner_cfg, False),
+                                 CommonConfig._get_value_for_key_or_default("use-running-uid", container_runner_cfg, True),
+                                 CommonConfig._get_value_for_key_or_default("use-running-gid", container_runner_cfg, True),
                                  )
 
     @staticmethod
