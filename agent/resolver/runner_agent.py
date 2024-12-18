@@ -99,6 +99,10 @@ class ResolverRunnerAgent(BaseWorkflowService):
                     if not isinstance(cloner, Cloner):
                         raise ResolverAgentException.cloner_type_exception(type(cloner))
                     else:
+                        ResolverRunnerAgent.log().info(f"Starting SCA Resolver: Project: [{scan_msg.details.project_name}]" + 
+                                                       f" From: {scan_msg.moniker} Workflow: [{str(scan_msg.workflow)}]" + 
+                                                       f" Clone: [{scan_msg.details.clone_url}@{scan_msg.details.commit_hash}] CorId: [{scan_msg.correlation_id}]")
+
                         async with await cloner.clone(
                             scan_msg.details.clone_url,
                             scan_msg.details.event_context,
@@ -140,14 +144,16 @@ class ResolverRunnerAgent(BaseWorkflowService):
                                 ResolverScanService.EXCHANGE_RESOLVER_SCAN,
                             )
         except subprocess.CalledProcessError as cpex:
-            self.log().exception(cpex.output.decode(), cpex)
+            ResolverRunnerAgent.log().error(f"SCA Resolver: Process failure for Project: [{scan_msg.details.project_name}] with CorId: [{scan_msg.correlation_id}]")
+            self.log().exception(f"{scan_msg.correlation_id} log: [{cpex.output.decode()}]", cpex)
             await self.__send_failure_response(
                 workflow, scan_msg, cpex.returncode, cpex.output
             )
             await msg.nack(requeue=False)
         except BaseException as ex:
-            self.log().exception(ex)
+            self.log().exception(f"SCA Resolver: Unhandled exception for Project: [{scan_msg.details.project_name}] with CorId: [{scan_msg.correlation_id}]", ex)
             await self.__send_failure_response(workflow, scan_msg)
             await msg.nack(requeue=False)
         else:
+            ResolverRunnerAgent.log().info(f"SCA Resolver: Success for Project: [{scan_msg.details.project_name}] with CorId: [{scan_msg.correlation_id}]")
             await msg.ack()
