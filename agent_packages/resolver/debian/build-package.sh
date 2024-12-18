@@ -11,6 +11,10 @@ else
   VERSION="0.0.0"
 fi
 
+DEB_NAME=cxoneflow-resolver-agent_${VERSION}_$(dpkg-architecture -q DEB_BUILD_ARCH).deb
+
+echo Building $DEB_NAME
+
 mkdir -p $PACKAGE_ROOT/deb-package/etc/cxoneflow-resolver-agent
 mkdir -p $PACKAGE_ROOT/deb-package/opt/cxoneflow-resolver-agent
 
@@ -20,7 +24,7 @@ echo "Version: $VERSION" >> $PACKAGE_ROOT/deb-package/DEBIAN/control
 cp $PACKAGE_ROOT/../etc/cxoneflow-resolver-agent/* $PACKAGE_ROOT/deb-package/etc/cxoneflow-resolver-agent/
 cp $PACKAGE_ROOT/../systemd/* $PACKAGE_ROOT/deb-package/opt/cxoneflow-resolver-agent/
 
-docker run -it --rm -w /src \
+docker run -i --rm -w /src \
 -v $SRC_ROOT:/src -v $PACKAGE_ROOT/deb-package/opt/cxoneflow-resolver-agent:/dist/output \
 python:3.12-bookworm sh -c \
 " \
@@ -30,5 +34,5 @@ pyinstaller -F --copy-metadata aio-pika --specpath /dist/platform/spec --distpat
 "
 
 dpkg-deb --build $PACKAGE_ROOT/deb-package
-mv $PACKAGE_ROOT/deb-package.deb $PACKAGE_ROOT/cxoneflow-resolver-agent_${VERSION}_$(dpkg-architecture -q DEB_BUILD_ARCH).deb
+mv $PACKAGE_ROOT/deb-package.deb $PACKAGE_ROOT/$DEB_NAME
 
