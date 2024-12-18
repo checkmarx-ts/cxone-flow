@@ -100,7 +100,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
                         raise ResolverAgentException.cloner_type_exception(type(cloner))
                     else:
                         ResolverRunnerAgent.log().info(f"Starting SCA Resolver: Project: [{scan_msg.details.project_name}]" + 
-                                                       f" From: {scan_msg.moniker} Workflow: [{str(scan_msg.workflow)}]" + 
+                                                       f" From: [{scan_msg.moniker}] Workflow: [{str(scan_msg.workflow)}]" + 
                                                        f" Clone: [{scan_msg.details.clone_url}@{scan_msg.details.commit_hash}] CorId: [{scan_msg.correlation_id}]")
 
                         async with await cloner.clone(
