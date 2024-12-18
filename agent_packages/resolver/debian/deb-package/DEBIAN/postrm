@@ -3,5 +3,6 @@ getent passwd resolver > /dev/null
 
 if [ $? -eq 0 ];
 then
-  userdel resolver
+  echo Removing 'resolver' user/group
+  userdel -r resolver
 fi

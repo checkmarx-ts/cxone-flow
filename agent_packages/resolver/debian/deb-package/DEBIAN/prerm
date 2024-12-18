@@ -1,3 +1,4 @@
 #!/bin/sh
+echo Stopping the 'cxoneflow-resolver-agent' service.
 systemctl stop cxoneflow-resolver-agent
 systemctl disable cxoneflow-resolver-agent

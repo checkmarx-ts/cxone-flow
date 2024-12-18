@@ -4,6 +4,7 @@ getent passwd resolver > /dev/null
 
 if [ $? -ne 0 ];
 then
+  echo Creating 'resolver' user/group
   useradd -m --shell /usr/sbin/nologin resolver
 fi
 
@@ -11,5 +12,13 @@ getent group docker > /dev/null
 
 if [ $? -eq 0 ];
 then
+  echo Adding 'resolver' to the 'docker' group
   usermod -G docker resolver
+else
+  echo WARNING: The 'docker' group does not exist, you may need to add 'resolver' to the 'docker' group when docker is installed.
 fi
+
+echo Creating default secrets directory '/var/secrets'
+mkdir -p /var/secrets
+chown root:resolver /var/secrets
+chmod 510 /var/secrets

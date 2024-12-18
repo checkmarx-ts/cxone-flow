@@ -3,5 +3,6 @@
 chown -R root:root /etc/cxoneflow-resolver-agent
 chown -R root:root /opt/cxoneflow-resolver-agent
 
+echo Enabling 'cxoneflow-resolver-agent.service' to start at system start.
 systemctl enable /opt/cxoneflow-resolver-agent/cxoneflow-resolver-agent.service
 systemctl start cxoneflow-resolver-agent
