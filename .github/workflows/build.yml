@@ -108,11 +108,13 @@ jobs:
       - name: Make release text
         run: |
           echo "# CxOneFlow ${{ inputs.tag }}" > release.md
-          echo Executable artifacts are published in a container. >> release.md
+          echo The CxOneFlow ${{ inputs.tag }} Server is available in a container: >> release.md
           echo '```' >> release.md
           [ ${{ inputs.prerelease }} = false ] && echo "docker pull $DOCKER_REPO:latest" >> release.md || :
           echo "docker pull $DOCKER_REPO:${{ inputs.tag }}" >> release.md
           echo '```' >> release.md
+          echo The CxOneFlow Resolver Agent is an optional component for running SCA Resolver prior to a scan.  It >> release.md
+          echo can be downloaded as an installer package appropriate for supported operating systems. >> release.md
 
       - name: Download manual
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
