@@ -67,9 +67,9 @@ jobs:
           work_in_root_file_dir: true
 
       - name: Upload manual
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
-          name: manual
+          name: manual-${GITHUB_RUN_NUMBER}
           path: manual/cxone-flow.pdf
   
       - name: Build PDF Release Notes
@@ -79,9 +79,9 @@ jobs:
           work_in_root_file_dir: true
 
       - name: Upload release notes
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
-          name: release-notes
+          name: release-notes-${GITHUB_RUN_NUMBER}
           path: release_notes/release_notes.pdf
 
   compile-deb-amd64:
@@ -96,9 +96,9 @@ jobs:
         run: agent_packages/resolver/debian/build-package.sh ${{ inputs.tag }}
 
       - name: Upload deb amd64 package
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
-          name: deb-amd64
+          name: deb-amd64-${GITHUB_RUN_NUMBER}
           path: agent_packages/resolver/debian/*.deb
 
   publish-release:
@@ -115,14 +115,14 @@ jobs:
           echo '```' >> release.md
 
       - name: Download manual
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: manual
+          name: manual-${GITHUB_RUN_NUMBER}
 
       - name: Download release notes
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: release-notes
+          name: release-notes-${GITHUB_RUN_NUMBER}
 
       - name: Rename documentation artifacts
         run: |
@@ -130,9 +130,9 @@ jobs:
           mv release_notes.pdf cxone-flow-release-notes-${{ inputs.tag }}.pdf
 
       - name: Download deb-amd64
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: deb-amd64
+          name: deb-amd64-${GITHUB_RUN_NUMBER}
 
       - name: Create GitHub Release
         id: create_release
@@ -154,7 +154,7 @@ jobs:
       - uses: geekyeggo/delete-artifact@9d15d164b1dcd538ff1b1a2984bc2c0240986c3b
         with:
           name: |
-            release-notes
-            manual
-            deb-amd64
+            release-notes-${GITHUB_RUN_NUMBER}
+            manual-${GITHUB_RUN_NUMBER}
+            deb-amd64-${GITHUB_RUN_NUMBER}
         
