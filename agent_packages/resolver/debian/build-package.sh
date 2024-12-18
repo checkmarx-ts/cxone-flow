@@ -1,5 +1,8 @@
 #!/bin/sh
+set -e
+
 PACKAGE_ROOT=$(dirname $(realpath $0))
+
 SRC_ROOT=$PACKAGE_ROOT/../../..
 if [ $# -eq 1 ];
 then
