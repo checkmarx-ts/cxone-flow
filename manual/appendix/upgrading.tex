@@ -1,0 +1,42 @@
+\chapter{Upgrading}
+
+\section{Switching to an external RabbitMQ Instance}\label{sec:rmq-switch}
+
+The \cxoneflow container has an internal RabbitMQ instance that is used to orchestrate messaging 
+for \hyperref[part:workflows]{asynchronous workflows} supported by \cxoneflow.  If the configuration
+does not specify \hyperref[sec:amqp-element]{an external AMQP endpoint}, the internal RabbitMQ instance
+is used.  When the running \cxoneflow container is deleted, the messages contained in the internal
+RabbitMQ instance are also deleted.
+
+When upgrading to a new version of \cxoneflow or changing the AMQP connection configuration, it is advised
+to let the existing \cxoneflow container continue to run while the agents process the pending messages.\footnote{To view 
+the queue message counts, execute the command \texttt{rabbitmqctl list\_queues} in a shell on the \cxoneflow container.}  
+When the queues no longer have any pending or processing messages, the old \cxoneflow instance can be terminated.
+
+\section{From 1.x to 2.x}
+
+The configuration YAML for version 1.3 is compatible with version 2.x.  If the \cxoneflow instance uses only the internal
+RabbitMQ instance, then the need to drain the messages in the internal queues as described in Section \ref{sec:rmq-switch}
+applies.  If not using an external AMQP endpoint with \cxoneflow prior to version 2.x, nothing further is required for 
+upgrade activities.
+
+Version 2.x introduced a change to the naming of exchanges and queues.  The version 2.x naming changes will not clash with
+names of exchanges and queues for prior versions in the same host, but version 2.x workflow agents will not process messages
+from the 1.x named queues.  In this case, it is advised to use the following procedure when upgrading:
+
+\begin{enumerate}
+  \item Create a copy of the \cxoneflow configuration for 1.x and modify it to be compatible with version 2.x.
+  \item Create one or more instances of \cxoneflow 2.x that run in parallel with \cxoneflow 1.x instances.
+  \item Leave the \cxoneflow 1.x instances running so that the messages are drained from the version 1.x queues.
+  \item Make a DNS change that points to the version 2.x \cxoneflow instance so that all new events are handled by
+  the version 2.x endpoints.
+  \item When the version 1.x queues are drained, the \cxoneflow version 1.x instances can be terminated.
+\end{enumerate}
+
+
+
+\section{From 1.x to 1.3}
+
+Version 1.3 introduced the required YAML root element \texttt{server-base-url}.  This element needs to be added to the configuration YAML
+or the \cxoneflow server will not start.  Please refer to Section \ref{sec:yaml-root} for more information about
+the \texttt{server-base-url} root element.
