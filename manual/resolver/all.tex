@@ -1,0 +1,55 @@
+\chapter{Distributed Resolver Agents}\label{sec:resolver-agents}
+
+\section{Overview}
+
+Executing Software Composition Analysis (SCA) scans in CheckmarxOne will gather results
+by analyzing packages found in the dependency tree for the code submitted for scan.  The
+dependency analysis for the code, when submitted to CheckmarxOne, is performed
+in the CheckmarxOne environment by executing the package managers that match the composition of the code
+under scan.  This generally works sufficiently when the code references only publicly-available, open-source
+packages and is compatible with the package manager tooling installed in the CheckmarxOne environment.  The
+CheckmarxOne SCA scan first obtains a dependency tree by executing the package manager tools, then performs an analysis
+of the packages found in the dependency tree.
+
+Not all software is composed of only publicly available packages nor does it always use package manager tooling
+that is compatible with those installed in the CheckmarxOne environment.  Incompatibilities usually manifest
+when some of the following issues are observed:
+
+\begin{itemize}
+  \item The dependency tree is incomplete when software references a private package repository that has
+  no network connection path available for connections from the CheckmarxOne server.
+  \item The dependency tree is incomplete when the code under scan is incompatible with the 
+  package manager tools installed in the CheckmarxOne environment.
+\end{itemize}
+
+The general solution to obtain an accurate dependency tree when it is not possible to obtain 
+via package manager tool execution in the CheckmarxOne environment is to perform the dependency resolution using the 
+\href{https://docs.checkmarx.com/en/34965-19197-checkmarx-sca-resolver-download-and-installation.html}{SCA Resolver}.
+The SCA Resolver is typically scripted to execute in a pipeline prior to the scan submission to CheckmarxOne.  This performs the dependency resolution
+in the same environment as the code builds, which will generally resolve any tooling compatibility or network connection
+problems.  
+
+Since \cxoneflow is primarily driven by asynchronous web hook events and does not invoke a pipeline
+where dependency resolution can be scripted, the distributed resolver agents are used to perform the dependency resolution using
+\href{https://docs.checkmarx.com/en/34965-19197-checkmarx-sca-resolver-download-and-installation.html}{SCA Resolver}.
+The diagram in Figure \ref{fig:resolver-agent-diagram} shows a typical deployment of the resolver agent.  
+
+The resolver agent is deployed in the same build environment where the code typically builds in a CI/CD pipeline using a
+self-hosted CI/CD "runner" agent. The \cxoneflow server delegates SCA Resolver to execute using methods similar to how a
+CI/CD pipeline delegates build script
+execution via the self-hosted "runner" agent.  The package manager tools used to produce the dependency tree match the versions, configurations
+and network connection capabilities found on the self-hosted runner.  The resolver agent can execute the dependency resolution in a shell
+that references tools installed on the runner machine, or can optionally execute tooling in a build environment defined in a container.
+
+
+\begin{figure}[ht]
+  \includegraphics[width=\textwidth]{graphics/cxoneflow-diagrams-Resolver Agent Diagram.png}
+  \caption{Resolver Agent Deployment Diagram}
+  \label{fig:resolver-agent-diagram}
+\end{figure}
+
+
+\input{resolver/server.tex}
+\input{resolver/agent.tex}
+
+

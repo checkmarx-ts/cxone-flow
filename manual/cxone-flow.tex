@@ -17,7 +17,12 @@
 \usepackage{amssymb, amsmath}
 \usepackage[many]{tcolorbox}
 \usepackage{placeins}
+\usepackage{parskip}
+
 \tcbuselibrary{listings}
+
+\setlength{\parindent}{0pt}
+
 
 \hypersetup{
   colorlinks=true,
@@ -81,14 +86,20 @@
 \input{scms/bbdc.tex}
 \input{scms/gh.tex}
 
-\part{Feedback Workflows}\label{part:feedback-workflows}
-\input{workflows/all.tex}
+\part{Advanced Workflows}\label{part:advanced-workflows}
+\input{resolver/all.tex}
+
+\part{Asynchronous Messaging Workflows}\label{part:workflows}
+\input{workflows/feedback.tex}
+\input{workflows/resolver.tex}
+
 
 \part{Appendices}
 \appendix
 \input{release_notes.tex}
 \input{appendix/systemd_service.tex}
 \input{appendix/ha.tex}
+\input{appendix/upgrading.tex}
 \input{appendix/endpoint_monikers.tex}
 \input{appendix/troubleshooting.tex}
 \input{appendix/amqp.tex}
