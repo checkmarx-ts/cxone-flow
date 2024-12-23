@@ -49,7 +49,7 @@ locations:
     \item Scroll to the \textbf{Webhook} configuration section; the settings prior to the web hook configuration
     are optional and not used by \cxoneflow.
     \item Provide the URL to the \cxoneflow endpoint with the \textbf{/gh} suffix as shown in Figure \ref{fig:gh-app-cfg-2}.
-    \item Provide the web hook secret value that is configured in the \cxoneflow YAML as described in Section \ref{sec:connection-element}.
+    \item Provide the web hook secret value that is configured in the \cxoneflow YAML as described in Section \ref{sec:yaml-config}.
     \item Scroll the the \textbf{Permissions} section and expand the \textbf{Repository Permissions} as shown in
     Figure \ref{fig:gh-app-cfg-3}.  The following permissions are required:
     \begin{itemize}
@@ -69,7 +69,7 @@ locations:
     \textbf{Private keys} section as shown in Figure \ref{fig:gh-app-cfg-6}.
     \item Click the \textbf{Generate a private key} button.  A private key entry will appear and a file download will start.
     The contents of the download file is the PEM encoded private key that is to be stored as a secret.  See Section
-    \ref{sec:api-auth-element} for configuration instructions to reference this GitHub App private key.
+    \ref{sec:yaml-config} for configuration instructions to reference this GitHub App private key.
 \end{enumerate}
 
 \begin{figure}[ht]
@@ -223,7 +223,7 @@ GitHub Enterprise and \textbf{Webhooks} in GitHub Cloud.  Webhook integration ca
         \item Configure the payload URL with the \cxoneflow endpoint url with the \textbf{/gh} path suffix.
         \item Set the content type to \textbf{application/json}.
         \item Supply the webhook secret that is configured as the \texttt{shared-secret} as described in
-        Section \ref{sec:connection-element}.
+        Section \ref{sec:yaml-config}.
     \end{enumerate}
     \item In the section \textbf{Which events would you like to trigger this webhook?}, the option \textbf{Send me everything}
     will work but is not recommended as the \cxoneflow endpoint will receive many events it will not handle.  Using the

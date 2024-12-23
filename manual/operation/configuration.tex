@@ -7,7 +7,7 @@
 
 \subsubsection{Trusting Self-Signed Certificates}\label{sec:self-signed-certs}
 
-While the CheckmarxOne system uses TLS certificates signed by a public CA, it is possible that
+While the \cxone system uses TLS certificates signed by a public CA, it is possible that
 corporate proxies use certificates signed by a private CA. If so, it is possible to
 import custom CA certificates when using \cxoneflow.
 
@@ -112,461 +112,161 @@ definition
 
 \noindent\\\input{operation/yaml_anchors_example.tex}
 
-\subsection{YAML Configuration Elements}
+\subsection{YAML Configuration Elements}\label{sec:yaml-config}
 
-\subsubsection{YAML Root}\label{sec:yaml-root}
+The organization of the YAML configuration is depicted in the tree below.  The description of each element
+can be referenced by clicking the element.  Required elements are indicated in the tree; in general, if an
+element that is not marked "required" is omitted, the feature that performs that operation is not invoked
+for the configured service definition.
 
-The root elements of the YAML configuration are shown in Table \ref{tab:yaml-root-elements}.
-One or more SCM monikers specify the configuration applied to one
-or more instances of a supported SCM server's web hook events.  
-The following SCM configuration monikers are currently supported:
+\paragraph{YAML Root Elements}
 
-\begin{itemize}
-    \item \texttt{bbdc} for BitBucket Data Center webhook payloads targeting the \texttt{/bbdc}
-    webhook payload receiver endpoint.
-    \item \texttt{adoe} for Azure DevOps Enterprise or Cloud webhook payloads targeting the \texttt{/adoe}
-    webhook payload receiver endpoint.
-    \item \texttt{gh} for GitHub Enterprise or Cloud webhook payloads targeting the \texttt{/gh}
-    webhook payload receiver endpoint.
-\end{itemize}
+\noindent\\
 
-
-\begin{table}[ht]
-    \caption{YAML Root Elements}  
-    \label{tab:yaml-root-elements}      
-    \begin{tabularx}{\textwidth}{lcl}
-        \toprule
-        \textbf{Key} & \textbf{Required} & \textbf{Description}\\
-        \midrule
-        \texttt{secret-root-path} & Yes & \makecell[l]{
-            The path to a directory that contains one or more files 
-            \\containing secret values.  The names to these files are 
-            \\referenced elsewhere in the YAML configuration file as 
-            \\described in \hyperref[sec:scm-block-element]{YAML SCM Configuration Element}.            
-        }\\
-        \midrule
-        \texttt{server-base-url} & Yes & \makecell[l]{The base URL
-        for the \cxoneflow endpoint.  This is used\\when creating feedback
-        content that loads image elements.                        
-        }\\
-        \midrule
-        \texttt{<scm moniker>} & Yes & \makecell[l]{At lease one SCM moniker.}\\
-        \midrule
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-
-\subsubsection{YAML SCM Moniker Configuration Elements}\label{sec:scm-block-element}
-
-The SCM configuration element is the same for all SCM monikers. The element is a list with
-one or more entries corresponding to a clone URL regular expression match.  The entry
-that first matches the clone URL received in the webhook payload is used to configure
-the workflow execution parameters.  Table \ref{tab:scm-section-keys} explains the SCM
-configuration keys for each SCM configuration list entry.
-
-\begin{table}[ht]
-    \caption{SCM Configuration YAML Element}  
-    \label{tab:scm-section-keys}      
-    \begin{tabularx}{\textwidth}{lcl}
-        \toprule
-        \textbf{Key} & \textbf{Required} & \textbf{Description}\\
-        \midrule
-        \texttt{service-name} & Yes & \makecell[l]{A moniker for the route match that is used for logging purposes.}\\
-        \midrule
-        \texttt{repo-match} & Yes & \makecell[l]{A regex applied to the source repository.  If the webhook payload has\\a clone URL that matches the regex, this configuration is used to\\orchestrate the scanning.}\\
-        \midrule
-        \texttt{scan-config} & No & \makecell[l]{Elements that define the default scan configuration.  This element\\is described in the section\\"\hyperref[sec:scan-config-element]{YAML Configuration Element: \texttt{scan-config}}"}\\
-        \midrule
-        \texttt{connection} & Yes & \makecell[l]{SCM connection parameters. This element\\is described in the section\\"\hyperref[sec:connection-element]{YAML Configuration Element: \texttt{connection}}"}\\
-        \midrule
-        \texttt{cxone} & Yes & \makecell[l]{The connection configuration for the CheckmarxOne API. This\\element is described in the section\\"\hyperref[sec:cxone-element]{YAML Configuration Element: \texttt{cxone}}"}\\
-        \midrule
-        \texttt{feedback} & No & \makecell[l]{Configuration for feedback workflows. This element is described\\in the section "\hyperref[sec:feedback-element]{YAML Configuration Element: \texttt{feedback}}"}\\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-
-\paragraph{YAML Configuration Element: \texttt{scan-config} }\label{sec:scan-config-element}
-
-\noindent\\\\The \texttt{scan-config} element, described in Table \ref{tab:scan-config-section-keys}, allows for
-default configurations to be applied to each scan.  Please refer to
-Section \ref{sec:deployment-scan-defaults} to understand the implications of setting
-the scan defaults in the \cxoneflow configuration.
-
-
-
-\begin{table}[ht]
-    \caption{\texttt{scan-config} YAML Element}  
-    \label{tab:scan-config-section-keys}      
-    \begin{tabularx}{\textwidth}{lcl}
-        \toprule
-        \textbf{Key} & \textbf{Required} & \textbf{Description}\\
-        \midrule
-        \texttt{default-scan-engines} & No & \makecell[l]{A element that follows the format\\\texttt{<engine-name>:<engine config option dictionary>}\\corresponding to the configuration element of the\\\href{https://checkmarx.stoplight.io/docs/checkmarx-one-api-reference-guide/branches/main/f601dd9456e80-run-a-scan}{Checkmarx One scan API}.}\\
-        \midrule
-        \texttt{default-scan-tags} & No &  \makecell[l]{A dictionary of static key:value pairs that are assigned to\\each scan.}\\
-        \midrule
-        \texttt{default-project-tags} & No & \makecell[l]{A dictionary of static key:value pairs that are assigned\\to each project upon project creation.}\\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-
-\paragraph{YAML Configuration Element: \texttt{cxone} }\label{sec:cxone-element}
-
-\noindent\\\\The \texttt{cxone} element, described in Table \ref{tab:cxone-section-keys}, 
-describes the CheckmarxOne API connection parameters.
-
-
-\begin{table}[ht]
-    \caption{\texttt{cxone} YAML Element}  
-    \label{tab:cxone-section-keys}      
-    \begin{tabularx}{\textwidth}{lccl}
-        \toprule
-        \textbf{Key} & \textbf{Required} & \textbf{Default} & \textbf{Description}\\
-        \midrule
-        \texttt{tenant} & Yes & N/A & \makecell[l]{The name of the CheckmarxOne tenant.}\\
-        \midrule
-        \texttt{iam-endpoint} & Yes & N/A & \makecell[l]{This can be a fully qualified domain name of a server\\or a multi-tenant IAM endpoint moniker as described\\in Appendix \ref{sec:endpoint-monikers}.}\\
-        \midrule
-        \texttt{api-endpoint} & Yes & N/A & \makecell[l]{This can be a fully qualified domain name of a server\\or a multi-tenant API endpoint moniker as described\\in Appendix \ref{sec:endpoint-monikers}.}\\
-        \midrule
-        \texttt{timeout-seconds} & No & 60s & \makecell[l]{The number of seconds before a request for API\\results times out.}\\
-        \midrule
-        \texttt{retries} & No & 3 & \makecell[l]{The number of retries when the request fails.}\\
-        \midrule
-        \texttt{ssl-verify} & No & OS Bundle & \makecell[l]{See discussion in Section \ref{sec:ssl-verify-general}}\\
-        \midrule
-        \texttt{proxies} & No & N/A & \makecell[l]{A dictionary of \texttt{<scheme>:<url>} pairs to use a proxy\\server for requests. See: \href{https://requests.readthedocs.io/en/latest/user/advanced/\#proxies}{Python "requests" proxies}.}\\
-        \midrule
-        \texttt{api-key} & No & N/A & \makecell[l]{If not defined, the \texttt{oauth} element must be defined.\\The value specifies a file name found under the path\\defined by \texttt{secret-root-path}.}\\
-        \midrule
-        \texttt{oauth} & No & N/A & \makecell[l]{If not defined, the \texttt{api-key} element must be defined.\\This contains two required elements \texttt{client-id}\\and \texttt{client-secret} where each value corresponds to\\a file name found under the path defined by\\\texttt{secret-root-path}. }\\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-\paragraph{YAML Configuration Element: \texttt{feedback} }\label{sec:feedback-element}
-
-\noindent\\The \texttt{feedback} element is where parameters that control feedback
-workflows are configured.
-
-\begin{table}[ht]
-    \caption{\texttt{feedback} YAML Element}  
-    \label{tab:feedback-section-keys}      
-    \begin{tabularx}{\textwidth}{lccl}
-        \toprule
-        \textbf{Key} & \textbf{Required} & \textbf{Default} & \textbf{Description}\\
-        \midrule
-        \texttt{amqp} & No & N/A & \makecell[l]{The connection parameters for an AMQP endpoint
-        \\used for workflow orchestration. The \texttt{amqp} element
-        \\is described in the section
-        \\"\hyperref[sec:amqp-element]{YAML Configuration Element: \texttt{amqp}}"}\\
-        \midrule
-        \texttt{pull-request} & No & N/A & \makecell[l]{The configuration parameters for
-        pull request feedback\\workflows. The \texttt{pull-request} element is described
-        \\in the section
-        \\"\hyperref[sec:pull-request-element]{YAML Configuration Element: \texttt{pull-request}}"}\\
-        \midrule
-        \texttt{scan-monitor} & No & N/A & \makecell[l]{The parameters used when monitoring scan
-        progress\\during workflow orchestration. The \texttt{scan-monitor}\\element
-        is described in the section
-        \\"\hyperref[sec:scan-monitor-element]{YAML Configuration Element: \texttt{scan-monitor}}"}\\
-        \midrule
-        \texttt{exclusions} & No & N/A & \makecell[l]{Settings for excluding results from pull request PR\\
-        decorations.  The \texttt{exclusions} element is described in the\\
-        section "\hyperref[sec:exclusions-element]{YAML Configuration Element: \texttt{exclusions}}"}\\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-
-\paragraph{YAML Configuration Element: \texttt{amqp} }\label{sec:amqp-element}
-
-\noindent\\\\The \texttt{amqp} element, described in Table \ref{tab:amqp-section-keys}, 
-describes the AMQP endpoint connection parameters.  This optional element is required only
-when \cxoneflow uses an external AMQP endpoint for workflow persistence and
-scaling.
-
-The \cxoneflow container runs an instance of RabbitMQ that is used to orchestrate background
-processing; the internal instance is not publicly accessible.  Appendix \ref{sec:amqp-workflow-orch}
-details how an external AMQP endpoint can be used for high availability and advanced
-integration scenarios.
-
-
-\begin{table}[ht]
-    \caption{\texttt{amqp} YAML Element}  
-    \label{tab:amqp-section-keys}      
-    \begin{tabularx}{\textwidth}{lccl}
-        \toprule
-        \textbf{Key} & \textbf{Required} & \textbf{Default} & \textbf{Description}\\
-        \midrule
-        \texttt{amqp-url} & Yes & N/A & \makecell[l]{The AMQP/AMQPS URL for the AMQP endpoint.}\\
-        \midrule
-        \texttt{amqp-user} & No & N/A & \makecell[l]{If the user name is not included in the AMQP URL,
-        the\\provided value corresponds to a file name found under\\the path defined by
-        \texttt{secret-root-path}. }\\
-        \midrule
-        \texttt{amqp-password} & No & N/A & \makecell[l]{If the password is not included in the AMQP URL,
-        the\\provided value corresponds to a file name found under\\the path defined by
-        \texttt{secret-root-path}.}\\
-        \midrule
-        \texttt{ssl-verify} & No & OS Bundle & \makecell[l]{See discussion in Section \ref{sec:ssl-verify-general}}\\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-\paragraph{YAML Configuration Element: \texttt{pull-request} }\label{sec:pull-request-element}
-
-\noindent\\\\The \texttt{pull-request} element, described in 
-Table \ref{tab:pull-request-section-keys}, configures the feedback workflow for
-Pull Requests.
-
-\begin{table}[ht]
-    \caption{\texttt{pull-request} YAML Element}  
-    \label{tab:pull-request-section-keys}      
-    \begin{tabularx}{\textwidth}{lccl}
-        \toprule
-        \textbf{Key} & \textbf{Required} & \textbf{Default} & \textbf{Description}\\
-        \midrule
-        \texttt{enabled} & No & False & \makecell[l]{If set to \texttt{True}, the feedback
-        workflow for Pull Requests is\\executed upon completion of a scan generated by
-        a Pull\\Request. See Section \ref{sec:pull-request-workflow} for details about
-        the Pull Request\\feedback workflow.}\\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-\paragraph{YAML Configuration Element: \texttt{scan-monitor} }\label{sec:scan-monitor-element}
-
-\noindent\\\\The \texttt{scan-monitor} element, described in 
-Table \ref{tab:scan-monitor-section-keys}, configures the parameters for monitoring scan
-progress as part of workflow execution.
-
-Scan progress is monitored by requesting a scan state from the CheckmarxOne API at
-a time interval.  The initial time interval is set to the value configured for
-\texttt{poll-interval-seconds}.  If the scan is not found to have finished executing
-at any given poll execution, the previous poll interval time is multiplied by
-the scalar given in the \texttt{poll-backoff-multiplier} value up to a maximum
-poll interval time configured by \texttt{poll-max-interval-seconds}.
-
-If a scan does not finish executing by the time set in \texttt{scan-timeout-hours}, the
-workflow is aborted.  The value of 0 configured for \texttt{scan-timeout-hours} indicates
-the workflow will wait forever for the scan to finish executing.
-
-\begin{table}[ht]
-    \caption{\texttt{scan-monitor} YAML Element}  
-    \label{tab:scan-monitor-section-keys}      
-    \begin{tabularx}{\textwidth}{lccl}
-        \toprule
-        \textbf{Key} & \textbf{Required} & \textbf{Default} & \textbf{Description}\\
-        \midrule
-        \texttt{poll-interval-seconds} & No & 90s & \makecell[l]{The number of seconds to use
-        in\\calculating scan status polling time\\intervals.}\\
-        \midrule
-        \texttt{poll-max-interval-seconds} & No & 600s & \makecell[l]{The maximum
-        polling interval seconds.}\\
-        \midrule
-        \texttt{poll-backoff-multiplier} & No & 2 & \makecell[l]{A scalar used to increase
-        the scan polling\\interval after each poll execution.}\\
-        \midrule
-        \texttt{scan-timeout-hours} & No & 48 & \makecell[l]{The number of hours
-        before a feedback\\workflow aborts waiting for a scan to\\finish executing.  Set to
-        0 to wait forever.}\\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-\paragraph{YAML Configuration Element: \texttt{exclusions} }\label{sec:exclusions-element}
-
-\noindent\\\\The \texttt{exclusions} element, described in 
-Table \ref{tab:exclusions-section-keys}, configures the parameters for excluding
-results from feedback output.  Each of the elements is a list that can be configured
-with multiple exclusion elements.
-
-\noindent\\The list of states supported are:
-
-\begin{itemize}
-    \item Not Exploitable
-    \item To Verify
-    \item Proposed Not Exploitable
-    \item Confirmed
-    \item Urgent
-\end{itemize}
-
-
-\noindent\\The list of severities supported are:
-
-\begin{itemize}
-    \item Critical
-    \item High
-    \item Medium
-    \item Low
-    \item Info
-\end{itemize}
-
-
-
-\begin{table}[ht]
-    \caption{\texttt{exclusions} YAML Element}  
-    \label{tab:exclusions-section-keys}      
-    \begin{tabularx}{\textwidth}{lccl}
-        \toprule
-        \textbf{Key} & \textbf{Required} & \textbf{Default} & \textbf{Description}\\
-        \midrule
-        \texttt{state} & No & None & \makecell[l]{A list of result states that should be excluded
-        from feedback\\output.  Most organizations will add at least\\\texttt{Not Exploitable}
-        to this list.}\\
-        \midrule
-        \texttt{severity} & No & None & \makecell[l]{A list of severities that will be excluded from feedback output.}\\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-
-\paragraph{YAML Configuration Element: \texttt{connection} }\label{sec:connection-element}
-
-\noindent\\\\The \texttt{connection} element, described in Table \ref{tab:connection-section-keys}, 
-describes the SCM connection parameters used for API access and cloning.
-
-
-\begin{table}[ht]
-    \caption{\texttt{connection} YAML Element}  
-    \label{tab:connection-section-keys}      
-    \begin{tabularx}{\textwidth}{lccl}
-        \toprule
-        \textbf{Key} & \textbf{Required} & \textbf{Default} & \textbf{Description}\\
-        \midrule
-        \texttt{base-url} & Yes & N/A & \makecell[l]{The base url of the SCM server's API endpoint.\\This should be the 
-        root URL for the API that can\\be used when composing all API calls related to the\\source of the received webhook event}\\
-        \midrule
-
-        \texttt{base-display-url} & No & \texttt{base-url} & \makecell[l]{An optional URL for use when composing links as
-        \\part of an information display such as pull-\\request feedback. Most SCMs will not require this\\setting.}\\
-        \midrule
-
-        \texttt{api-url-suffix} & No & N/A & \makecell[l]{An optional API URL suffix used when composing\\API request URLs. Most SCMs
-        will not require\\this setting.}\\
-        \midrule
-
-        \texttt{shared-secret} & Yes & N/A & \makecell[l]{The shared secret configured in the SCM used to sign\\webhook payloads. The shared secret must meet the\\following minimum criteria: 20 characters long,\\contains at least 3 numbers, contains at least\\3 upper-case letters, and contains at least 2 special\\characters.}\\
-        \midrule
-        \texttt{timeout-seconds} & No & 60s & \makecell[l]{The number of seconds before a request for API\\results times out.}\\
-        \midrule
-        \texttt{retries} & No & 3 & \makecell[l]{The number of retries when the request fails.}\\
-        \midrule
-        \texttt{ssl-verify} & No & OS Bundle & \makecell[l]{See discussion in Section \ref{sec:ssl-verify-general}}\\
-        \midrule
-        \texttt{proxies} & No & N/A & \makecell[l]{A dictionary of \texttt{<scheme>:<url>} pairs to use a proxy\\server for requests. See: \href{https://requests.readthedocs.io/en/latest/user/advanced/\#proxies}{Python "requests" proxies}.}\\
-        \midrule
-        \texttt{api-auth} & Yes & N/A & \makecell[l]{A dictionary of SCM authorization options\\for using the API.\\See: \hyperref[sec:api-auth-element]{YAML Configuration Element: \texttt{api-auth}}}\\
-        \midrule
-        \texttt{clone-auth} & No & \makecell[l]{\texttt{api-auth}} & \makecell[l]{Authorization options for performing clones when it\\differs from authorization for API requests.\\See: \hyperref[sec:clone-auth-element]{YAML Configuration Element: \texttt{clone-auth}}}\\
-        \bottomrule
-    \end{tabularx}
-\end{table}
+\dirtree{%
+    .1 \hyperref[sec:yaml-root]{<root>}.
+    .2 \hyperref[sec:yaml-secret-root-path]{secret-root-path} \DTcomment{[Required]}.
+    .2 \hyperref[sec:yaml-server-base-url]{server-base-url} \DTcomment{[Required]}.
+    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \hyperref[sec:moniker-elements]{...see "YAML SCM Moniker Elements"}.
+}
 
 \pagebreak
+\paragraph{YAML SCM Moniker Elements}\label{sec:moniker-elements}
+\noindent\\
 
-\paragraph{YAML Configuration Element: \texttt{api-auth} }\label{sec:api-auth-element}
+\dirtree{%
+    .1 \hyperref[sec:yaml-root]{<root>}.
+    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \hyperref[sec:yaml-moniker-connection]{connection} \DTcomment{[Required]}.
+    .4 \hyperref[sec:connection-elements]{...see "YAML \texttt{connection} Elements"}.
+    .3 \hyperref[sec:yaml-moniker-cxone]{cxone} \DTcomment{[Required]}.
+    .4 \hyperref[sec:cxone-elements]{...see "YAML \texttt{cxone} Elements"}.
+    .3 \hyperref[sec:yaml-moniker-feedback]{feedback} \DTcomment{[Optional]}.
+    .4 \hyperref[sec:feedback-elements]{...see "YAML \texttt{feedback} Elements"}.
+    .3 \hyperref[sec:yaml-moniker-repo-match]{repo-match} \DTcomment{[Required]}.
+    .3 \hyperref[sec:yaml-moniker-resolver]{resolver} \DTcomment{[Optional]}.
+    .4 \hyperref[sec:resolver-elements]{...see "YAML \texttt{resolver} Elements"}.
+    .3 \hyperref[sec:yaml-moniker-scan-config]{scan-config} \DTcomment{[Optional]}.
+    .4 \hyperref[sec:scan-config-elements]{...see "YAML \texttt{scan-config} Elements"}.
+    .3 \hyperref[sec:yaml-moniker-service-name]{service-name} \DTcomment{[Required]}.
+}
 
-\noindent\\\\The \texttt{api-auth} element is required.  The authorization methods for \texttt{api-auth} 
-are used to communicate with the SCM's API and can often be used for cloning repositories.  The
-main difference between \texttt{api-auth} and \texttt{clone-auth} is that API access generally
-does not support SSH authorization. If there is a need to clone using SSH, configure the SSH
-authorization under the \texttt{clone-auth} element.  This element can contain the following
-key:value pair combinations:
+\pagebreak
+\paragraph{YAML \texttt{connection} Elements}\label{sec:connection-elements}
+\noindent\\
 
-\noindent\\\textbf{Token Authorization Elements}
+\dirtree{%
+    .1 \hyperref[sec:yaml-root]{<root>}.
+    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \hyperref[sec:yaml-moniker-connection]{connection} \DTcomment{[Required]}.
+    .4 \hyperref[sec:yaml-connection-base-url]{base-url} \DTcomment{[Required]}.
+    .4 \hyperref[sec:yaml-connection-base-display-url]{base-display-url} \DTcomment{[Required for some SCMs]}.
+    .4 \hyperref[sec:yaml-connection-api-url-suffix]{api-url-suffix} \DTcomment{[Required for some SCMs]}.
+    .4 \hyperref[sec:yaml-connection-shared-secret]{shared-secret} \DTcomment{[Required]}.
+    .4 \hyperref[sec:yaml-generic-proxies]{proxies} \DTcomment{[Optional]}.
+    .4 \hyperref[sec:yaml-generic-retries]{retries} \DTcomment{[Optional] Default: 3}.
+    .4 \hyperref[sec:yaml-generic-ssl-verify]{ssl-verify} \DTcomment{[Optional] Default: True}.
+    .4 \hyperref[sec:yaml-generic-timeout-seconds]{timeout-seconds}\DTcomment{[Optional] Default: 60s}.
+    .4 \hyperref[sec:yaml-connection-api-auth]{api-auth} \DTcomment{[Required]}.
+    .5 \hyperref[sec:yaml-api-auth-app-private-key]{app-private-key} \DTcomment{[See element documentation]}.
+    .5 \hyperref[sec:yaml-api-auth-password]{password} \DTcomment{[See element documentation]}.
+    .5 \hyperref[sec:yaml-api-auth-token]{token} \DTcomment{[See element documentation]}.
+    .5 \hyperref[sec:yaml-api-auth-username]{username} \DTcomment{[See element documentation]}.
+    .4 \hyperref[sec:yaml-connection-clone-auth]{clone-auth} \DTcomment{[Optional] Default: \texttt{api-auth}}.
+    .5 \hyperref[sec:yaml-api-auth-password]{password} \DTcomment{[See element documentation]}.
+    .5 \hyperref[sec:yaml-clone-auth-ssh]{ssh} \DTcomment{[See element documentation]}.
+    .5 \hyperref[sec:yaml-clone-auth-ssh-port]{ssh-port} \DTcomment{[See element documentation]}.
+    .5 \hyperref[sec:yaml-api-auth-token]{token} \DTcomment{[See element documentation]}.
+    .5 \hyperref[sec:yaml-api-auth-username]{username} \DTcomment{[See element documentation]}.
+}
 
-\noindent\\To access the SCM API or clone with a token, the following elements can appear under the 
-\texttt{api-auth} element exclusive of other elements:
+\pagebreak
+\paragraph{YAML \texttt{cxone} Elements}\label{sec:cxone-elements}
+\noindent\\
 
-\begin{itemize}
-    \item \texttt{token} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing a Personal Access Token (PAT).  This is required for
-    token authorization.
-    \item \texttt{username} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing a username associated with the PAT.  This is 
-    optional and only used during cloning; if not supplied, the default username of \texttt{git} is used.
-\end{itemize}
-
-\noindent\\\textbf{Basic Authorization Elements}
-
-\noindent\\To access the SCM API or clone with basic authorization\footnote{Many SCMs no longer support basic authorization.}
-, the following required elements can
-appear under the \texttt{api-auth} element exclusive of other elements:
-
-\begin{itemize}
-    \item \texttt{username} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing the username associated with the account used
-    for authorization. 
-    \item \texttt{password} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing the password associated with the account used
-    for authorization. 
-\end{itemize}
-
-\noindent\\\textbf{Application Authorization Elements}
-
-\noindent\\Application Authorization is available for use with select SCM types.  When using Application Authorization, there is typically not a need
-to provide a separate method of authorization for cloning defined in the \texttt{clone-auth} element. The following required
-Application Authorization elements can appear under the \texttt{api-auth} element exclusive of other elements:
-
-\begin{itemize}
-    \item \texttt{app-private-key} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing a private key used when obtaining application authorization. 
-\end{itemize}
-
-\noindent\\Refer to Part \ref{part:scms} for details about SCMs that support this type of authorization. 
+\dirtree{%
+    .1 \hyperref[sec:yaml-root]{<root>}.
+    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \hyperref[sec:yaml-moniker-cxone]{cxone} \DTcomment{[Required]}.
+    .4 \hyperref[sec:yaml-cxone-api-endpoint]{api-endpoint} \DTcomment{[Required]}.
+    .4 \hyperref[sec:yaml-cxone-api-key]{api-key} \DTcomment{[Required without oauth]}.
+    .4 \hyperref[sec:yaml-cxone-iam-endpoint]{iam-endpoint} \DTcomment{[Required]}.
+    .4 \hyperref[sec:yaml-cxone-oauth]{oauth} \DTcomment{[Required without api-key]}.
+    .4 \hyperref[sec:yaml-generic-proxies]{proxies} \DTcomment{[Optional]}.
+    .4 \hyperref[sec:yaml-generic-retries]{retries} \DTcomment{[Optional] Default: 3}.
+    .4 \hyperref[sec:yaml-generic-ssl-verify]{ssl-verify} \DTcomment{[Optional] Default: True}.
+    .4 \hyperref[sec:yaml-cxone-tenant]{tenant} \DTcomment{[Required]}.
+    .4 \hyperref[sec:yaml-generic-timeout-seconds]{timeout-seconds}\DTcomment{[Optional] Default: 60s}.
+}
 
 
-\paragraph{YAML Configuration Element: \texttt{clone-auth} }\label{sec:clone-auth-element}
+\pagebreak
+\paragraph{YAML \texttt{feedback} Elements}\label{sec:feedback-elements}
+\noindent\\
 
-\noindent\\\\The \texttt{clone-auth} element is optional;  if not provided, the connection information defined
-in \texttt{api-auth} will be used.  This element can contain the following key:value pair combinations:
 
-\noindent\\\textbf{Token Authorization Elements}
+\dirtree{%
+    .1 \hyperref[sec:yaml-root]{<root>}.
+    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \hyperref[sec:yaml-moniker-feedback]{feedback} \DTcomment{[Optional]}.
+    .4 \hyperref[sec:yaml-generic-amqp]{amqp} \DTcomment{[Optional] Default: container instance}.
+    .5 \hyperref[sec:yaml-generic-amqp-amqp-password]{amqp-password} \DTcomment{[Optional]}.
+    .5 \hyperref[sec:yaml-generic-amqp-amqp-url]{amqp-url} \DTcomment{[Required]}.
+    .5 \hyperref[sec:yaml-generic-amqp-amqp-user]{amqp-user} \DTcomment{[Optional]}.
+    .5 \hyperref[sec:yaml-generic-ssl-verify]{ssl-verify} \DTcomment{[Optional] Default: True}.
+    .4 \hyperref[sec:yaml-feedback-pull-request]{pull-request} \DTcomment{[Optional]}.
+    .5 \hyperref[sec:yaml-pull-request-enabled]{enabled} \DTcomment{[Optional] Default: False}.
+    .4 \hyperref[sec:yaml-feedback-scan-monitor]{scan-monitor} \DTcomment{[Optional]}.
+    .5 \hyperref[sec:yaml-scan-monitor-poll-backoff-multiplier]{poll-backoff-multiplier} \DTcomment{[Optional] Default: 2}.
+    .5 \hyperref[sec:yaml-scan-monitor-poll-interval-seconds]{poll-interval-seconds} \DTcomment{[Optional] Default: 90s}.
+    .5 \hyperref[sec:yaml-scan-monitor-poll-max-interval-seconds]{poll-max-interval-seconds} \DTcomment{[Optional] Default: 600s}.
+    .5 \hyperref[sec:yaml-scan-monitor-scan-timeout-hours]{scan-timeout-hours} \DTcomment{[Optional] Default: 48h}.
+    .4 \hyperref[sec:yaml-feedback-exclusions]{exclusions} \DTcomment{[Optional]}.
+    .5 \hyperref[sec:yaml-exclusions-severity]{severity} \DTcomment{[Optional]}.
+    .5 \hyperref[sec:yaml-exclusions-state]{state} \DTcomment{[Optional]}.
+}
 
-\noindent\\To clone with a token, the following elements can appear under the \texttt{clone-auth}
-element exclusive of other elements:
 
-\begin{itemize}
-    \item \texttt{token} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing a Personal Access Token (PAT).  This is required for
-    token authorization.
-    \item \texttt{username} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing a username associated with the PAT.  This is 
-    optional; if not supplied, the default username of \texttt{git} is used.
-\end{itemize}
+\pagebreak
+\paragraph{YAML \texttt{resolver} Elements}\label{sec:resolver-elements}
+\noindent\\
 
-\noindent\\\textbf{Basic Authorization Elements}
+\dirtree{%
+    .1 \hyperref[sec:yaml-root]{<root>}.
+    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \hyperref[sec:yaml-moniker-resolver]{resolver} \DTcomment{[Optional]}.
+}
 
-\noindent\\To clone with basic authorization\footnote{Many SCMs no longer support basic authorization.}, the following required elements can appear under the
-\texttt{clone-auth} element exclusive of other elements:
 
-\begin{itemize}
-    \item \texttt{username} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing the username associated with the account used
-    for authorization. 
-    \item \texttt{password} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing the password associated with the account used
-    for authorization. 
-\end{itemize}
+\pagebreak
+\paragraph{YAML \texttt{scan-config} Elements}\label{sec:scan-config-elements}
+\noindent\\
 
-\noindent\\\textbf{SSH Authorization Elements}
+\dirtree{%
+    .1 \hyperref[sec:yaml-root]{<root>}.
+    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \hyperref[sec:yaml-moniker-scan-config]{scan-config} \DTcomment{[Optional]}.
+    .4 \hyperref[sec:yaml-scan-config-default-scan-engines]{default-scan-engines} \DTcomment{[Optional]}.
+    .4 \hyperref[sec:yaml-scan-config-default-project-tags]{default-project-tags} \DTcomment{[Optional]}.
+    .4 \hyperref[sec:yaml-scan-config-default-scan-tags]{default-scan-tags} \DTcomment{[Optional]}.
+}
 
-\noindent\\To clone with SSH, the following required element can appear under the
-\texttt{clone-auth} element exclusive of other elements:
 
-\begin{itemize}
-    \item \texttt{ssh} - The value specifies a file name found under the path defined
-    by \texttt{secret-root-path} containing an unencrypted private SSH key.
-    \item \texttt{ssh-port} - This optional value specifies the port used for SSH cloning
-    if the SCM is not using port 22 and does not automatically include it in the clone
-    URL.
-\end{itemize}
+\input{operation/yaml/root.tex}
+\input{operation/yaml/scm-monikers.tex}
+\input{operation/yaml/scan-config.tex}
+\input{operation/yaml/cxone.tex}
+\input{operation/yaml/feedback.tex}
+\input{operation/yaml/pull-request.tex}
+\input{operation/yaml/scan-monitor.tex}
+\input{operation/yaml/exclusions.tex}
+\input{operation/yaml/connection.tex}
+\input{operation/yaml/api-auth.tex}
+\input{operation/yaml/clone-auth.tex}
+\input{operation/yaml/generic.tex}
+
+
 
 
 

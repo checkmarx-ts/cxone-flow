@@ -4,7 +4,7 @@
 
 The \cxoneflow container has an internal RabbitMQ instance that is used to orchestrate messaging 
 for \hyperref[part:workflows]{asynchronous workflows} supported by \cxoneflow.  If the configuration
-does not specify \hyperref[sec:amqp-element]{an external AMQP endpoint}, the internal RabbitMQ instance
+does not specify \hyperref[sec:yaml-config]{an external AMQP endpoint}, the internal RabbitMQ instance
 is used.  When the running \cxoneflow container is deleted, the messages contained in the internal
 RabbitMQ instance are also deleted.
 

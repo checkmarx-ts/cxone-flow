@@ -24,7 +24,7 @@ Webhook configurations applied at the \textit{Project} level can be configured t
 events for all repositories in the project.  This is the most ideal location to configure
 the webhook endpoints.  The project name will appear in clone URLs and can be used as part of 
 the regular expression placed in the \texttt{repo-match} configuration element.  Please see 
-Section \ref{sec:scm-block-element} for a description of the \texttt{repo-match} configuration
+Section \ref{sec:yaml-config} for a description of the \texttt{repo-match} configuration
 element.
 
 The project's "Service Hooks" can be used to configure webhook events to be delivered to the
@@ -45,7 +45,7 @@ endpoint connection configuration is to be provided.  A URL with the suffix
 fields that are required by \cxoneflow\footnote{Azure DevOps Enterprise will require
 the use of an encrypted endpoint when using the basic authorization password.}.
 The basic authentication password should match the \texttt{shared-secret} \cxoneflow
-configuration element.  Please see section \ref{sec:connection-element}
+configuration element.  Please see section \ref{sec:yaml-config}
 for more information about the \texttt{shared-secret} configuration.
 
 The \textbf{Test} button can be used to validate connectivity to the \cxoneflow endpoint.
@@ -94,8 +94,8 @@ if there is a need to have separate service accounts for some projects.
 
 While performing scan orchestration, \cxoneflow does access the Azure DevOps Enterprise API for
 certain operations.  This requires a configuration in the \texttt{api-auth} configuration
-element as described in Section \ref{sec:api-auth-element}.  The \texttt{clone-auth},
-described in Section \ref{sec:clone-auth-element}, is an optional element where the credentials
+element as described in Section \ref{sec:yaml-config}.  The \texttt{clone-auth},
+described in Section \ref{sec:yaml-config}, is an optional element where the credentials
 used for cloning code can be provided.  If \texttt{clone-auth} is not provided, cloning will
 be attempted using the credentials defined by \texttt{api-auth}.
 

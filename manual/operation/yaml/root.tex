@@ -1,0 +1,30 @@
+\subsubsection{YAML Element: Root}\label{sec:yaml-root}
+
+The root elements of the YAML configuration are formatted to the left-most
+position in the YAML file.  Anchor elements may be defined at the root but
+must not clash with the names of any of the root elements.
+
+\subsubsection{YAML Element: secret-root-path}\label{sec:yaml-secret-root-path}
+
+A string that is the path to a directory that contains one or more files containing secret values.  The names to these files are 
+referenced elsewhere in the YAML configuration file when used in a field that is a reference to a secret.
+
+\subsubsection{YAML Element: server-base-url}\label{sec:yaml-server-base-url}
+A string that is the base URL for the \cxoneflow endpoint.  This is used when creating feedback content that loads image elements.
+
+\subsubsection{YAML Element: <scm moniker>}\label{sec:yaml-scm-monikers}
+
+This is a moniker indicating the a list of service definitions for handling events from an SCM matching the name of the SCM
+moniker.  Each service definition is a YAML dictionary of elements. The contents for each service definition dictionary 
+have the same meaning unless otherwise specified.  At lease one SCM moniker with one configured service definition is required. 
+The following SCM configuration monikers are currently supported:
+
+\begin{itemize}
+    \item \textbf{\texttt{bbdc}} for BitBucket Data Center webhook payloads targeting the \texttt{/bbdc}
+    webhook payload receiver endpoint.
+    \item \textbf{\texttt{adoe}} for Azure DevOps Enterprise or Cloud webhook payloads targeting the \texttt{/adoe}
+    webhook payload receiver endpoint.
+    \item \textbf{\texttt{gh}} for GitHub Enterprise or Cloud webhook payloads targeting the \texttt{/gh}
+    webhook payload receiver endpoint.
+\end{itemize}
+

@@ -30,7 +30,7 @@ Multiple \cxoneflow endpoint containers behind a load balancer is recommended bu
 when deploying \hyperref[sec:resolver-agent]{resolver agents}.  However, an external message queue shared by the \cxoneflow endpoints
 and the resolver agent instances is required to distribute resolver scan jobs and results.  
 
-\section{External Message Queue}
+\section{External Message Queue}\label{sec:external-mq}
 
 An external message queue is required for high-availability deployments of \cxoneflow or deployments that use distributed
 \hyperref[sec:resolver-agent]{resolver agents}.  Although a single instance of an external message queue can be used, it is

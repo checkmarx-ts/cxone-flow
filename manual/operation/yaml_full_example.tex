@@ -11,8 +11,8 @@ and described by
 \href{https://checkmarx.com/resource/documents/en/34965-68598-global-settings.html#UUID-8e38f06b-45d4-ea7f-5ff5-50deb22e43aa_UUID-1a4211ec-dbf9-a180-cb20-59e1246ec3fb}{Scanners Settings}.
 
 While there are options to apply scan configurations via \texttt{scan-config} elements, it is often the case that defining the scan configuration
-in \cxoneflow will have undesirable results.  When defined in the \cxoneflow configuration, the configuration will explicitly override Checkmarx One
-tenant and project level default scan configurations.  Details about utilizing the Checkmarx One configuration options for best results with \cxoneflow
+in \cxoneflow will have undesirable results.  When defined in the \cxoneflow configuration, the configuration will explicitly override \cxone
+tenant and project level default scan configurations.  Details about utilizing the \cxone configuration options for best results with \cxoneflow
 can be found in Section \ref{sec:deployment-scan-defaults}.
 
 \begin{code}{Full YAML Configuration Example}{[CxOne: oauth]}{[SCM: token auth]}
@@ -67,7 +67,7 @@ bbdc:
 \noindent\\The next example shows a configuration where \cxoneflow has endpoint handlers for both
 BitBucket Data Center and Azure DevOps Enterprise.  Each SCM is configured to handle multiple distinct
 projects to demonstrate the use of multiple authentication methods.  All the SCM endpoints
-orchestrate scans in a single Checkmarx One tenant.
+orchestrate scans in a single \cxone tenant.
 
 \begin{code}{Multi-SCM YAML Configuration Example}{}{}
 secret-root-path: /run/secrets

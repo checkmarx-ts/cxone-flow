@@ -1,0 +1,32 @@
+\subsubsection{YAML Element: token}\label{sec:yaml-api-auth-token}
+The value specifies a file name found under the path defined by \texttt{secret-root-path} 
+containing a Personal Access Token (PAT).  This is required for token authorization.  This can
+be combined with the \texttt{username} element.
+
+
+\subsubsection{YAML Element: username}\label{sec:yaml-api-auth-username}
+
+\textbf{For Token Authorization}
+The value specifies a file name found under the path defined by \texttt{secret-root-path} containing a username associated with the PAT.
+This is optional and only used during cloning; if not supplied, the default username of \texttt{git} is used. Can be combined with 
+the \texttt{token} element.
+
+
+\textbf{For Basic Authorization}\footnote{Many SCMs no longer support basic authorization.}
+The value specifies a file name found under the path defined by \texttt{secret-root-path} containing the username associated with the account used
+for authorization.  This element can be supplied with the \texttt{password} element.
+
+\subsubsection{YAML Element: password}\label{sec:yaml-api-auth-password}
+The value specifies a file name found under the path defined by \texttt{secret-root-path} 
+containing a password associated with the username found in the \texttt{username} element.  
+This is required for basic authorization if basic authorization is supported by the SCM instance.
+This can be combined with the \texttt{username} element.
+
+
+\subsubsection{YAML Element: app-private-key}\label{sec:yaml-api-auth-app-private-key}
+The value specifies a file name found under the path defined by \texttt{secret-root-path} containing a private key used
+when obtaining application authorization. 
+
+Application Authorization is available for use with select SCM types. Refer to Part \ref{part:scms} for details about SCMs
+that support this type of authorization. When using Application Authorization, there is typically not a need to provide a separate 
+method of authorization for cloning defined in the \texttt{clone-auth} element. 

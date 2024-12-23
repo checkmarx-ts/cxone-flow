@@ -1,0 +1,22 @@
+\subsubsection{YAML Element: scan-config}\label{sec:yaml-moniker-scan-config}
+A block element where the child elements define the default scan configuration for this service endpoint.
+
+\subsubsection{YAML Element: service-name}\label{sec:yaml-moniker-service-name}
+A moniker for the service definition. The moniker is used for logging and workflow purposes.
+
+\subsubsection{YAML Element: repo-match}\label{sec:yaml-moniker-repo-match}
+A regex applied to the source repository.  If the webhook payload has
+a clone URL that matches the regex, this service definition is used to orchestrate the scanning.
+
+\subsubsection{YAML Element: connection}\label{sec:yaml-moniker-connection}
+A block element where the child elements define the SCM connection parameters for this service definition.
+
+\subsubsection{YAML Element: cxone}\label{sec:yaml-moniker-cxone}
+A block element where the child elements define the connection configuration for the \cxone API. 
+
+\subsubsection{YAML Element: feedback}\label{sec:yaml-moniker-feedback}
+A block element where the child elements define the configuration for feedback workflows. 
+
+\subsubsection{YAML Element: resolver}\label{sec:yaml-moniker-resolver}
+A block element where the child elements define the configuration for support of resolver agents. 
+

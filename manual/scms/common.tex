@@ -15,7 +15,7 @@ scanning workflow.
 
 In the event a scan is executed and a matching project does not exist, a new project
 is created prior to the scan.  The project naming convention follows the same automatic
-naming convention that is used when importing projects into Checkmarx One using the 
+naming convention that is used when importing projects into \cxone using the 
 Code Repository Integration.
 
 \section{Project Tags}
@@ -30,7 +30,7 @@ additional tags that are assigned to a project upon creation.
         \toprule
         \textbf{Tag Name} & \textbf{Value} \\
         \midrule
-        \texttt{service} & \makecell[l]{The configured service name, as described in Section \ref{sec:scm-block-element}, that 
+        \texttt{service} & \makecell[l]{The configured service name, as described in Section \ref{sec:yaml-config}, that 
         \\handled the scan workflow based on the matching route.}\\
         \midrule
         \texttt{cxone-flow} & \makecell[l]{The version of \cxoneflow that handled the scan orchestration.}\\
@@ -56,7 +56,7 @@ tags are added in addition to any configured default scan tags.
         \midrule
         \texttt{workflow} & \makecell[l]{Always set to \textbf{push}.}\\
         \midrule
-        \texttt{service} & \makecell[l]{The configured service name, as described in Section \ref{sec:scm-block-element}, that 
+        \texttt{service} & \makecell[l]{The configured service name, as described in Section \ref{sec:yaml-config}, that 
         \\handled the scan workflow based on the matching route.}\\
         \midrule
         \texttt{cxone-flow} & \makecell[l]{The version of \cxoneflow that handled the scan orchestration.}\\
@@ -86,7 +86,7 @@ tags that can be observed for scans invoked by a Pull-Request event.
         \midrule
         \texttt{workflow} & \makecell[l]{Always set to \textbf{pull-request}.}\\
         \midrule
-        \texttt{service} & \makecell[l]{The configured service name, as described in Section \ref{sec:scm-block-element}, that 
+        \texttt{service} & \makecell[l]{The configured service name, as described in Section \ref{sec:yaml-config}, that 
         \\handled the scan workflow based on the matching route.}\\
         \midrule
         \texttt{cxone-flow} & \makecell[l]{The version of \cxoneflow that handled the scan orchestration.}\\

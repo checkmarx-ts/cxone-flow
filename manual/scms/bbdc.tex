@@ -18,7 +18,7 @@ at the repository level is mostly suitable for testing purposes only.
 
 Figure \ref{fig:bbdc-project-config} shows the BitBucket Data Center project configuration screen.  The
 project key will appear in clone URLs and can be used as part of the regular expression 
-placed in the \texttt{repo-match} configuration element.  Please see Section \ref{sec:scm-block-element} 
+placed in the \texttt{repo-match} configuration element.  Please see Section \ref{sec:yaml-config} 
 for a description of the \texttt{repo-match} configuration element. The project's "Webhooks" configuration
 can be used to configure the \cxoneflow endpoint \texttt{/bbdc} to receive webhook events for each repository in the organization.  
 
@@ -38,7 +38,7 @@ can be used to configure the \cxoneflow endpoint \texttt{/bbdc} to receive webho
 
 Figure \ref{fig:bbdc-webhook-config} shows a typical webhook configuration.  The Secret is how \cxoneflow
 validates the origin of the event payload.  The configuration element \texttt{shared-secret}, as described
-in Section \ref{sec:connection-element}, should be configured with the webhook secret value.  If \cxoneflow
+in Section \ref{sec:yaml-config}, should be configured with the webhook secret value.  If \cxoneflow
 is running at the specified URL endpoint, the "Test Connection" button will send a diagnostic ping
 and receive back a positive response.  If the connection test fails, please ensure that \cxoneflow is running
 at the address specified in the URL field and that the BitBucket Data Center server can make a connection
@@ -101,7 +101,7 @@ a username and password. While it may be possible to use Basic Authorization to 
 this is a configuration that should be avoided.  In addition to Basic Authorization breaking upon BitBucket Data Center
 server upgrades, an interactive user account may be subject to password changes and Captcha verification that
 can break \cxoneflow operations.  It is generally best to use a project-level HTTP Access Token for SCM connection
-configurations \texttt{api-auth} or \texttt{clone-auth}.  Please refer to Section \ref{sec:connection-element} for more
+configurations \texttt{api-auth} or \texttt{clone-auth}.  Please refer to Section \ref{sec:yaml-config} for more
 details about the token configuration.
 
 \noindent\\Figure \ref{fig:bbdc-token-config} shows the project-level "HTTP Access tokens" configuration.  The required
@@ -136,8 +136,8 @@ repositories in all projects.
 
 While performing scan orchestration, \cxoneflow does access the BitBucket Data Center API for
 certain operations.  This requires a configuration in the \texttt{api-auth} configuration
-element as described in Section \ref{sec:api-auth-element}.  The \texttt{clone-auth},
-described in Section \ref{sec:clone-auth-element}, is an optional element where the credentials
+element as described in Section \ref{sec:yaml-config}.  The \texttt{clone-auth},
+described in Section \ref{sec:yaml-config}, is an optional element where the credentials
 used for cloning code can be provided.  If \texttt{clone-auth} is not provided, cloning will
 be attempted using the credentials defined by \texttt{api-auth}.
 

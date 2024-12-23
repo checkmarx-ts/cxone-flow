@@ -1,0 +1,20 @@
+\subsubsection{YAML Element: pull-request}\label{sec:yaml-feedback-pull-request}
+The configuration parameters for pull request feedback workflows.
+
+\subsubsection{YAML Element: scan-monitor}\label{sec:yaml-feedback-scan-monitor}
+The parameters used when monitoring scan progress during workflow orchestration. 
+
+Scan progress is monitored by requesting a scan state from the \cxone API at
+a time interval.  The initial time interval is set to the value configured for
+\texttt{poll-interval-seconds}.  If the scan is not found to have finished executing
+at any given poll execution, the previous poll interval time is multiplied by
+the scalar given in the \texttt{poll-backoff-multiplier} value up to a maximum
+poll interval time configured by \texttt{poll-max-interval-seconds}.
+
+If a scan does not finish executing by the time set in \texttt{scan-timeout-hours}, the
+workflow is aborted.  The value of 0 configured for \texttt{scan-timeout-hours} indicates
+the workflow will wait forever for the scan to finish executing.
+
+\subsubsection{YAML Element: exclusions}\label{sec:yaml-feedback-exclusions}
+Settings for excluding results from results from feedback output.  Each of the elements is a list that 
+can be configured with multiple exclusion elements.

@@ -1,0 +1,46 @@
+\subsubsection{YAML Element: amqp}\label{sec:yaml-generic-amqp}
+The connection parameters for an AMQP endpoint used for workflow orchestration and resolver agent coordination. 
+If not set, the internal RabbitMQ instance in the \cxoneflow container is used by default.
+
+\subsubsection{YAML Element: amqp-url}\label{sec:yaml-generic-amqp-amqp-url}
+This can be one of the following values:
+
+\begin{itemize}
+  \item The AMQP/AMQPS URL for the AMQP endpoint.
+  \item The name of a file container a secret located at the path defined by \texttt{secret-root-path}.
+\end{itemize}
+
+
+\subsubsection{YAML Element: amqp-user}\label{sec:yaml-generic-amqp-amqp-user}
+If the user name is not included in the AMQP URL, the provided value corresponds to a file name found under
+the path defined by \texttt{secret-root-path}.
+
+\subsubsection{YAML Element: amqp-password}\label{sec:yaml-generic-amqp-amqp-password}
+If the password is not included in the AMQP URL, the provided value corresponds to a file name found
+under the path defined by \texttt{secret-root-path}.
+
+
+\subsubsection{YAML Element: ssl-verify}\label{sec:yaml-generic-ssl-verify}
+See discussion in Section \ref{sec:ssl-verify-general}.  Defaults to True using the OS trusted CA certificates.
+
+\subsubsection{YAML Element: timeout-seconds}\label{sec:yaml-generic-timeout-seconds}
+The number of seconds before a request for API results times out.
+
+\subsubsection{YAML Element: retries}\label{sec:yaml-generic-retries}
+The number of retries when the request fails.
+
+
+\subsubsection{YAML Element: proxies}\label{sec:yaml-generic-proxies}
+A YAML dictionary of \texttt{<scheme>:<url>} pairs to use a proxy server for requests. 
+For a format of key/value pairs, see: \href{https://requests.readthedocs.io/en/latest/user/advanced/\#proxies}{Python "requests" proxies}.
+
+
+% \subsubsection{YAML Element: }\label{sec:yaml-generic-}
+% \subsubsection{YAML Element: }\label{sec:yaml-generic-}
+% \subsubsection{YAML Element: }\label{sec:yaml-generic-}
+% \subsubsection{YAML Element: }\label{sec:yaml-generic-}
+% \subsubsection{YAML Element: }\label{sec:yaml-generic-}
+% \subsubsection{YAML Element: }\label{sec:yaml-generic-}
+% \subsubsection{YAML Element: }\label{sec:yaml-generic-}
+
+

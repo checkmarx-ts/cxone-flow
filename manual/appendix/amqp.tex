@@ -18,10 +18,10 @@ workflows.
 \end{figure}
 
 
-\noindent\\Upon startup, each \cxoneflow instance will configure the exchange/queue schema.  An
+Upon startup, each \cxoneflow instance will configure the exchange/queue schema.  An
 internal instance of RabbitMQ runs inside the \cxoneflow container to orchestrate
 workflows for the container instance.  If an AMQP connection configuration, described in
-Section \ref{sec:amqp-element}, is not provided then the local RabbitMQ instance is
+Section \ref{sec:yaml-config}, is not provided then the local RabbitMQ instance is
 used.  When the container is exited, all persisted workflow state information in the local
 RabbitMQ instance is lost.  To persist workflow state across container restarts, please
 refer to Appendix \ref{sec:high-availability} to deploy \cxoneflow in a
@@ -55,7 +55,7 @@ any customized bindings to the \texttt{Scan In} exchange are not modified.
 
 \noindent\\The \texttt{moniker} segment of the topic is set to the value of the
 SCM configurations \texttt{service-name} element as described in
-Section \ref{sec:scm-block-element}.
+Section \ref{sec:yaml-config}.
 
 \subsection{The \texttt{await} Scan State}
 
