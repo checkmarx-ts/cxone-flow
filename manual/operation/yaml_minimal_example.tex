@@ -54,8 +54,6 @@ bbdc:
       shared-secret: scm-shared-secret
       api-auth:
         token: scm-token-secret
-      clone-auth:
-        ssh: scm-ssh-key-secret
       cxone:
         tenant: mytenant
         api-key: my-cxone-api-key
@@ -67,7 +65,7 @@ bbdc:
 \noindent\\An alternate minimal example using for an Azure DevOps Enterprise
 SCM:
 
-\begin{code}{Minimal YAML Configuration Example \#2}{Using Azure DevOps Enterprise}{}
+\begin{code}{Minimal YAML Configuration Example \#3}{Using Azure DevOps Enterprise}{}
 secret-root-path: /run/secrets
 server-base-url: https://cxoneflow.mydomain.com:8443/
 
@@ -80,8 +78,6 @@ adoe:
       api-auth:
         username: scm-username-secret
         password: scm-password-secret
-      clone-auth:
-        ssh: scm-ssh-key-secret
       cxone:
         tenant: mytenant
         api-key: my-cxone-api-key

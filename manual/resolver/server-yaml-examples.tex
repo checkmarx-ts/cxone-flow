@@ -1,0 +1,108 @@
+
+\begin{code}{Minimal Resolver YAML Configuration Example}{[BitBucket Data Center]}{}
+  secret-root-path: /run/secrets
+  server-base-url: https://cxoneflow.mydomain.com:8443/
+
+  amqp: &all-amqp
+    amqp-url: amqp-server-credentials-secret
+
+  bbdc:
+      - service-name: BB
+        repo-match: .*
+        resolver:
+          <<: *all-amqp
+          private-key: resolver-agent-private-ec-key
+          allowed-agent-tags:
+            - java-mobile
+            - legacy-tools
+            - general-build
+        feedback:
+          <<: *all-amqp
+          pull-request:
+            enabled: True
+        connection:
+          base-url: https://scm.corp.com
+          shared-secret: scm-shared-secret
+          api-auth:
+            token: scm-token-secret
+        cxone:
+          tenant: mytenant
+          oauth:
+            client-id: my-oauth-id
+            client-secret: my-oauth-secret
+          iam-endpoint: US
+          api-endpoint: US
+\end{code}
+  
+
+
+\begin{code}{Minimal Resolver YAML Configuration Example}{[GitHub Enterprise/Cloud]}{}
+  secret-root-path: /run/secrets
+  server-base-url: https://cxoneflow.mydomain.com:8443/
+
+  amqp: &all-amqp
+    amqp-url: amqp-server-credentials-secret
+
+  gh:
+      - service-name: GHE
+        repo-match: .*
+        resolver:
+          <<: *all-amqp
+          private-key: resolver-agent-private-ec-key
+          allowed-agent-tags:
+            - java-mobile
+            - legacy-tools
+            - general-build
+        feedback:
+          <<: *all-amqp
+          pull-request:
+            enabled: True
+        connection:
+          base-url: https://scm.corp.com
+          shared-secret: scm-shared-secret
+          api-auth:
+            app-private-key: ghc-app-priv-key
+        cxone:
+          tenant: mytenant
+          oauth:
+            client-id: my-oauth-id
+            client-secret: my-oauth-secret
+          iam-endpoint: US
+          api-endpoint: US
+\end{code}
+
+
+\begin{code}{Minimal Resolver YAML Configuration Example}{[Azure DevOps]}{}
+  secret-root-path: /run/secrets
+  server-base-url: https://cxoneflow.mydomain.com:8443/
+
+  amqp: &all-amqp
+    amqp-url: amqp-server-credentials-secret
+
+  adoe:
+      - service-name: ADOE
+        repo-match: .*
+        resolver:
+          <<: *all-amqp
+          private-key: resolver-agent-private-ec-key
+          allowed-agent-tags:
+            - java-mobile
+            - legacy-tools
+            - general-build
+        feedback:
+          <<: *all-amqp
+          pull-request:
+            enabled: True
+        connection:
+          base-url: https://scm.corp.com
+          shared-secret: scm-shared-secret
+          api-auth:
+            token: scm-token-secret
+        cxone:
+          tenant: mytenant
+          oauth:
+            client-id: my-oauth-id
+            client-secret: my-oauth-secret
+          iam-endpoint: US
+          api-endpoint: US
+\end{code}

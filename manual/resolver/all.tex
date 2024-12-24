@@ -59,6 +59,47 @@ needed to communicate to private package repositories.
 \end{figure}
 
 
+\section{Distributed Resolver Security Considerations}
+
+Performing code builds, as is typically performed in a CI/CD pipeline, often includes
+a bit of risk in that a build requires the execution of scripting.  There are often
+controls in place to prevent anyone other than trusted authors from authoring those scripts.
+As part of the scripts, there are often sensitive values exposed to the build script
+for purposes of executing the build.
+
+The use of distributed resolver agents involves some of the same risks as exist in
+CI/CD pipeline builds.  To acquire a dependency tree of a project, the build tools
+need to execute against the build definition to minimally produce the dependency
+tree that is captured for the scan.  This action in itself can cause code to execute
+as part of how the build definition is used by the tooling.  Some build tools allow
+the dependencies themselves to execute code as part of the dependency resolution.
+These dependencies, in some cases, can land malware in or exfiltrate data from the
+environment where the dependency tree is compiled.
+
+The \cxoneflow endpoint server itself does not invoke the build tools; this action is
+delegated to the distributed resolver agents.  However, a required step of the
+distributed resolver agent is to obtain a clone of the code for scanning.  To facilitate this,
+the \cxoneflow endpoint server does send encoded SCM credentials to authorized
+distributed resolver agents.  Section \ref{sec:resolver-agent-security} has more details
+about security considerations for the distributed resolver agent.
+
+Since the purpose of the resolver scan is to detect vulnerable and malicious packages,
+it should be anticipated that malicious packages may be inadvertently referenced
+by developers.  While the deployment recommendations of the distributed resolver agents
+will help minimize exposure, the following security recommendations should be considered
+as part of deployment of \cxoneflow with distributed resolver agents:
+
+\begin{itemize}
+  \item Use SSL for all message queue connections.
+  \item Use SSL connections for delivering SCM events to the \cxoneflow endpoints.
+  \item Isolate the distributed resolver agent either through installing on physically isolated machines or
+  using OS permissions to isolate the distributed resolver agent runtime.
+  \item Configure distributed resolver agents to execute build tools inside containers to isolate the build runtime from
+  the distributed resolver agent runtime.
+  \item If a scan detects a malware package, rotate all credentials used by \cxoneflow and distributed resolver agents
+  after the malware is removed from the source code.
+\end{itemize}
+
 \input{resolver/server.tex}
 \input{resolver/agent.tex}
 
