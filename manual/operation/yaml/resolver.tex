@@ -1,0 +1,22 @@
+\subsubsection{YAML Element: private-key}\label{sec:yaml-resolver-private-key}
+The value specifies a file name found under the path defined by \texttt{secret-root-path}
+containing an unencrypted RSA or elliptic curve private key.  The associated public key will be distributed to
+resolver agents.
+
+
+\subsubsection{YAML Element: capture-resolver-logs}\label{sec:yaml-resolver-capture-resolver-logs}
+If set to True, any logs emitted by the resolver agent are transported back to the \cxoneflow server and
+emitted in the \cxoneflow logs.  This can be used to troubleshoot resolver issues encountered by resolver
+agents.
+
+\subsubsection{YAML Element: resolver-tag-key}\label{sec:yaml-resolver-resolver-tag-key}
+The \cxone project tag key value used to find the resolver agent tag that should be used for a resolver scan.
+
+\subsubsection{YAML Element: default-agent-tag}\label{sec:yaml-resolver-default-agent-tag}
+An agent tag found in the list of tags configured in \texttt{allowed-agent-tags}.  If provided,
+any \cxone project that does not have an agent tag (assigned with the format \texttt{<resolver-tag-key>:<agent tag>})
+will direct a resolver scan to agents with this tag.
+
+\subsubsection{YAML Element: allowed-agent-tags}\label{sec:yaml-resolver-allowed-agent-tags}
+A list of resolver agent tags that are handled by the \cxoneflow service.  The agent tags come from
+\cxone project tags using the \texttt{<resolver-tag-key>:<agent tag>} format.  

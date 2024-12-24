@@ -236,6 +236,16 @@ for the configured service definition.
     .1 \hyperref[sec:yaml-root]{<root>}.
     .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
     .3 \hyperref[sec:yaml-moniker-resolver]{resolver} \DTcomment{[Optional]}.
+    .4 \hyperref[sec:yaml-generic-amqp]{amqp} \DTcomment{[Optional] Default: container instance}.
+    .5 \hyperref[sec:yaml-generic-amqp-amqp-password]{amqp-password} \DTcomment{[Optional]}.
+    .5 \hyperref[sec:yaml-generic-amqp-amqp-url]{amqp-url} \DTcomment{[Required]}.
+    .5 \hyperref[sec:yaml-generic-amqp-amqp-user]{amqp-user} \DTcomment{[Optional]}.
+    .5 \hyperref[sec:yaml-generic-ssl-verify]{ssl-verify} \DTcomment{[Optional] Default: True}.
+    .3 \hyperref[sec:yaml-resolver-allowed-agent-tags]{allowed-agent-tags} \DTcomment{[Required]}.
+    .3 \hyperref[sec:yaml-resolver-capture-resolver-logs]{capture-resolver-logs} \DTcomment{[Optional] Default: False}.
+    .3 \hyperref[sec:yaml-resolver-default-agent-tag]{default-agent-tag} \DTcomment{[Optional]}.
+    .3 \hyperref[sec:yaml-resolver-private-key]{private-key} \DTcomment{[Required]}.
+    .3 \hyperref[sec:yaml-resolver-resolver-tag-key]{resolver-tag-key} \DTcomment{[Optional] Default: resolver}.
 }
 
 
@@ -264,6 +274,7 @@ for the configured service definition.
 \input{operation/yaml/connection.tex}
 \input{operation/yaml/api-auth.tex}
 \input{operation/yaml/clone-auth.tex}
+\input{operation/yaml/resolver.tex}
 \input{operation/yaml/generic.tex}
 
 

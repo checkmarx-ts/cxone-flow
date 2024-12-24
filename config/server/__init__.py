@@ -101,7 +101,7 @@ class CxOneFlowConfig(CommonConfig):
             return ResolverScanService(moniker, cxone_client, CommonConfig._default_amqp_url, None, None, True, DummyResolverScanningWorkflow(), 
                                        None, None, None)
          else:
-            msg_private_key = CxOneFlowConfig._get_secret_from_value_of_key_or_fail(f"{config_path}/payload-signature", "private-key", kwargs)
+            msg_private_key = CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path, "private-key", kwargs)
             
             capture_resolver_logs = CxOneFlowConfig._get_value_for_key_or_default("capture-resolver-logs", kwargs, False)
             
