@@ -3,39 +3,23 @@
 
 \section{Overview}
 
-When webhook events are received by \cxoneflow, the content of the event
+When webhook events are received by \cxoneflowns, the content of the event
 payload is evaluated to determine if a scan should be started.  If a scan
 is started, a background workflow executes that monitors the scan progress.
 When the scan is completed and produces results, the end of the workflow
 will transform the results for the purpose of presenting them to the user
 for evaluation.
 
-This section describes the workflows as implemented by \cxoneflow.  Integration
+This section describes the workflows as implemented by \cxoneflowns.  Integration
 with the workflows to perform parallel or replacement activities is possible
-by utilizing the internal workflow messaging. It is possible, via configuration,
-to turn off the feedback output and the messaging workflows still execute; this
+by utilizing the internal workflow messaging. Feedback output can be turned off 
+via configuration to execute the messaging workflows without writing feedback; this
 allows integration scenarios that replace default feedback output.  If the
 feedback output remains enabled via configuration, this allows integration
 scenarios for customized workflows to execute in parallel with feedback
-output implemented in \cxoneflow. Please see Appendix 
+output implemented in \cxoneflowns. Please see Appendix 
 \ref{sec:amqp-workflow-orch} for details related to workflow integration.
 
-The messaging mechanism is used to ensure workflows execute to the end
-and can recover in the event of an error or abnormal program end.  Figure
-\ref{fig:recovery-flowchart} shows the algorithm that is used
-in all workflows handle error recovery.  A system restart when \cxoneflow
-is not deployed in a high-availability configuration will cause running workflows
-to be ended without the ability to recover.  To deploy \cxoneflow so that
-a workflows can recover after a system restart, please see
-Appendix \ref{sec:high-availability} for details about deploying \cxoneflow
-in a high-availability configuration.
-
-
-\begin{figure}[ht]
-    \includegraphics[width=\textwidth]{graphics/cxoneflow-diagrams-Recovery Algorithm.png}
-    \caption{Workflow Recovery Algorithm}
-    \label{fig:recovery-flowchart}
-\end{figure}
 
 
 
