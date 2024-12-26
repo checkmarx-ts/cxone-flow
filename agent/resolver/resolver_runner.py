@@ -1,10 +1,12 @@
-from typing import List
+from typing import List, Dict
 from .resolver_opts import ResolverOpts
-import subprocess, logging, asyncio, tempfile, os
+import subprocess, logging, asyncio, tempfile, os, stat
 from .exceptions import ResolverAgentException
 
 
 class ExecutionContext:
+
+    _reqd_permissions = stat.S_IRUSR + stat.S_IWUSR + stat.S_IXUSR + stat.S_IRGRP + stat.S_IWGRP + stat.S_IXGRP
 
     def __init__(self, workpath: str, opts: ResolverOpts):
         self.__workpath = workpath.rstrip("/") + "/"
@@ -22,13 +24,17 @@ class ExecutionContext:
         return self.__work_root
 
     @property
+    def home(self):
+        return self.__workpath
+
+    @property
     def clone_directory(self):
         return "clone"
 
     @property
     def clone_path(self) -> str:
         return self.work_root.name.rstrip("/") + "/" + self.clone_directory
-    
+
     @property
     def execution_clone_path(self) -> str:
         return self.clone_path
@@ -36,7 +42,7 @@ class ExecutionContext:
     @property
     def resolver_result_directory(self):
         return "resolver"
-    
+
     @property
     def _resolver_loc(self) -> str:
         return self.work_root.name.rstrip("/") + "/" + self.resolver_result_directory
@@ -80,22 +86,20 @@ class ExecutionContext:
     def _get_resolver_exec_cmd(self) -> List[str]:
         raise NotImplemented("_get_resolver_exec_cmd")
 
-
-    async def execute_resolver(self, project_name: str, exclusions : str) -> subprocess.CompletedProcess:
+    async def execute_resolver(
+        self, project_name: str, exclusions: str
+    ) -> subprocess.CompletedProcess:
         cmd = self._get_resolver_exec_cmd()
 
-        def merge_exclusions(x : str):
+        def merge_exclusions(x: str):
             return f"{x},{exclusions}"
-        
+
         resolver_opts = self.__opts.as_args(
-                {
-                    "e" : merge_exclusions,
-                    "excludes" : merge_exclusions
-                }
-            )
-        
-        if not self.__opts.has_one_of(['excludes', 'e']):
-            exclude_opts = ['--excludes', exclusions]
+            {"e": merge_exclusions, "excludes": merge_exclusions}
+        )
+
+        if not self.__opts.has_one_of(["excludes", "e"]):
+            exclude_opts = ["--excludes", exclusions]
         else:
             exclude_opts = []
 
@@ -117,7 +121,7 @@ class ExecutionContext:
 
         self.log().debug(f"Running resolver: {cmd + exec_opts}")
 
-        resolver_exec_result = await ResolverRunner.execute_cmd_async(cmd + exec_opts)
+        resolver_exec_result = await ResolverRunner.execute_cmd_async(cmd + exec_opts, {"HOME" : self.home})
 
         self.log().debug(f"Resolver finished: {resolver_exec_result}")
 
@@ -127,9 +131,17 @@ class ExecutionContext:
         self.__work_root = tempfile.TemporaryDirectory(
             delete=False, prefix=self.__workpath
         )
+        os.chmod(self.__work_root.name, ExecutionContext._reqd_permissions)
+
         os.mkdir(self.clone_path)
+        os.chmod(self.clone_path, ExecutionContext._reqd_permissions)
+
         os.mkdir(self._resolver_loc)
+        os.chmod(self._resolver_loc, ExecutionContext._reqd_permissions)
+
         os.mkdir(self._container_loc)
+        os.chmod(self._container_loc, ExecutionContext._reqd_permissions)
+
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -149,6 +161,10 @@ class ResolverRunner:
         self.__opts = opts
 
     @property
+    def home(self):
+        return self.__workpath
+
+    @property
     def work_path(self) -> str:
         return self.__workpath
 
@@ -157,20 +173,24 @@ class ResolverRunner:
         return self.__opts
 
     @staticmethod
-    async def execute_cmd_async(args: List[str]) -> subprocess.CompletedProcess:
+    async def execute_cmd_async(
+        args: List[str], env: Dict[str, str] = None
+    ) -> subprocess.CompletedProcess:
         return await asyncio.to_thread(
             subprocess.run,
             args,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             check=True,
+            env=env,
         )
 
-
     @staticmethod
-    def execute_cmd(args: List[str]) -> subprocess.CompletedProcess:
+    def execute_cmd(
+        args: List[str], env: Dict[str, str] = None
+    ) -> subprocess.CompletedProcess:
         return subprocess.run(
-            args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True
+            args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, env=env
         )
 
     async def executor(self):

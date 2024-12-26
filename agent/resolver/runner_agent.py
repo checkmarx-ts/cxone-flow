@@ -11,6 +11,7 @@ from typing import Tuple
 from .exceptions import ResolverAgentException
 import aio_pika, pickle, gzip, os, subprocess, tempfile
 from .resolver_runner import ResolverRunner, ExecutionContext
+from pathlib import Path
 from _version import __version__
 
 
@@ -108,19 +109,28 @@ class ResolverRunnerAgent(BaseWorkflowService):
                             scan_msg.details.event_context,
                             False,
                             runner.clone_path.rstrip("/") + "/",
+                            False,
                         ) as clone_worker:
-                            cloned_repo = await clone_worker.loc()
+                            cloned_repo_loc = await clone_worker.loc()
                             await cloner.reset_head(
-                                cloned_repo, scan_msg.details.commit_hash
+                                cloned_repo_loc, scan_msg.details.commit_hash
                             )
 
                             resolver_exec_result = await runner.execute_resolver(scan_msg.details.project_name, scan_msg.details.file_filters)
 
-                            with open(runner.result_resolver_out_file_path, "rt") as f:
-                                sca_results = gzip.compress(bytes(f.read(), "UTF-8"))
+                            resolver_res_path = Path(runner.result_resolver_out_file_path)
+                            if resolver_res_path.exists() and resolver_res_path.is_file():
+                                with open(runner.result_resolver_out_file_path, "rt") as f:
+                                    sca_results = gzip.compress(bytes(f.read(), "UTF-8"))
+                            else:
+                                sca_results = None
 
-                            with open(runner.result_container_out_file_path, "rt") as f:
-                                container_results = gzip.compress(bytes(f.read(), "UTF-8"))
+                            container_res_path = Path(runner.result_container_out_file_path)
+                            if container_res_path.exists() and container_res_path.is_file():
+                                with open(runner.result_container_out_file_path, "rt") as f:
+                                    container_results = gzip.compress(bytes(f.read(), "UTF-8"))
+                            else:
+                                container_results = None
 
                             resolver_run_logs = resolver_exec_result.stdout
                             return_code = resolver_exec_result.returncode

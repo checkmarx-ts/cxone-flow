@@ -1,8 +1,38 @@
 #!/bin/sh
 
-chown -R root:root /etc/cxoneflow-resolver-agent
-chown -R root:root /opt/cxoneflow-resolver-agent
+case $1 in
+  "configure")
+    if [ $# -le 2 ];
+    then
+      getent passwd resolver > /dev/null
+      if [ $? -ne 0 ];
+      then
+        echo Creating 'resolver' user/group
+        useradd --no-create-home -c "Checkmarx Resolver Service" --home-dir /nonexistant --shell /usr/sbin/nologin resolver
+      fi
 
-echo Enabling 'cxoneflow-resolver-agent.service' to start at system start.
-systemctl enable /opt/cxoneflow-resolver-agent/cxoneflow-resolver-agent.service
-systemctl start cxoneflow-resolver-agent
+      getent passwd resolver-runtime > /dev/null
+      if [ $? -ne 0 ];
+      then
+        echo Creating 'resolver-runtime' user
+        useradd --no-create-home -c "Checkmarx Resolver Runtime User" -g resolver --home-dir /nonexistant --shell /usr/sbin/nologin resolver-runtime
+      fi
+
+      echo Creating default secrets directory '/var/secrets'
+      mkdir -p /var/secrets
+      chown resolver:resolver /var/secrets
+      chmod 500 /var/secrets
+
+      chown -R root:root /etc/cxoneflow-resolver-agent
+      chown -R root:root /opt/cxoneflow-resolver-agent
+    fi
+
+    echo Enabling 'cxoneflow-resolver-agent.service' to start at system start.
+    systemctl enable /opt/cxoneflow-resolver-agent/cxoneflow-resolver-agent.service
+    [ -f /etc/cxoneflow-resolver-agent/config.yaml ] && systemctl start cxoneflow-resolver-agent || :
+    ;;
+
+  *)
+    ;;
+esac
+

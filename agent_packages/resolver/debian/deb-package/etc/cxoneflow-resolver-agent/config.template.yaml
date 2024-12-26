@@ -10,8 +10,9 @@
 
 # The resolver agent runs as user "resolver" that is in group
 # "resolver".  The secret directory should have permissions
-# set as 510 owned by "root:resolver".  The contents inside the
-# secret directory should have the permissions 640.
+# set as 500 owned by "resolver:resolver".  The contents inside the
+# secret directory should be owned by "resolver:resolver" 
+# with permissions 400.
 secret-root-path: /var/secrets
 
 # The 'resolver-work-path' option should be set to a directory

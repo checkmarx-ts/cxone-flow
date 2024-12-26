@@ -1,7 +1,7 @@
 import os, tempfile, shutil, shlex, subprocess, asyncio, logging, urllib, base64, re
 from cxoneflow_logging import SecretRegistry
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Coroutine
 from api_utils.auth_factories import GithubAppAuthFactory
 from api_utils.auth_factories import EventContext
 
@@ -14,16 +14,17 @@ class CloneWorker:
     __stderr_auth_fail = re.compile(".*Invalid username or password.*")
     __auth_fail_exit_code = 128
 
-    def __init__(self, clone_thread, clone_dest_path):
+    def __init__(self, clone_thread : Coroutine, temp_dir_obj : tempfile.TemporaryDirectory, clone_dest_path : str):
         self.__log = logging.getLogger(f"CloneWorker:{clone_dest_path}")
         self.__clone_out_tempdir = clone_dest_path
+        self.__temp_dir_object = temp_dir_obj
         self.__clone_thread = clone_thread
 
     async def loc(self) -> str:
         try:
             completed = await self.__clone_thread
             self.__log.debug(f"Clone task: return code [{completed.returncode}] stdout: [{completed.stdout}] stderr: [{completed.stderr}]")
-            return self.__clone_out_tempdir.name
+            return self.__clone_out_tempdir
         except subprocess.CalledProcessError as ex:
             if CloneWorker.__stderr_auth_fail.match(ex.stderr.decode('UTF-8').replace("\n", "")) and \
                 ex.returncode == CloneWorker.__auth_fail_exit_code:
@@ -36,8 +37,9 @@ class CloneWorker:
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
-        self.__log.debug(f"Cleanup: {self.__clone_out_tempdir}")
-        self.__clone_out_tempdir.cleanup()
+        if self.__temp_dir_object is not None:
+            self.__log.debug(f"Cleanup: {self.__clone_out_tempdir}")
+            self.__clone_out_tempdir.cleanup()
 
 
 class Cloner:
@@ -146,16 +148,17 @@ class Cloner:
     async def _get_clone_cmd_stub(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> List:
         return self.__clone_cmd_stub
     
-    async def clone(self, clone_url, event_context : EventContext=None, force_reauth : bool=False, temp_root : str=None) -> CloneWorker:
+    async def clone(self, clone_url, event_context : EventContext=None, force_reauth : bool=False, temp_root : str=None, make_temp : bool=True) -> CloneWorker:
         Cloner.log().debug(f"Clone Execution for: {clone_url}")
 
         fixed_clone_url = await self._fix_clone_url(clone_url, event_context, force_reauth)
-        clone_output_loc = tempfile.TemporaryDirectory(delete=False, prefix=temp_root)
-        cmd = await self._get_clone_cmd_stub(event_context, force_reauth) + [fixed_clone_url, clone_output_loc.name]
+        temp_dir_object = tempfile.TemporaryDirectory(delete=False, prefix=temp_root) if make_temp else None
+        clone_output_loc = temp_dir_object.name if make_temp else temp_root
+        cmd = await self._get_clone_cmd_stub(event_context, force_reauth) + [fixed_clone_url, clone_output_loc]
         Cloner.log().debug(cmd)
         thread = asyncio.to_thread(subprocess.run, cmd, capture_output=True, env=self.__running_env, check=True)
         
-        return CloneWorker(thread, clone_output_loc)
+        return CloneWorker(thread, temp_dir_object, clone_output_loc)
 
     async def reset_head(self, code_path, hash):
         try:

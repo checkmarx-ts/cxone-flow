@@ -27,7 +27,8 @@ class ResolverConfig(CommonConfig):
 
         if container_runner_cfg is None:
             return ShellRunner(work_path, opts, 
-                               CommonConfig._get_value_for_key_or_fail(config_path, "resolver-path", config_dict))
+                               CommonConfig._get_value_for_key_or_fail(config_path, "resolver-path", config_dict), 
+                               CommonConfig._get_value_for_key_or_default("resolver-run-as", config_dict, None))
         else:
             return ToolkitRunner(work_path, opts,
                                  CommonConfig._get_value_for_key_or_fail(f"{config_path}/run-with-container", "supply-chain-toolkit-path", container_runner_cfg),

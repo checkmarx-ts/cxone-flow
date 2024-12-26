@@ -61,7 +61,13 @@ class ToolkitRunner(ResolverRunner):
     if self.__gid:
       build_args.append("-g")
 
-    return (ResolverRunner.execute_cmd(build_args)).stdout.decode().rstrip("\n")
+    self.log().debug(f"Pre-building container: f{build_args}")
+
+    resolver_tag = (ResolverRunner.execute_cmd(build_args, {"HOME" : self.home})).stdout.decode().rstrip("\n")
+
+    self.log().debug(f"Toolkit: {self.__src_container_tag} -> {resolver_tag}")
+
+    return resolver_tag
 
 
   async def executor(self):

@@ -4,6 +4,7 @@ from agent import mq_agent
 from config.resolver import ResolverConfig
 from config import ConfigurationException, get_config_path
 from workflows.resolver_scan_service import ResolverScanService
+from subprocess import CalledProcessError
 from _version import __version__
 
 cof_logging.bootstrap()
@@ -30,5 +31,7 @@ if __name__ == "__main__":
     try:
         ResolverConfig.bootstrap(get_config_path())
         asyncio.run(spawn_agents())
+    except CalledProcessError as cpex:
+        __log.exception(f"stdout: [{cpex.stdout}] stderr: [{cpex.stderr}]", cpex)
     except ConfigurationException as ce:
         __log.exception(ce)

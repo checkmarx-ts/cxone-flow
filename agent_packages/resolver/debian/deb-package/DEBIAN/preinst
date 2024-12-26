@@ -1,14 +1,1 @@
 #!/bin/sh
-
-getent passwd resolver > /dev/null
-
-if [ $? -ne 0 ];
-then
-  echo Creating 'resolver' user/group
-  useradd -m --shell /usr/sbin/nologin resolver
-fi
-
-echo Creating default secrets directory '/var/secrets'
-mkdir -p /var/secrets
-chown root:resolver /var/secrets
-chmod 510 /var/secrets
