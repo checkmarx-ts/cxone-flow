@@ -108,6 +108,8 @@ class ExecutionContext:
             + resolver_opts
             + exclude_opts
             + [
+                "--logs-path",
+                self.work_root,
                 "--scan-path",
                 self.execution_clone_path,
                 "--containers-result-path",

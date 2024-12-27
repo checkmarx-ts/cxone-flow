@@ -4,6 +4,7 @@ from .. import DictCmdLineOpts
 class ResolverOpts(DictCmdLineOpts):
       
     __forbidden_opts = [
+        "logs-path",
         "a",
         "account",
         "containers-result-path",

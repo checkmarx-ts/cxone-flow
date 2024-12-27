@@ -28,7 +28,7 @@ class ShellExecutionContext(ExecutionContext):
         elif os.path.exists(ShellRunner.__resolver_name):
             cmd = [ShellRunner.__resolver_name]
         
-        exec_cmd =  runas + cmd
+        exec_cmd = runas + cmd
 
         self.log().debug(f"Resolver exec cmd: {exec_cmd}")
 
