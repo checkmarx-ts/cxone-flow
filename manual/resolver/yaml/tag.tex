@@ -22,6 +22,7 @@ shows the use of the following \scaresolver configuration parameters:
 These options, if set, will be ignored:
 
 \begin{itemize}
+  \item logs-path
   \item a | account
   \item containers-result-path
   \item resolver-result-path
@@ -68,7 +69,6 @@ If not provided, the \scaresolver is executed as the same user that is running t
 \subsubsection{resolver-work-path}\label{sec:agent-resolver-work-path}
 A path where temporary files are written during the operation of the distributed resolver agent.  This also serves as the home
 directory for the distributed resolver agent user and the user defined in \texttt{resolver-run-as}.
-
 
 \subsubsection{run-with-container}\label{sec:agent-run-with-container}
 A YAML dictionary with key/value pairs used to define running \scaresolver in a container.  If this is supplied,
