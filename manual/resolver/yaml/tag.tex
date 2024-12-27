@@ -1,0 +1,101 @@
+\subsubsection{public-key}\label{sec:agent-public-key}
+The value specifies a file name found under the path defined by \texttt{secret-root-path} containing a 
+public key that matches the server's configured \hyperref[sec:yaml-resolver-private-key]{\texttt{private-key}} setting.
+
+\subsubsection{resolver-opts}\label{sec:agent-resolver-opts}
+This is a dictionary of
+\href{https://docs.checkmarx.com/en/34965-132888-checkmarx-sca-resolver-configuration-arguments.html#UUID-bc93274b-c1c7-ea47-9556-3bd8900711dc_id_CheckmarxSCAResolverConfigurationArguments-ConfigurationArguments-TablesandSamples}{configuration arguments}
+passed to \scaresolver when executing.  The options are used to provide static values for resolver execution configuration.  Some of the
+options may clash with execution options provided by the agent; options that would clash with how the agent executes \scaresolver are ignored.  
+
+The \texttt{resolver-opts} section is a dictionary of key and key/value pairs. The \hyperref[code:agent-yaml-example]{agent YAML configuration example}
+shows the use of the following \scaresolver configuration parameters:
+
+\begin{itemize}
+  \item The key \texttt{log-level} with the value \texttt{Verbose} produces the configuration\\option: \texttt{--log-level=Verbose}
+  \item The key \texttt{scan-containers} with no value produces the configuration\\option: \texttt{--scan-containers}
+  \item The key \texttt{break-on-manifest-failure} with no value produces the configuration\\option: \texttt{--break-on-manifest-failure}
+  \item The key \texttt{c} with the value \texttt{/etc/resolver/Configuration.yml} produces the configuration\\option: \texttt{-c=/etc/resolver/Configuration.yml}
+\end{itemize}
+
+
+These options, if set, will be ignored:
+
+\begin{itemize}
+  \item a | account
+  \item containers-result-path
+  \item resolver-result-path
+  \item project-name
+  \item authentication-server-url
+  \item p | password
+  \item sso-provider
+  \item sca-app-url
+  \item s | scan-path
+  \item server-url
+  \item u | username
+  \item project-tags
+  \item scan-tags
+  \item bypass-exitcode
+  \item no-upload-manifest
+  \item help
+  \item manifests-path
+  \item t | project-teams
+  \item q | quiet
+  \item save-evidence-path
+  \item severity-threshold
+  \item report-content
+  \item report-extension
+  \item report-path
+  \item report-type
+  \item sast-result-path
+  \item cxpassword
+  \item cxuser
+  \item cxprojectid
+  \item cxprojectname
+  \item cxserver
+\end{itemize}
+
+\subsubsection{resolver-path}\label{sec:agent-resolver-path}
+The path to the \scaresolver executable that has been installed on the system running the distributed resolver agent.
+
+
+\subsubsection{resolver-run-as}\label{sec:agent-resolver-run-as}
+The name of a user account that will run the \scaresolver when executed in a shell (but not as a container).  This
+is an advanced configuration that will require additional configuration for your platform.  
+
+If not provided, the \scaresolver is executed as the same user that is running the distributed resolver agent service.
+
+\subsubsection{resolver-work-path}\label{sec:agent-resolver-work-path}
+A path where temporary files are written during the operation of the distributed resolver agent.  This also serves as the home
+directory for the distributed resolver agent user and the user defined in \texttt{resolver-run-as}.
+
+
+\subsubsection{run-with-container}\label{sec:agent-run-with-container}
+A YAML dictionary with key/value pairs used to define running \scaresolver in a container.  If this is supplied,
+the configured \texttt{resolver-path} is ignored and \scaresolver will not be invoked in a shell.  The dependency
+tree collected by \scaresolver will be done by executing build tools defined in the container.  This is useful for
+organizations that utilize containerized build environments in their CI/CD pipeline build scripts.
+
+The use of containers to run \scaresolver is not supported on Windows platforms.
+
+\subsubsection{container-image-tag}\label{sec:agent-container-image-tag}
+The container tag that is found in one of the logged-in container registries.  This container tag is used by the \toolkit
+to create an extended image with \scaresolver installed.
+
+\subsubsection{supply-chain-toolkit-path}\label{sec:agent-supply-chain-toolkit-path}
+The path where the \toolkit build environment is installed.
+
+\subsubsection{use-running-gid and use-running-uid}\label{sec:agent-use-running}
+These options are True by default.  This causes the image built by the \toolkit to use the
+UID and primary GID of the user running the distributed resolver agent when defining a non-root
+user in the extended image.  
+
+The reason for this is that when \scaresolver is executed in the container, temporary paths
+in the \texttt{resolver-work-path} are mapped to the container.  Files created by the container
+will have the UID/GID of the running container's user when created.  Since the UID/GID of the
+container matches the UID/GID of the distributed resolver agent, the files that remain after
+the container exits can be controlled by the distributed resolver agent.
+
+Setting these values to False should only be done in circumstances where the UID/GID for written files
+should be defined by the container.  This scenario may never practically exist.
+

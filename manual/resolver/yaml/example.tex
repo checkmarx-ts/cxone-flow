@@ -1,0 +1,29 @@
+
+\label{code:agent-yaml-example}
+\begin{code}{Distributed Resolver Agent Example Configuration YAML}{}{}
+secret-root-path: /var/secrets
+
+rabbit-cluser-amqp: &rmq-cluster
+  amqp-url: amqp-cluster-url-consumer
+
+common-config: &common
+    public-key: rsa-pub.pem
+    resolver-work-path: /var/resolver
+    resolver-path: /opt/resolver/ScaResolver
+    resolver-opts:
+      log-level: Verbose
+      scan-containers:
+      break-on-manifest-failure:
+      c: /etc/resolver/Configuration.yml
+    amqp:
+      <<: *rmq-cluster
+
+serviced-tags:
+  general:
+    <<: *common
+  java-gradle:
+    <<: *common
+    run-with-container:
+      supply-chain-toolkit-path: /opt/supply-chain-build-env
+      container-image-tag: gradle:8-jdk17-alpine
+\end{code}

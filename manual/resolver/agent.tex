@@ -5,6 +5,36 @@
 
 \subsection{Security Considerations}\label{sec:resolver-agent-security}
 
+As briefly described in Section \ref{sec:dist-resolver-security-considerations}, executing
+part of a code build to extract a dependency tree can pose some risks. For example,
+tools like Gradle define the build definition in the programming language Groovy; this Groovy
+code executes when Gradle loads the build definition.  Other tools even execute scripts defined
+in the dependency package leading to the popular method of "typo-squatting" as a means to
+perform a remote-code-execution (RCE) attack directly on unsuspecting developers.  Executing an
+untrusted build definition or loading a dependency containing malware into a build system is
+not desirable.
+
+Since the risk of malicious builds is always possible, the deployment of the distributed resolver agent
+can be configured to mitigate these risks.  The section for each platform's install makes specific
+recommendations for a secure deployment of the distributed resolver agent.  The general recommendations
+for all platform deployments are:
+
+\begin{itemize}
+  \item Utilize file permissions on the secret values used by the agent to limit which running processes
+    can read the contents of the secrets
+  \item Use the recommended directory permissions for each platform's deployment.
+  \item Find a logical grouping of agents and use different message queue credentials to better avoid
+    impact if any credentials are misused.
+  \item Use the account security settings to limit message queue access to agents such that they are only
+    able to receive and send events required for their specific operations.
+  \item If the agent is invoking \scaresolver as a shell execution, utilize a "run-as" configuration to
+    run the resolver as a low-privilege account.
+  \item Utilize the \scaresolver docker execution capability to sandbox the dependency resolution in a container.
+  \item If configuring an agent to execute \scaresolver for both shell and container dependency resolution,
+    configure your docker daemon to run in "rootless" mode.
+\end{itemize}
+
+
 \subsubsection{Message Queue Authorization}
 
 securing tokens/MQ creds in resolver agent
@@ -31,12 +61,69 @@ securing runtime activities of the resolver agent
 
 
 \subsection{Installation}
+pre-requisites:
+installer for platform
+message queue credentials and connection information
+a public key that matches the private key deployed on the endpoint
 
 \subsubsection{Debian Linux Platforms}
 
 \subsection{Configuration}
 
-
-
 \subsection{Limitations}
 SSH clone does not work with resolver agent scanning
+
+
+\subsection{Distributed Resolver Agent YAML Configuration}
+
+The distributed resolver agent's YAML configuration is deployed after the agent is installed.
+Many of the elements share format with the \hyperref[sec:yaml-config]{server's configuration elements}. 
+
+
+Below is an example of a distributed agent YAML configuration.  This example demonstrates:
+
+\begin{itemize}
+  \item Secrets are stored in \texttt{/var/secrets}
+  \item A common configuration block used by each tag is placed in each tag's configuration using YAML Anchors.
+  \item \scaresolver execution uses a work path of \texttt{/var/resolver}.
+  \item Shell execution of \scaresolver uses an instance installed at \texttt{/opt/resolver/ScaResolver}.
+  \item Options for \scaresolver are defined in the \texttt{resolver-opts} element.
+  \item All agent tags use the same AMQP configuration via YAML Anchor tags.
+  \item The agent tag \texttt{general} is configured to execute \scaresolver as a shell execution.
+  \item The agent tag \texttt{java-gradle} executes \scaresolver using a container image \texttt{gradle:8-jdk17-alpine} that
+    is then extended by the agent using the \toolkit installed at\\\texttt{/opt/supply-chain-build-env}.
+\end{itemize}
+
+\input{resolver/yaml/example.tex}
+
+
+\pagebreak
+
+\subsubsection{Distributed Resolver Agent YAML Configuration Tree}\label{sec:agent-yaml-root}
+
+\dirtree{%
+    .1 \hyperref[sec:agent-yaml-root]{<root>}.
+    .2 \hyperref[sec:yaml-secret-root-path]{secret-root-path}\DTcomment{[Required]}.
+    .2 \hyperref[sec:agent-serviced-tags]{serviced-tags}\DTcomment{[Required]}.
+    .3 \hyperref[sec:agent-tag]{<agent tag>}\DTcomment{[At least 1 required]}.
+    .4 \hyperref[sec:yaml-generic-amqp]{amqp}\DTcomment{[Optional] Default: localhost}.
+    .5 \hyperref[sec:yaml-generic-amqp-amqp-password]{amqp-password}\DTcomment{[Optional]}.
+    .5 \hyperref[sec:yaml-generic-amqp-amqp-url]{amqp-url}\DTcomment{[Required]}.
+    .5 \hyperref[sec:yaml-generic-amqp-amqp-user]{amqp-user}\DTcomment{[Optional]}.
+    .5 \hyperref[sec:yaml-generic-ssl-verify]{ssl-verify}\DTcomment{[Optional] Default: True}.
+    .4 \hyperref[sec:agent-public-key]{public-key}\DTcomment{[Required]}.
+    .4 \hyperref[sec:agent-resolver-opts]{resolver-opts}\DTcomment{[Optional] Default: None}.
+    .4 \hyperref[sec:agent-resolver-path]{resolver-path}\DTcomment{[Required if not \texttt{run-with-container}]}.
+    .4 \hyperref[sec:agent-resolver-run-as]{resolver-run-as}\DTcomment{[Optional] Default: run as service user}.
+    .4 \hyperref[sec:agent-resolver-work-path]{resolver-work-path}\DTcomment{[Optional] Default: /tmp/resolver}.
+    .4 \hyperref[sec:agent-run-with-container]{run-with-container}\DTcomment{[Required if not \texttt{resolver-path}]}.
+    .5 \hyperref[sec:agent-container-image-tag]{container-image-tag}\DTcomment{[Required]}.
+    .5 \hyperref[sec:agent-supply-chain-toolkit-path]{supply-chain-toolkit-path}\DTcomment{[Required]}.
+    .5 \hyperref[sec:agent-use-running]{use-running-gid}\DTcomment{[Optional] Default: True}.
+    .5 \hyperref[sec:agent-use-running]{use-running-uid}\DTcomment{[Optional] Default: True}.
+}
+
+\input{resolver/yaml/root.tex}
+\input{resolver/yaml/serviced-tags.tex}
+\input{resolver/yaml/tag.tex}
+

@@ -6,7 +6,6 @@ class ResolverOpts(DictCmdLineOpts):
     __forbidden_opts = [
         "a",
         "account",
-        "scan-path",
         "containers-result-path",
         "resolver-result-path",
         "project-name",
