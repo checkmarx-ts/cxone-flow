@@ -1,4 +1,6 @@
-import asyncio, aio_pika, logging
+import asyncio
+import aio_pika
+import logging
 import cxoneflow_logging as cof_logging
 from config import ConfigurationException, get_config_path
 from config.server import CxOneFlowConfig
@@ -37,19 +39,18 @@ async def setup() -> None:
             await scan_feedback_exchange.bind(scan_in_exchange)
             await scan_annotate_exchange.bind(scan_in_exchange)
 
-            
             # The awaited scans allows scans to soak until a timeout, then they go to the polling exchange where the
             # scan is polled to see the state or times out.
             polling_delivery_exchange = await channel.declare_exchange(PRFeedbackService.EXCHANGE_SCAN_POLLING, aio_pika.ExchangeType.TOPIC, durable=True, internal=True)
-            awaited_scans_queue = await channel.declare_queue(PRFeedbackService.QUEUE_SCAN_WAIT, durable=True, \
-                                    arguments = {
-                                        'x-queue-type' : "quorum",
-                                        'x-dead-letter-strategy' : "at-least-once",
-                                        'x-overflow' : "reject-publish",
-                                        'x-dead-letter-exchange' : PRFeedbackService.EXCHANGE_SCAN_POLLING
-                                        })
+            awaited_scans_queue = await channel.declare_queue(PRFeedbackService.QUEUE_SCAN_WAIT, durable=True,
+                                                              arguments={
+                                                                  'x-queue-type': "quorum",
+                                                                  'x-dead-letter-strategy': "at-least-once",
+                                                                  'x-overflow': "reject-publish",
+                                                                  'x-dead-letter-exchange': PRFeedbackService.EXCHANGE_SCAN_POLLING
+                                                              })
             await awaited_scans_queue.bind(scan_await_exchange, PRFeedbackService.ROUTEKEY_POLL_BINDING)
-            polling_scans_queue = await channel.declare_queue(PRFeedbackService.QUEUE_SCAN_POLLING, durable=True, arguments={'x-queue-type' : "quorum"})
+            polling_scans_queue = await channel.declare_queue(PRFeedbackService.QUEUE_SCAN_POLLING, durable=True, arguments={'x-queue-type': "quorum"})
             await polling_scans_queue.bind(polling_delivery_exchange, PRFeedbackService.ROUTEKEY_POLL_BINDING)
 
             # Once polling is complete, a feedback message for the correct workflow is created.
@@ -57,32 +58,42 @@ async def setup() -> None:
             # Scan state: Feedback
             # Available workflows:
             # * PR - Pull Request feedback writted to the PR comments
-            pr_feedback_queue = await channel.declare_queue(PRFeedbackService.QUEUE_FEEDBACK_PR, durable=True, arguments={'x-queue-type' : "quorum"})
+            pr_feedback_queue = await channel.declare_queue(PRFeedbackService.QUEUE_FEEDBACK_PR, durable=True, arguments={'x-queue-type': "quorum"})
             await pr_feedback_queue.bind(scan_feedback_exchange, PRFeedbackService.ROUTEKEY_FEEDBACK_PR)
 
             # Scan State: Annotation
             # Available workflows:
-            # * PR - Pull request annotation to indicate scan progress. 
-            pr_annotate_queue = await channel.declare_queue(PRFeedbackService.QUEUE_ANNOTATE_PR, durable=True, arguments={'x-queue-type' : "quorum"})
+            # * PR - Pull request annotation to indicate scan progress.
+            pr_annotate_queue = await channel.declare_queue(PRFeedbackService.QUEUE_ANNOTATE_PR, durable=True, arguments={'x-queue-type': "quorum"})
             await pr_annotate_queue.bind(scan_annotate_exchange, PRFeedbackService.ROUTEKEY_ANNOTATE_PR)
-
 
         resolver_rmq = await services.resolver.mq_client()
         async with resolver_rmq.channel() as channel:
             # Resolver scan queue configuration
             sca_resolver_scan_exchange = await channel.declare_exchange(ResolverScanService.EXCHANGE_RESOLVER_SCAN, aio_pika.ExchangeType.TOPIC, durable=True)
 
+            # Timeout monitoring of scans
+            sca_resolver_scan_dlx = await channel.declare_exchange(ResolverScanService.EXCHANGE_RESOLVER_SCAN_DLX, aio_pika.ExchangeType.TOPIC, internal=True,
+                                                                   durable=True)
+            timeout_queue = await channel.declare_queue(ResolverScanService.QUEUE_RESOLVER_TIMEOUT, durable=True, arguments={'x-queue-type': "quorum"})
+
+            await timeout_queue.bind(sca_resolver_scan_dlx, ResolverScanService.ROUTEKEY_DLX)
+
             # Make a queue for each tag, bind it with an associated topic.
             for queue, topic in services.resolver.queue_and_topic_tuples:
-                cur_queue = await channel.declare_queue(queue, durable=True, arguments={'x-queue-type' : "quorum"})
+                cur_queue = await channel.declare_queue(queue, durable=True,
+                                                        arguments={
+                                                            'x-queue-type': "quorum",
+                                                            'x-dead-letter-strategy': "at-least-once",
+                                                            'x-overflow': "reject-publish",
+                                                            'x-dead-letter-exchange': ResolverScanService.EXCHANGE_RESOLVER_SCAN_DLX
+                                                        })
                 await cur_queue.bind(sca_resolver_scan_exchange, topic)
 
-
             # Completed scan messaging
-            resolver_scans_complete_queue = await channel.declare_queue(ResolverScanService.QUEUE_RESOLVER_COMPLETE, durable=True, 
-                                                                        arguments={'x-queue-type' : "quorum"})
+            resolver_scans_complete_queue = await channel.declare_queue(ResolverScanService.QUEUE_RESOLVER_COMPLETE, durable=True,
+                                                                        arguments={'x-queue-type': "quorum"})
             await resolver_scans_complete_queue.bind(sca_resolver_scan_exchange, ResolverScanService.ROUTEKEY_EXEC_SCA_SCAN_COMPLETE)
-
 
 
 if __name__ == "__main__":
