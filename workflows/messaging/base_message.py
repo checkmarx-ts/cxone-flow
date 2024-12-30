@@ -34,5 +34,5 @@ class StampedMessage(BaseMessage):
     correlation_id : str
 
     @classmethod
-    def factory(clazz, **kwargs):
-        return clazz(timestamp=datetime.now(UTC).isoformat(), correlation_id=uuid.uuid4(), **kwargs)
+    def factory(clazz, correlation_id=uuid.uuid4(), **kwargs):
+        return clazz(timestamp=datetime.now(UTC).isoformat(), correlation_id=correlation_id, **kwargs)

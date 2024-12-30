@@ -9,7 +9,7 @@ from workflows.messaging import (
     ScanAnnotationMessage,
     ScanFeedbackMessage,
 )
-from agent.resolver import ResolverResultsAgent
+from agent.resolver import ResolverResultsAgent, ResolverTimeoutAgent
 from agent import mq_agent
 
 cof_logging.bootstrap()
@@ -92,6 +92,14 @@ async def spawn_agents():
                     await services.resolver.mq_client(),
                     moniker,
                     ResolverScanService.QUEUE_RESOLVER_COMPLETE,
+                )
+            )
+            g.create_task(
+                mq_agent(
+                    ResolverTimeoutAgent(services),
+                    await services.resolver.mq_client(),
+                    moniker,
+                    ResolverScanService.QUEUE_RESOLVER_TIMEOUT,
                 )
             )
 

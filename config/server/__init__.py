@@ -99,7 +99,7 @@ class CxOneFlowConfig(CommonConfig):
     def __resolver_service_factory(cxone_client : CxOneClient, config_path, moniker, **kwargs) -> ResolverScanService:
          if kwargs is None or len(kwargs) == 0:
             return ResolverScanService(moniker, cxone_client, CommonConfig._default_amqp_url, None, None, True, DummyResolverScanningWorkflow(), 
-                                       None, None, None)
+                                       None, None, None, ResolverScanService.DEFAULT_SCAN_RETRIES, ResolverScanService.DEFAULT_SCAN_TIMEOUT)
          else:
             msg_private_key = CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path, "private-key", kwargs)
             
@@ -114,12 +114,14 @@ class CxOneFlowConfig(CommonConfig):
                 raise ConfigurationException.missing_keys(f"{config_path}/allowed-agent-tags", [default_tag])
 
             amqp_url, amqp_user, amqp_password, ssl_verify = CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
+
+            scan_retries = CxOneFlowConfig._get_value_for_key_or_default("scan-retries", kwargs, ResolverScanService.DEFAULT_SCAN_RETRIES)
+            scan_timeout = CxOneFlowConfig._get_value_for_key_or_default("scan-timeout-seconds", kwargs, ResolverScanService.DEFAULT_SCAN_TIMEOUT)
            
             return ResolverScanService(moniker, cxone_client, amqp_url, amqp_user, amqp_password, ssl_verify, 
-                                       ResolverScanningWorkflow.from_private_key(capture_resolver_logs, bytes(msg_private_key, "UTF-8")), 
+                                       ResolverScanningWorkflow.from_private_key(capture_resolver_logs, bytes(msg_private_key, "UTF-8"), 
+                                                                                 scan_retries, scan_timeout), 
                                        default_tag, project_tag_key, agent_tag_list)
-
-    
 
     @staticmethod
     def __pr_feedback_service_factory(config_path, moniker, **kwargs) -> PRFeedbackService:
