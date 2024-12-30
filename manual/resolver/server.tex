@@ -105,8 +105,12 @@ tooling and configuration that can be used for any code that requires that tooli
 has some implications in how distributed resolver agents can be deployed:
 
 \begin{itemize}
-  \item The agent tag/private key pair can be different in each service definition.  It is recommended to
-  use duplicate agent tags across service definitions only when those tags all share the same public/private
+  \item One instance of a distributed resolver agent can handle multiple tags.
+  
+  \item More than one instance of a distributed resolver agent can be deployed to handle the same tag.
+
+  \item The distributed resolver agent tag/private key pair can be different in each service definition.  It is recommended to
+  use duplicate distributed resolver agent tags across \cxoneflow service definitions only when those tags all share the same public/private
   key pair.
 
   \item Not all service definitions need to support the same allowed agent tags.  If there are distributed agents

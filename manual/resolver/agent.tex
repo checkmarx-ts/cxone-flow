@@ -90,6 +90,15 @@ scan results for the tags \texttt{general} and \texttt{java-gradle}.
   \end{tabularx}
 \end{table}
 
+\subsubsection{Distributed Resolver Agent Deployment Considerations}
+
+The \cxoneflow scan workflow that delegates resolver scans to distributed resolver agents
+assumes that one or more agents are available to handle the delegated scan request. Any number
+of distributed resolver agents that handle the same tag can be deployed.  It is suggested that
+deployment of distributed resolver agents considers that resolver scans will fail in the event
+that no distributed resolver agents are available to handle scan requests for one or more
+tags.
+
 
 \subsection{Security Considerations}\label{sec:resolver-agent-security}
 
@@ -100,7 +109,7 @@ code executes when Gradle loads the build definition.  Other tools even execute 
 in the dependency package leading to the popular method of "typo-squatting" as a means to
 perform a remote-code-execution (RCE) attack directly on unsuspecting developers.  Executing an
 untrusted build definition or loading a dependency containing malware into a build system is
-not desirable.
+a risk that comes from using open-source software.
 
 Since the risk of malicious builds is always possible, the deployment of the distributed resolver agent
 can be configured to mitigate these risks.  The section for each platform's install makes specific
@@ -112,16 +121,16 @@ for all platform deployments are:
     execution of the distributed resolver agent.
   \item Utilize file permissions on the secret values used by the agent to limit which running processes
     can read the contents of the secrets
-  \item Use the recommended directory permissions for each platform's deployment.
-  \item Find a logical grouping of agents and use different message queue credentials to better avoid
+  \item Use the recommended file system permissions for each platform's deployment.
+  \item Find a logical grouping of agents for message queue credential assignment to better avoid
     impact if any credentials are misused.
-  \item Use the account security settings to limit message queue access to agents such that they are only
+  \item Use the message queue account security settings to limit message queue access to agents such that they are only
     able to receive and send events required for their specific operations.
   \item If the agent is invoking \scaresolver as a shell execution, utilize a "run-as" configuration to
     run the resolver as a low-privilege account.
   \item Utilize the \scaresolver docker execution capability to sandbox the dependency resolution in a container.
-  \item If configuring an agent to execute \scaresolver for both shell and container dependency resolution,
-    configure your docker daemon to run in "rootless" mode.
+  \item Avoid configuring a distributed resolver agent instance to execute \scaresolver for both shell and container dependency resolution
+    unless proper precautions have been taken to avoid privilege escalation exploits through the container file system overlay.
 \end{itemize}
 
 
@@ -156,14 +165,14 @@ build tools from reading the secrets when using the \hyperref[par:shell-agent-is
 by commands such as "\texttt{systemctl start cxoneflow-resolver-agent}" and\\"\texttt{systemctl stop cxoneflow-resolver-agent}".
 
 The distributed resolver agent runtime logs appear in \texttt{/var/log/syslog}.  To monitor the distributed resolver agent logs, execute the command
-"\texttt{tail -f /var/log/syslog | grep resolver.agent}".
+\\"\texttt{tail -f /var/log/syslog | grep resolver.agent}".
 
 Debug logging can be turned on for the distributed resolver agent by adding an environment variable in the \texttt{systemd}
 service definition.  The following procedure will enable debug logging:
 
 \begin{enumerate}
-  \item Edit the file \texttt{/opt/cxoneflow-resolver-agent/cxoneflow-resolver-agent.service}.
-  \item Add the line \texttt{Environment=LOG\_LEVEL=DEBUG} under the existing line starting with \texttt{Environment}.
+  \item Edit the file \texttt{/opt/cxoneflow-resolver-agent/cxoneflow-resolver-agent.service}
+  \item Add the line "\texttt{Environment=LOG\_LEVEL=DEBUG}" under the existing line starting with\\\texttt{Environment}.
   \item Save the modifications to the \texttt{cxoneflow-resolver-agent.service} file.
   \item Execute the command "\texttt{systemctl daemon-reload}".
   \item Execute the command "\texttt{systemctl restart cxoneflow-resolver-agent}".
@@ -187,10 +196,9 @@ to replicate build tool settings to the \hyperref[sec:agent-resolver-work-path]{
 for the settings, it may be necessary to adjust file/directory permissions to allow the \texttt{resolver} user to access the global
 configurations.
 
-The build tools will also often use the running user's home directory to write a package cache.  This will also be the case
-when the tool is executed as the \texttt{resolver} user; the cache will then be located in the directory referenced by
-\hyperref[sec:agent-resolver-work-path]{resolver-work-path}. It may be possible to change the locations where the tools look
-for configuration or write package caches by configuring the
+The build tools will often use the running user's home directory to write a package cache.  When the tool is invoked,
+the running user's home directory is set to the value configured in \hyperref[sec:agent-resolver-work-path]{resolver-work-path}.
+It may be possible to change the locations where the tools look for configuration or write package caches by configuring the
 \hyperref[sec:agent-resolver-opts]{resolver-opts} YAML element with
 \href{https://docs.checkmarx.com/en/34965-132888-checkmarx-sca-resolver-configuration-arguments.html#UUID-bc93274b-c1c7-ea47-9556-3bd8900711dc_id_CheckmarxSCAResolverConfigurationArguments-CustomParameters}
 {custom parameters} passed to the build tools.
@@ -230,7 +238,7 @@ To enable the \texttt{resolver-runtime} user to have the required privileges, th
   \item Restart the \texttt{systemd} service for the distributed resolver agent.
 \end{enumerate}
 
-Any configuration for tags that use shell execution of \scaresolver will now run as the user \texttt{resolver-runtime}.
+Any configuration for tags that use shell execution of \scaresolver will now run as the user\\\texttt{resolver-runtime}.
 
 \paragraph{Container Execution}
 \noindent\\Container execution is supported using the \toolkit build environment that will extend a container image
@@ -263,7 +271,8 @@ To avoid the potential for privilege escalation:
   \item Use \hyperref[par:shell-agent-isolation]{Shell Execution Isolation} for distributed resolver agents that are configured
     to execute \scaresolver both as a shell execution and using container execution.
   \item If not using \hyperref[par:shell-agent-isolation]{Shell Execution Isolation}, install \texttt{docker} in the "rootless"
-    configuration.\footnote{As of the writing of this manual, this is not a tested configuration scenario.  It is unknown if rootless will work.}
+    configuration.\footnote{As of the writing of this manual, this is not a tested configuration scenario.  It is unknown if rootless will work.
+    An alternative would be to avoid configurations that allow both shell and docker execution of \scaresolverns.}
 \end{itemize}
 
 
@@ -280,12 +289,12 @@ Below is an example of a distributed agent YAML configuration.  This example dem
   \item Secrets are stored in \texttt{/var/secrets}
   \item A common configuration block used by each tag is placed in each tag's configuration using YAML Anchors.
   \item \scaresolver execution uses a work path of \texttt{/var/resolver}.
-  \item Shell execution of \scaresolver uses an instance installed at \texttt{/opt/resolver/ScaResolver}.
+  \item Shell execution of \scaresolver uses an instance installed at\\\texttt{/opt/resolver/ScaResolver}.
   \item Options for \scaresolver are defined in the \texttt{resolver-opts} element.
   \item All agent tags use the same AMQP configuration via YAML Anchor tags.
   \item The agent tag \texttt{general} is configured to execute \scaresolver as a shell execution.
   \item The agent tag \texttt{java-gradle} executes \scaresolver using a container image \texttt{gradle:8-jdk17-alpine} that
-    is then extended by the agent using the \toolkit installed at\\\texttt{/opt/supply-chain-build-env}.
+    is then extended by the agent using the \toolkit installed at \texttt{/opt/supply-chain-build-env}.
 \end{itemize}
 
 \input{resolver/yaml/example.tex}

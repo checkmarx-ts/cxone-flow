@@ -10,6 +10,31 @@ tree is obtained by executing the same build tools normally used to develop and 
 distributable software package.  This execution is performed using two methods: server-side 
 dependency tree resolution and client-side dependency tree resolution with \scaresolver.
 
+The purpose of the distributed resolver agent configuration with \cxoneflow is to execute a
+client-side dependency tree resolution in response to a source control event.  The \cxone
+\hyperref[sec:overview]{scan workflow} introduces the concept of a deferred scan which delegates
+a scan with \scaresolver to an appropriate distributed resolver agent instance.  The selection of
+the distributed resolver agent instance is performed through a tag configuration.
+
+The basic workflow used by \cxoneflow with distributed resolver agents is as follows:
+
+\begin{enumerate}
+  \item The SCM event is received by \cxoneflow.  If the event \hyperref[sec:overview]{qualifies to invoke} a scan and
+    the \hyperref[sec:resolver-elements]{resolver elements} in the \cxoneflow configuration exist, \cxoneflow attempts to select
+    a distributed resolver agent tag. 
+  \item The \cxone project is checked for a tag matching the configured \hyperref[sec:yaml-resolver-resolver-tag-key]{resolver-tag-key}.
+    If the project has a tag with the matching key and the value matches one of the values in the \hyperref[sec:yaml-resolver-allowed-agent-tags]{allowed-agent-tags}
+    configuration, that value is selected as the distributed resolver agent's tag.
+  \item If the \cxone project does not have a tag with the matching \hyperref[sec:yaml-resolver-resolver-tag-key]{resolver-tag-key} and
+    \hyperref[sec:yaml-resolver-default-agent-tag]{default-agent-tag} is configured, the default tag is selected as the the distributed resolver agent's tag.
+  \item If a distributed resolver agent tag is selected, a request for a resolver scan is sent to distributed resolver agents having the selected tag.  The
+    \cxone scan is deferred until the distributed resolver agent finishes a scan.
+  \item Upon notification that a distributed resolver agent has finished the resolver scan, a \cxone scan is invoked.  A tag is added to the scan
+    with the key value configured in the \hyperref[sec:yaml-resolver-resolver-tag-key]{resolver-tag-key} element that indicates \textbf{success} or
+    \textbf{failure} of the distributed resolver agent scan.
+\end{enumerate}
+
+
 \subsection{Server-Side Dependency Tree Resolution}
 
 The dependency analysis for the code submitted to \cxone is performed
