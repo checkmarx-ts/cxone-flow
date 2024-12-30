@@ -39,7 +39,7 @@ class CloneWorker:
     async def __aexit__(self, exc_type, exc, tb):
         if self.__temp_dir_object is not None:
             self.__log.debug(f"Cleanup: {self.__clone_out_tempdir}")
-            self.__clone_out_tempdir.cleanup()
+            self.__temp_dir_object.cleanup()
 
 
 class Cloner:
