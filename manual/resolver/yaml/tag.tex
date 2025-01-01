@@ -1,14 +1,14 @@
 \subsubsection{public-key}\label{sec:agent-public-key}
 The value specifies a file name found under the path defined by \texttt{secret-root-path} containing a 
-public key that matches the server's configured \hyperref[sec:yaml-resolver-private-key]{\texttt{private-key}} setting.
+public key that matches the server's configured \intlink{sec:yaml-resolver-private-key}{\texttt{private-key}} setting.
 
 \subsubsection{resolver-opts}\label{sec:agent-resolver-opts}
 This is a dictionary of
-\href{https://docs.checkmarx.com/en/34965-132888-checkmarx-sca-resolver-configuration-arguments.html#UUID-bc93274b-c1c7-ea47-9556-3bd8900711dc_id_CheckmarxSCAResolverConfigurationArguments-ConfigurationArguments-TablesandSamples}{configuration arguments}
+\extlink{https://docs.checkmarx.com/en/34965-132888-checkmarx-sca-resolver-configuration-arguments.html\#UUID-bc93274b-c1c7-ea47-9556-3bd8900711dc_id_CheckmarxSCAResolverConfigurationArguments-ConfigurationArguments-TablesandSamples}{configuration arguments}
 passed to \scaresolver when executing.  The options are used to provide static values for resolver execution configuration.  Some of the
 options may clash with execution options provided by the agent; options that would clash with how the agent executes \scaresolver are ignored.  
 
-The \texttt{resolver-opts} section is a dictionary of key and key/value pairs. The \hyperref[code:agent-yaml-example]{agent YAML configuration example}
+The \texttt{resolver-opts} section is a dictionary of key and key/value pairs. The \intlink{code:agent-yaml-example}{agent YAML configuration example}
 shows the use of the following \scaresolver configuration parameters:
 
 \begin{itemize}

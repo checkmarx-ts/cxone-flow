@@ -4,8 +4,8 @@ The following example shows a minimal \cxoneflow configuration that defines the 
     \item Files containing secrets are located at \texttt{/run/secrets}.
     \item One BitBucket Data Center SCM connection configuration to handle all webhook payloads
     POSTed to the \texttt{/bbdc} endpoint.
-    \item One catch-all route for clone-urls using the regular expression \texttt{.*}
-    \item The SCM's base URL located at \texttt{https://scm.corp.com}
+    \item One catch-all route for BitBucket clone-urls using the regular expression \texttt{.*}
+    \item The BitBucket base URL located at \texttt{https://scm.corp.com}
     \item The shared secret used to validate webhook payloads located in the file \texttt{/run/secrets/scm-shared-secret}
     \item The API and clone authorization using a PAT in a file located at \texttt{/run/secrets/scm-token-secret}
     \item The \cxone tenant name of \texttt{mytenant}
@@ -40,7 +40,7 @@ bbdc:
 \end{code}
 
 \pagebreak
-\noindent\\An alternate minimal example using a token for API authorization and SSH for cloning authorization:
+An alternate minimal example using a token for API authorization and SSH for cloning authorization:
 
 \begin{code}{Minimal YAML Configuration Example \#2}{Using BitBucket Data Center}{}
 secret-root-path: /run/secrets
@@ -62,8 +62,7 @@ bbdc:
 \end{code}
     
 \pagebreak
-\noindent\\An alternate minimal example using for an Azure DevOps Enterprise
-SCM:
+An alternate minimal example using for an Azure DevOps Enterprise SCM:
 
 \begin{code}{Minimal YAML Configuration Example \#3}{Using Azure DevOps Enterprise}{}
 secret-root-path: /run/secrets
@@ -86,7 +85,7 @@ adoe:
 \end{code}
 
 \pagebreak
-\noindent\\A minimal example for BitBucket Data Center with pull-request feedback enabled:
+A minimal example for BitBucket Data Center with pull-request feedback enabled:
 
 \begin{code}{Minimal YAML Configuration Example}{Enabling Pull Request Feedback}{}
 secret-root-path: /run/secrets
@@ -113,13 +112,13 @@ bbdc:
 \end{code}
 
 \pagebreak
-\noindent\\A minimal example using GitHub Enterprise with the \cxoneflow integration installed
+A minimal example using GitHub Enterprise with the \cxoneflow integration installed
 as a GitHub App:
 \input{operation/ghe_app_minimal_example.tex}
   
   
 \pagebreak
-\noindent\\A minimal example using GitHub Enterprise with the \cxoneflow integration using
+A minimal example using GitHub Enterprise with the \cxoneflow integration using
 webhooks configured at the individual repository level:
 \input{operation/ghe_webhook_minimal_example.tex}
 
@@ -127,13 +126,13 @@ webhooks configured at the individual repository level:
 
 
 \pagebreak
-\noindent\\A minimal example using GitHub Cloud with the \cxoneflow integration installed
+A minimal example using GitHub Cloud with the \cxoneflow integration installed
 as a GitHub App:
 \input{operation/ghc_app_minimal_example.tex}
 
   
   
 \pagebreak
-\noindent\\A minimal example using GitHub Cloud with the \cxoneflow integration using
+A minimal example using GitHub Cloud with the \cxoneflow integration using
 webhooks configured at the individual repository level:
 \input{operation/ghc_webhook_minimal_example.tex}

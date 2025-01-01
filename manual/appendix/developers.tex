@@ -1,22 +1,22 @@
-\chapter{\cxoneflow Developer Information}
+\chapter{\cxoneflowtext\space Developer Information}
 
 The development is performed on Ubuntu using Visual Studio Code.  This is not 
 strictly required but any instructions for quick starting the development environment 
 will be for using Ubuntu and VSCode. If you have different development tooling you'd like
 to use, you'll need to adapt these instructions to fit your tooling.
 
-\noindent\\The target version of Python is currently 3.12.  Using versions prior to 3.12 will likely result in
+The target version of Python is currently 3.12.  Using versions prior to 3.12 will likely result in
 runtime errors.
 
 \section{Secrets}
 
 \textbf{DO NOT COMMIT SECRETS}
 
-\noindent\\In general, it is a bad idea to commit secrets to the repository.  The \texttt{.gitignore} file is configured
+In general, it is a bad idea to commit secrets to the repository.  The \texttt{.gitignore} file is configured
 to ignore folders named \texttt{secrets} and YAML files in the root of the code directory.  This 
 can be circumvented or other files containing secrets can be inadvertently committed.
 
-\noindent\\If you've committed secrets but not pushed to the public GitHub repository, you can edit the commit history
+If you've committed secrets but not pushed to the public GitHub repository, you can edit the commit history
 or merge your clean code into a new clone.  If you've pushed a secret into the public repository, please notify
 the other maintainers so the impact can be assessed.
 
@@ -43,8 +43,8 @@ Follow these steps to install \LaTeX.
     \item Install TexLive direct from the website.  This is required since
     most Debian package repositories have an older version of TexLive.
     \begin{enumerate}
-        \item Download instructions: \href{https://www.tug.org/texlive/acquire-netinstall.html}{https://www.tug.org/texlive/acquire-netinstall.html}
-        \item Install instructions: \href{https://www.tug.org/texlive/quickinstall.html}{https://www.tug.org/texlive/quickinstall.html}
+        \item Download instructions: \extlink{https://www.tug.org/texlive/acquire-netinstall.html}{https://www.tug.org/texlive/acquire-netinstall.html}
+        \item Install instructions: \extlink{https://www.tug.org/texlive/quickinstall.html}{https://www.tug.org/texlive/quickinstall.html}
     \end{enumerate}
 
     \item At the end of the install, it will instruct you to update `PATH`, `MANPATH`, and `INFOPATH`.
@@ -54,5 +54,5 @@ Follow these steps to install \LaTeX.
 
 \end{enumerate}
 
-\noindent\\If \LaTeX\space is installed correctly, opening any of the \texttt{.tex} files will prove the ability to
+If \LaTeX\space is installed correctly, opening any of the \texttt{.tex} files will prove the ability to
 compile and preview the manual PDF.

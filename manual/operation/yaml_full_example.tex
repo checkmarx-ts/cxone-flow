@@ -4,11 +4,12 @@ configuration for a single SCM.  The minimal examples leave several of these opt
 The \texttt{scan-config} element has been added to this configuration to
 demonstrate some of the controls that can be implemented over scan options.  In this
 example, static Project and Scan tags are defined.  Also defined is the selection
-of engines for the scan with some options defined as supported by the engine.  The
-option keys are defined by the
-\href{https://checkmarx.stoplight.io/docs/checkmarx-one-api-reference-guide/branches/main/f601dd9456e80-run-a-scan}{Scan REST API}
-and described by
-\href{https://checkmarx.com/resource/documents/en/34965-68598-global-settings.html#UUID-8e38f06b-45d4-ea7f-5ff5-50deb22e43aa_UUID-1a4211ec-dbf9-a180-cb20-59e1246ec3fb}{Scanners Settings}.
+of engines for the scan with some options defined as supported by the engine.
+Documentation for the option keys can be found in the Checkmarx
+\extlink{https://checkmarx.stoplight.io/docs/checkmarx-one-api-reference-guide/branches/main/f601dd9456e80-run-a-scan}{Scan REST API}
+documentation and have the descriptions documented in the
+\extlink{https://docs.checkmarx.com/en/34965-324311-settings-for-specific-scanners.html}{Scanners Settings}
+documentation.
 
 While there are options to apply scan configurations via \texttt{scan-config} elements, it is often the case that defining the scan configuration
 in \cxoneflow will have undesirable results.  When defined in the \cxoneflow configuration, the configuration will explicitly override \cxone
@@ -64,7 +65,7 @@ bbdc:
 
 
 \pagebreak
-\noindent\\The next example shows a configuration where \cxoneflow has endpoint handlers for both
+The next example shows a configuration where \cxoneflow has endpoint handlers for both
 BitBucket Data Center and Azure DevOps Enterprise.  Each SCM is configured to handle multiple distinct
 projects to demonstrate the use of multiple authentication methods.  All the SCM endpoints
 orchestrate scans in a single \cxone tenant.

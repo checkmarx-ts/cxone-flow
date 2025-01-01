@@ -2,18 +2,22 @@
 
 \section{About BitBucket Data Center}
 
-BitBucket Data Center is often confused with BitBucket Cloud; it should be noted that
-the \cxoneflow configuration for BitBucket Data Center is not compatible with BitBucket Cloud.
+BitBucket Data Center is often confused with BitBucket Cloud; while there are name and some
+feature similarities in both products, the webhook event interface of each is completely different.
+It should be noted that the \cxoneflow configuration for BitBucket Data Center is not compatible with BitBucket Cloud.
 
-\noindent\\The \cxoneflow endpoint \texttt{/bbdc} is the handler for all webhook event
-payloads originating from BitBucket Data Center.  
+The \cxoneflow endpoint \texttt{/bbdc} is the handler for all webhook event
+payloads originating from BitBucket Data Center.  BitBucket Data Center has the concept of Project that
+contains zero or more repositories.  Webhook configurations can be set at both the project and repository
+level.  When a webhook configuration is set at the project level, webhook events are sent for all
+repositories in the project.
 
 
 \section{Webhook Configuration}
 
-BitBucket Data Center can assign web hooks at the Project (aka Organization) level as well as at the
+BitBucket Data Center can assign web hooks at the Project level as well as at the
 repository level.  Deploying web hook configurations for an enterprise-scale SCM is generally better
-at the organization level since it will apply to all repositories in the organization.  Deploying
+at the project level since it will apply to all repositories in the project.  Deploying
 at the repository level is mostly suitable for testing purposes only.
 
 Figure \ref{fig:bbdc-project-config} shows the BitBucket Data Center project configuration screen.  The
@@ -36,7 +40,7 @@ can be used to configure the \cxoneflow endpoint \texttt{/bbdc} to receive webho
 
 
 
-Figure \ref{fig:bbdc-webhook-config} shows a typical webhook configuration.  The Secret is how \cxoneflow
+Figure \ref{fig:bbdc-webhook-config} shows a typical webhook configuration.  The \textit{Secret} is how \cxoneflow
 validates the origin of the event payload.  The configuration element \texttt{shared-secret}, as described
 in Section \ref{sec:yaml-config}, should be configured with the webhook secret value.  If \cxoneflow
 is running at the specified URL endpoint, the "Test Connection" button will send a diagnostic ping
@@ -94,17 +98,20 @@ the \cxoneflow endpoint.  The following events are currently supported:
 \end{figure}
 
 
-\section{\cxoneflow HTTP Access Tokens}
+\section{\cxoneflowtext\space HTTP Access Tokens}
 
 Current versions of BitBucket Data Center now reject the use of Basic Authorization using
 a username and password. While it may be possible to use Basic Authorization to access the SCM, typically
 this is a configuration that should be avoided.  In addition to Basic Authorization breaking upon BitBucket Data Center
 server upgrades, an interactive user account may be subject to password changes and Captcha verification that
-can break \cxoneflow operations.  It is generally best to use a project-level HTTP Access Token for SCM connection
-configurations \texttt{api-auth} or \texttt{clone-auth}.  Please refer to Section \ref{sec:yaml-config} for more
-details about the token configuration.
+can break \cxoneflow operations.  
 
-\noindent\\Figure \ref{fig:bbdc-token-config} shows the project-level "HTTP Access tokens" configuration.  The required
+It is generally best to use a user HTTP Access Token for SCM connection
+configurations \texttt{api-auth} or \texttt{clone-auth}.  If a user access token is used, the user can be granted
+permissions for multiple projects; this will make the \cxoneflow configuration much easier. Please refer to 
+Section \ref{sec:yaml-config} for more details about the token configuration.
+
+Figure \ref{fig:bbdc-token-config} shows the project-level "HTTP Access tokens" configuration.  The required
 token permissions for \cxoneflow operations are:
 
 \begin{itemize}
@@ -120,19 +127,19 @@ token permissions for \cxoneflow operations are:
     \label{fig:bbdc-token-config}
 \end{figure}
 
-\noindent\\Project-level access tokens do not have an associated user account that would be tied to
+Project-level access tokens do not have an associated user account that would be tied to
 a user's access.  If using project-level access tokens, one project-level token is required per-project
-for which \cxoneflow is orchestrating scans.  This also implies that there is one SCM service 
+for which \cxoneflow is orchestrating scans.  This also implies that configuration will require one SCM service 
 configuration per project with an associated route match to use the correct project-level token.
 
-\noindent\\User-level access tokens are tied to a user account but are not subject to password
+User-level access tokens are tied to a user account but are not subject to password
 changes, 2FA authentication, and captcha challenges with interactive logins.  A token generated
 from a user as a service account can be granted the required permissions across all projects.
 In this scenario, a single SCM service configuration would be able to handle events coming from
 repositories in all projects.
 
 
-\section{\cxoneflow SSH Keys}
+\section{\cxoneflowtext\space SSH Keys}
 
 While performing scan orchestration, \cxoneflow does access the BitBucket Data Center API for
 certain operations.  This requires a configuration in the \texttt{api-auth} configuration
@@ -152,7 +159,8 @@ The \cxoneflow workflow, as described in Section \ref{sec:overview}, uses the co
 to know when to invoke workflows.  BitBucket Data Center allows for the configuration of the branching model
 at the project and repository level.  Some repositories inherit their branching model from the project
 configuration, but the ability for this to be overridden at the repository level is an optional configuration.
-The branching model is used to determine which branches are "Protected Branches".
+The branching model applied to the repository that emitted the webhook event is used to determine which branches
+are "Protected Branches" at the time \cxoneflow handles the event.
 
 The project-level branching model configuration is shown in Figure \ref{fig:bbdc-branch-config}.  The
 repository-level branching model configuration is similar in that both allow the definition of

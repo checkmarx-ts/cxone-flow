@@ -67,12 +67,12 @@ to handling only tags \texttt{general} and \texttt{java-gradle}.
 \end{table}
 
 Table \ref{tab:agent-mq-topic-perms} shows the topic permissions that limit the distributed resolver agent
-to submitting messages with topics for scan completion.  Using the regular expression\\"\texttt{\^{}cx.res.exec.sca-resolver.scan-complete.*}"
+to submitting messages with topics for scan completion.  Using the regular expression\\"\texttt{\^{}.exec.sca-resolver.scan-complete.*}"
 allows the agent to post scan results for any agent.
 
 To limit the agent to submitting messages with only the topics for tags the agent supports, the regular expression can
 be modified to include the tags.  For example, the topic regular expression
-"\texttt{\^{}cx.res.exec.sca-resolver.scan-complete.(general|java-gradle)\$}" will limit the agent to submitting
+"\texttt{\^{}.exec.sca-resolver.scan-complete.(general|java-gradle)\$}" will limit the agent to submitting
 scan results for the tags \texttt{general} and \texttt{java-gradle}.
 
 \begin{table}[ht]
@@ -82,7 +82,7 @@ scan results for the tags \texttt{general} and \texttt{java-gradle}.
       \toprule
       \textbf{Exchange} & \textbf{Permission} & \textbf{Regular Expression} \\
       \midrule
-      \texttt{cx:res:SCA Resolver Scan In} & \texttt{Write} & \texttt{\^{}cx.res.exec.sca-resolver.scan-complete.*}\\
+      \texttt{cx:res:SCA Resolver Scan In} & \texttt{Write} & \texttt{\^{}.exec.sca-resolver.scan-complete.*}\\
       \midrule
       \texttt{cx:res:SCA Resolver Scan In} & \texttt{Read} & blank \\
       \midrule
@@ -147,7 +147,7 @@ found with the \cxoneflow release.  The installer performs the following steps:
   \item The agent is installed as a \texttt{systemd} service and registered to automatically run at system start.
   \item The non-login user \texttt{resolver} is created and used to execute the \texttt{systemd} service.
   \item The non-login user \texttt{resolver-runtime} is created for use with the optional run-as isolation
-    (see \hyperref[par:shell-agent-isolation]{Shell Execution Isolation} for this optional configuration).
+    (see \intlink{par:shell-agent-isolation}{Shell Execution Isolation} for this optional configuration).
   \item A default directory for storing secrets is created at \texttt{/var/secrets} with permissions 500.
 \end{itemize}
 
@@ -158,7 +158,7 @@ directory will primarily store temporary files used during the execution of \sca
 The default secrets directory \texttt{/var/secrets} is created with ownership \texttt{resolver:resolver} and
 permissions 500.  For secret files placed in this directory, it is recommended to each file is owned
 by \texttt{resolver:resolver} with permissions of 400.  The permission of 400 will prevent 
-build tools from reading the secrets when using the \hyperref[par:shell-agent-isolation]{Shell Execution Isolation} option.
+build tools from reading the secrets when using the \intlink{par:shell-agent-isolation}{Shell Execution Isolation} option.
 
 \paragraph{Controlling the Distributed Resolver Agent}
 \noindent\\The distributed resolver agent runs as a \texttt{systemd} service.  This allows the run status to be controlled
@@ -187,39 +187,39 @@ runs as the \texttt{resolver} user.
 
 The \texttt{resolver} user is a non-login user that should have no access to do much other than run \texttt{git}, \scaresolverns, and
 the build tools invoked as part of the dependency resolution.  The home directory for the \texttt{resolver} user is dynamically set
-to the value configured in \hyperref[sec:agent-resolver-work-path]{resolver-work-path} when \scaresolver is executed.  The location
+to the value configured in \intlink{sec:agent-resolver-work-path}{resolver-work-path} when \scaresolver is executed.  The location
 of the home directory may have implications for how the build tools run.
 
 Many build tools will have several places where they will look for configurations that are not explicitly placed in the build
 definition.  In some cases, the configuration can exist in the home directory of the user running the build tool.  It may be necessary
-to replicate build tool settings to the \hyperref[sec:agent-resolver-work-path]{resolver-work-path}.  If the build tools use a global location
+to replicate build tool settings to the \intlink{sec:agent-resolver-work-path}{resolver-work-path}.  If the build tools use a global location
 for the settings, it may be necessary to adjust file/directory permissions to allow the \texttt{resolver} user to access the global
 configurations.
 
 The build tools will often use the running user's home directory to write a package cache.  When the tool is invoked,
-the running user's home directory is set to the value configured in \hyperref[sec:agent-resolver-work-path]{resolver-work-path}.
+the running user's home directory is set to the value configured in \intlink{sec:agent-resolver-work-path}{resolver-work-path}.
 It may be possible to change the locations where the tools look for configuration or write package caches by configuring the
-\hyperref[sec:agent-resolver-opts]{resolver-opts} YAML element with
-\href{https://docs.checkmarx.com/en/34965-132888-checkmarx-sca-resolver-configuration-arguments.html#UUID-bc93274b-c1c7-ea47-9556-3bd8900711dc_id_CheckmarxSCAResolverConfigurationArguments-CustomParameters}
+\intlink{sec:agent-resolver-opts}{resolver-opts} YAML element with
+\extlink{https://docs.checkmarx.com/en/34965-132888-checkmarx-sca-resolver-configuration-arguments.html\#UUID-bc93274b-c1c7-ea47-9556-3bd8900711dc_id_CheckmarxSCAResolverConfigurationArguments-CustomParameters}
 {custom parameters} passed to the build tools.
 
-If transitioning to a configuration for \hyperref[par:shell-agent-isolation]{Shell Execution Isolation}, the contents of the directory
-defined in \hyperref[sec:agent-resolver-work-path]{resolver-work-path} will be owned by \texttt{resolver:resolver}.  This will likely
+If transitioning to a configuration for \intlink{par:shell-agent-isolation}{Shell Execution Isolation}, the contents of the directory
+defined in \intlink{sec:agent-resolver-work-path}{resolver-work-path} will be owned by \texttt{resolver:resolver}.  This will likely
 cause \scaresolver to fail since the change in configuration will cause the user running the tools to change to
 \texttt{resolver-runtime}.  Most of the tools will require files and directories to be owned by\\\texttt{resolver-runtime:resolver}.
-It may be necessary to purge the \hyperref[sec:agent-resolver-work-path]{resolver-work-path} directory or selectively change
+It may be necessary to purge the \intlink{sec:agent-resolver-work-path}{resolver-work-path} directory or selectively change
 the ownership of build-tool related files/directories to \texttt{resolver-runtime:resolver}.
 
 
 \subparagraph{Shell Execution Isolation}\label{par:shell-agent-isolation}
 \noindent\\Using the shell execution isolation configuration is an advanced option that requires granting limited sudoer privileges
 to the \texttt{resolver} user.  The sudoer privileges required are to allow the \texttt{resolver} user to execute \scaresolver
-as the user configured in \hyperref[sec:agent-resolver-run-as]{resolver-run-as}.  The reason to use this option is to ensure that
-the contents of the files located in the \hyperref[sec:yaml-secret-root-path]{secret-root-path} can't be read while \scaresolver
+as the user configured in \intlink{sec:agent-resolver-run-as}{resolver-run-as}.  The reason to use this option is to ensure that
+the contents of the files located in the \intlink{sec:yaml-secret-root-path}{secret-root-path} can't be read while \scaresolver
 is executing.\footnote{This assumes the recommendation of setting the permissions of each file in 
-\hyperref[sec:yaml-secret-root-path]{secret-root-path} to 400 has been followed.}
+\intlink{sec:yaml-secret-root-path}{secret-root-path} to 400 has been followed.}
 
-The installer creates a no-login user \texttt{resolver-runtime} as a default user that can be referenced in the \hyperref[sec:agent-resolver-run-as]{resolver-run-as}
+The installer creates a no-login user \texttt{resolver-runtime} as a default user that can be referenced in the \intlink{sec:agent-resolver-run-as}{resolver-run-as}
 configuration.  Another user can be used as long as the primary group membership is the \texttt{resolver} group.  In most configurations, 
 the \texttt{resolver-runtime} user will be sufficient.
 
@@ -233,7 +233,7 @@ To enable the \texttt{resolver-runtime} user to have the required privileges, th
   \item Execute the command "\texttt{visudo /etc/sudoers.d/00-resolver}".
   \item Add the single line:\\"\texttt{resolver ALL=(resolver-runtime) NOPASSWD: SETENV: /path/to/ScaResolver}"
   \item Save the \texttt{/etc/sudoers.d/00-resolver} file.
-  \item Configure the element \hyperref[sec:agent-resolver-run-as]{resolver-run-as} in \texttt{/etc/cxoneflow-resolver-agent/config.yaml} 
+  \item Configure the element \intlink{sec:agent-resolver-run-as}{resolver-run-as} in \texttt{/etc/cxoneflow-resolver-agent/config.yaml} 
   with the user \texttt{resolver-runtime}.
   \item Restart the \texttt{systemd} service for the distributed resolver agent.
 \end{enumerate}
@@ -242,13 +242,13 @@ Any configuration for tags that use shell execution of \scaresolver will now run
 
 \paragraph{Container Execution}
 \noindent\\Container execution is supported using the \toolkit build environment that will extend a container image
-specified in the \hyperref[sec:agent-container-image-tag]{container-image-tag} YAML element.  The extended image
+specified in the \intlink{sec:agent-container-image-tag}{container-image-tag} YAML element.  The extended image
 installs \scaresolver at the \texttt{systemd} service start.
 
 The execution of \scaresolver is isolated from the underlying operating system by executing in the container image.
 The container image, having all appropriate build tools and build tool configuration, will perform a dependency
 tree resolution in the same way as it is done with shell execution.  This is similar to using
-\hyperref[par:shell-agent-isolation]{Shell Execution Isolation} by delegating execution to the docker image.
+\intlink{par:shell-agent-isolation}{Shell Execution Isolation} by delegating execution to the docker image.
 
 Assuming \texttt{docker} is installed, it is generally required to add the \texttt{resolver} user to the \texttt{docker}
 group using the command "\texttt{usermod -a -G docker resolver}".  This allows the \texttt{resolver} user to execute
@@ -257,10 +257,10 @@ commands to build and run containers.
 \subparagraph{Container Execution Security}
 \noindent\\The installation of \texttt{docker} is usually done such that the \texttt{docker} daemon runs with
 root privileges.  For distributed resolver agent configurations that allow 
-\hyperref[par:agent-shell-execution]{Shell Execution} along with container execution, this capability could pose
+\intlink{par:agent-shell-execution}{Shell Execution} along with container execution, this capability could pose
 the risk of privilege escalation via the \texttt{docker} runtime.
 
-If not configured for \hyperref[par:shell-agent-isolation]{Shell Execution Isolation}, it is possible that
+If not configured for \intlink{par:shell-agent-isolation}{Shell Execution Isolation}, it is possible that
 executing build tools via \scaresolver running as the \texttt{resolver} user can escalate privileges
 to read and write files with root privileges.  This is due to the \texttt{resolver} user being a member of
 the \texttt{docker} group and \scaresolver executing as \texttt{resolver}.  
@@ -268,9 +268,9 @@ the \texttt{docker} group and \scaresolver executing as \texttt{resolver}.
 To avoid the potential for privilege escalation:
 
 \begin{itemize}
-  \item Use \hyperref[par:shell-agent-isolation]{Shell Execution Isolation} for distributed resolver agents that are configured
+  \item Use \intlink{par:shell-agent-isolation}{Shell Execution Isolation} for distributed resolver agents that are configured
     to execute \scaresolver both as a shell execution and using container execution.
-  \item If not using \hyperref[par:shell-agent-isolation]{Shell Execution Isolation}, install \texttt{docker} in the "rootless"
+  \item If not using \intlink{par:shell-agent-isolation}{Shell Execution Isolation}, install \texttt{docker} in the "rootless"
     configuration.\footnote{As of the writing of this manual, this is not a tested configuration scenario.  It is unknown if rootless will work.
     An alternative would be to avoid configurations that allow both shell and docker execution of \scaresolverns.}
 \end{itemize}
@@ -280,7 +280,7 @@ To avoid the potential for privilege escalation:
 \subsection{Distributed Resolver Agent YAML Configuration}
 
 The distributed resolver agent's YAML configuration is deployed after the agent is installed.
-Many of the elements share format with the \hyperref[sec:yaml-config]{server's configuration elements}. 
+Many of the elements share format with the \intlink{sec:yaml-config}{server's configuration elements}. 
 
 
 Below is an example of a distributed agent YAML configuration.  This example demonstrates:
@@ -305,25 +305,25 @@ Below is an example of a distributed agent YAML configuration.  This example dem
 \subsubsection{Distributed Resolver Agent YAML Configuration Tree}\label{sec:agent-yaml-root}
 
 \dirtree{%
-    .1 \hyperref[sec:agent-yaml-root]{<root>}.
-    .2 \hyperref[sec:yaml-secret-root-path]{secret-root-path}\DTcomment{[Required]}.
-    .2 \hyperref[sec:agent-serviced-tags]{serviced-tags}\DTcomment{[Required]}.
-    .3 \hyperref[sec:agent-tag]{<agent tag>}\DTcomment{[At least 1 required]}.
-    .4 \hyperref[sec:yaml-generic-amqp]{amqp}\DTcomment{[Optional] Default: localhost}.
-    .5 \hyperref[sec:yaml-generic-amqp-amqp-password]{amqp-password}\DTcomment{[Optional]}.
-    .5 \hyperref[sec:yaml-generic-amqp-amqp-url]{amqp-url}\DTcomment{[Required]}.
-    .5 \hyperref[sec:yaml-generic-amqp-amqp-user]{amqp-user}\DTcomment{[Optional]}.
-    .5 \hyperref[sec:yaml-generic-ssl-verify]{ssl-verify}\DTcomment{[Optional] Default: True}.
-    .4 \hyperref[sec:agent-public-key]{public-key}\DTcomment{[Required]}.
-    .4 \hyperref[sec:agent-resolver-opts]{resolver-opts}\DTcomment{[Optional] Default: None}.
-    .4 \hyperref[sec:agent-resolver-path]{resolver-path}\DTcomment{[Required if not \texttt{run-with-container}]}.
-    .4 \hyperref[sec:agent-resolver-run-as]{resolver-run-as}\DTcomment{[Optional] Default: run as service user}.
-    .4 \hyperref[sec:agent-resolver-work-path]{resolver-work-path}\DTcomment{[Optional] Default: /tmp/resolver}.
-    .4 \hyperref[sec:agent-run-with-container]{run-with-container}\DTcomment{[Required if not \texttt{resolver-path}]}.
-    .5 \hyperref[sec:agent-container-image-tag]{container-image-tag}\DTcomment{[Required]}.
-    .5 \hyperref[sec:agent-supply-chain-toolkit-path]{supply-chain-toolkit-path}\DTcomment{[Required]}.
-    .5 \hyperref[sec:agent-use-running]{use-running-gid}\DTcomment{[Optional] Default: True}.
-    .5 \hyperref[sec:agent-use-running]{use-running-uid}\DTcomment{[Optional] Default: True}.
+    .1 <root>.
+    .2 \intlink{sec:yaml-secret-root-path}{secret-root-path}\DTcomment{[Required]}.
+    .2 \intlink{sec:agent-serviced-tags}{serviced-tags}\DTcomment{[Required]}.
+    .3 \intlink{sec:agent-tag}{<agent tag>}\DTcomment{[At least 1 required]}.
+    .4 \intlink{sec:yaml-generic-amqp}{amqp}\DTcomment{[Optional] Default: localhost}.
+    .5 \intlink{sec:yaml-generic-amqp-amqp-password}{amqp-password}\DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-generic-amqp-amqp-url}{amqp-url}\DTcomment{[Required]}.
+    .5 \intlink{sec:yaml-generic-amqp-amqp-user}{amqp-user}\DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify}\DTcomment{[Optional] Default: True}.
+    .4 \intlink{sec:agent-public-key}{public-key}\DTcomment{[Required]}.
+    .4 \intlink{sec:agent-resolver-opts}{resolver-opts}\DTcomment{[Optional] Default: None}.
+    .4 \intlink{sec:agent-resolver-path}{resolver-path}\DTcomment{[Required if not \texttt{run-with-container}]}.
+    .4 \intlink{sec:agent-resolver-run-as}{resolver-run-as}\DTcomment{[Optional] Default: run as service user}.
+    .4 \intlink{sec:agent-resolver-work-path}{resolver-work-path}\DTcomment{[Optional] Default: /tmp/resolver}.
+    .4 \intlink{sec:agent-run-with-container}{run-with-container}\DTcomment{[Required if not \texttt{resolver-path}]}.
+    .5 \intlink{sec:agent-container-image-tag}{container-image-tag}\DTcomment{[Required]}.
+    .5 \intlink{sec:agent-supply-chain-toolkit-path}{supply-chain-toolkit-path}\DTcomment{[Required]}.
+    .5 \intlink{sec:agent-use-running}{use-running-gid}\DTcomment{[Optional] Default: True}.
+    .5 \intlink{sec:agent-use-running}{use-running-uid}\DTcomment{[Optional] Default: True}.
 }
 
 \input{resolver/yaml/root.tex}

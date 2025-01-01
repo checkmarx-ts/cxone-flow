@@ -23,11 +23,11 @@ organization, but it may require a user with administrative access across all or
 \subsection{Configuring the Application Definition}
 
 The GitHub Application definition determines the owner of the application.  The definition can
-be created with an organization as owner or a user as owner.  The configuration method is the same
+be created with an organization or a user as owner.  The configuration method is the same
 for each type of ownership.  Deploying with a user as application owner may be disruptive if the user
 account is deleted or suspended.
 
-\noindent\\Once the type of ownership is decided, the GitHub Application configuration page can be found in the following
+Once the type of ownership is decided, the GitHub Application configuration page can be found in the following
 locations:
 
 \begin{itemize}
@@ -35,16 +35,16 @@ locations:
     \item \textbf{User Ownership:} User Icon (Top Right)->Settings->Developer Settings->GitHub Apps
 \end{itemize}
 
-\noindent\\The following steps can be followed to configure the \cxoneflow GitHub App:
+The following steps can be followed to configure the \cxoneflow GitHub App:
 
 \begin{enumerate}
     \item To start the configuration, click the button "New GitHub App". Figure \ref{fig:gh-new-app} shows
     the GitHub App page with the button to start the configuration in GitHub Enterprise.
-    \item Provide a name for the GitHub App as depicted in Figure \ref{fig:gh-app-cfg-1}.  Any name
+    \item Provide a name for the GitHub App as shown in Figure \ref{fig:gh-app-cfg-1}.  Any name
     can be used, but \cxoneflow is suggested.
-    \item Optionally provide a description that is displayed to the users.
+    \item Optionally provide a description of the GitHub application that is displayed to the users.
     \item Provide a URL that can be used to find information about the \cxoneflow GitHub App.  Any URL
-    can be used; the URL to the \cxoneflow GitHub page \textbf{https://github.com/checkmarx-ts/cxone-flow}
+    can be used; the URL to the \cxoneflow GitHub page\footnote{https://github.com/checkmarx-ts/cxone-flow}
     is suggested.
     \item Scroll to the \textbf{Webhook} configuration section; the settings prior to the web hook configuration
     are optional and not used by \cxoneflow.
@@ -68,8 +68,9 @@ locations:
     \item After the application is created, open the application settings \textbf{General} tab and scroll to the
     \textbf{Private keys} section as shown in Figure \ref{fig:gh-app-cfg-6}.
     \item Click the \textbf{Generate a private key} button.  A private key entry will appear and a file download will start.
-    The contents of the download file is the PEM encoded private key that is to be stored as a secret.  See Section
-    \ref{sec:yaml-config} for configuration instructions to reference this GitHub App private key.
+    The contents of the download file is the PEM encoded private key that is to be stored as a secret and
+    referenced by the \cxoneflow configuration.  See Section \ref{sec:yaml-config} for configuration instructions to
+    reference this GitHub App private key.
 \end{enumerate}
 
 \begin{figure}[ht]
@@ -170,8 +171,9 @@ definition page. The following steps can be followed to deploy the \cxoneflow Gi
 \subsubsection{Repository Scope}
 
 It is recommended that the application is installed for all repositories in an organization.  While it is possible to limit the
-application to specific repositories, modifications to change the selected repositories may be difficult to manage.  Limiting
-the repository scope may be useful for testing purposes but impractical for normal operations.
+application to specific repositories at the time the application is deployed in an organization, modifications to change the
+selected repositories may be difficult to manage.  Limiting the repository scope may be useful for testing purposes but impractical
+for enterprise operations.
 
 \subsubsection{Organization User App Management Permissions}
 
@@ -246,7 +248,7 @@ GitHub Enterprise and \textbf{Webhooks} in GitHub Cloud.  Webhook integration ca
 
 \FloatBarrier
 
-\section{\cxoneflow YAML Configuration}\label{sec:gh-yaml-config}
+\section{\cxoneflowtext\space YAML Configuration for GitHub}\label{sec:gh-yaml-config}
 
 This section is intended to show some of the GitHub-specific requirements for successful configuration.  The differences
 between GitHub Enterprise and GitHub Cloud are minimal; generally the differences are related to how API and display URLs

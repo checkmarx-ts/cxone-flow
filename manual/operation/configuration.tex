@@ -8,19 +8,19 @@
 \subsubsection{Trusting Self-Signed Certificates}\label{sec:self-signed-certs}
 
 While the \cxone system uses TLS certificates signed by a public CA, it is possible that
-corporate proxies use certificates signed by a private CA. If so, it is possible to
-import custom CA certificates when using \cxoneflow.
+corporate proxies use certificates signed by a private CA. Private CA certificates must be imported
+into the \cxoneflow container.
 
-\noindent\\Each custom certificate to import must meet the following criteria:
+Each private CA certificate for import must meet the following criteria:
 
 \begin{itemize}
-    \item Must be in a file ending with the extension .crt.
+    \item It must be in a file ending with the extension .crt.
     \item The contents of the file must be one certificate stored in the PEM format.
-    \item Each file must be mapped to the container path /usr/local/share/ca-certificates.
+    \item All files containing private CA certificates must be mapped to the container path \texttt{/usr/local/share/ca-certificates}.
 \end{itemize}
 
 
-\noindent\\As an example, if using Docker, it is possible to map a single local file to a file in the container with this mapping 
+As an example, if using Docker, it is possible to map a single local file to a file in the container with this mapping 
 option added to the container execution command line:
 
 \begin{code}{Custom CA Mapping Option}{[Docker]}{}
@@ -34,40 +34,45 @@ elements contain an optional \texttt{ssl-verify} setting.  This option
 is generally useful to turn off SSL verification by setting it to \texttt{False}.
 This can also be used to control which CA bundle is used for verification.
 
-\noindent\\Omitting the \texttt{ssl-verify} setting should be sufficient for
+Omitting the \texttt{ssl-verify} setting should be sufficient for
 most deployment cases.  If omitted, the container execution will use the default CA bundle
 where any custom CAs are added as described in Section \ref{sec:self-signed-certs}.
 The \texttt{ssl-verify} option can be set to an explicit path on the container
 if there is a need to use a CA bundle other than the one provided by the OS.
 
 
-\subsubsection{Configuring SSL for the \cxoneflow Endpoint}
+\subsubsection{Configuring SSL for the \cxoneflowtext Endpoint}
 
-To make the \cxoneflow endpoint use SSL for communication, obtain an SSL certificate public/private key pair
+Configuring the \cxoneflow endpoint for SSL communication requires an SSL certificate public/private key pair
 and map the files to a location on the container.  The following environment variables must then be set in the
 runtime environment:
 
 \begin{table}[ht]
-    \caption{SSL Environment Variables}        
+    \caption{SSL Environment Variables}
     \begin{tabularx}{\textwidth}{ll}
         \toprule
         \textbf{Variable} & \textbf{Description}\\
         \midrule
         \texttt{SSL\_CERT\_PATH} & \makecell[l]{The path to the server's SSL certificate in PEM format.}\\
         \midrule
-        \texttt{SSL\_CERT\_KEY\_PATH} & \makecell[l]{The path to the certificate's unencrypted private key.}\\
+        \texttt{SSL\_CERT\_KEY\_PATH} & \makecell[l]{The path to the certificate's unencrypted private key in PEM format.}\\
         \bottomrule
     \end{tabularx}
 \end{table}
 
-\noindent\\If your SSL certificate is self-signed or signed with a non-public CA, you'll want
-to import the self-signed certificate and/or non-public CA as described in Section \ref{sec:self-signed-certs}.
+If your SSL certificate is self-signed, the certificate must also be imported as the CA as described
+in Section \ref{sec:self-signed-certs}.  If the certificate is signed with a private CA, the private
+CA must also be imported.  Failure to import a non-public signing CA for these types of certificates
+will cause \cxoneflow startup failures.
 
 
 \subsection{Runtime Control Environment Variables}
 
+Environment variables can be set when the \cxoneflow container is executing to control some aspects of \cxoneflowns's operation.
+Table \ref{tab:runtime-environment-vars} shows the operational environment variables and their meaning.
+
 \begin{table}[ht]
-    \caption{Runtime Control Environment Variables}        
+    \caption{Runtime Control Environment Variables}\label{tab:runtime-environment-vars}
     \begin{tabularx}{\textwidth}{lccl}
         \toprule
         \textbf{Variable} & \textbf{Required} & \textbf{Default} & \textbf{Description}\\
@@ -99,18 +104,18 @@ container and adjust the path via the \texttt{CONFIG\_YAML\_PATH} environment va
 \input{operation/yaml_minimal_example.tex}
 
 \newpage
-\noindent\\\input{operation/yaml_full_example.tex}
+\input{operation/yaml_full_example.tex}
 
 
 \subsubsection{Complex YAML Configurations using YAML Anchors}
 
 For complex configurations, it is possible to use 
-\href{https://docs.docker.com/compose/compose-file/10-fragments/}{YAML Anchors}
+\extlink{https://docs.docker.com/compose/compose-file/10-fragments/}{YAML Anchors}
 to avoid repeating some section definitions.  When using YAML anchors, it may be useful
-to use a \href{https://onlineyamltools.com/convert-yaml-to-json}{YAML-to-JSON} conversion tool that shows the JSON generated from the YAML
+to use a \extlink{https://onlineyamltools.com/convert-yaml-to-json}{YAML-to-JSON} conversion tool that shows the JSON generated from the YAML
 definition
 
-\noindent\\\input{operation/yaml_anchors_example.tex}
+\input{operation/yaml_anchors_example.tex}
 
 \subsection{YAML Configuration Elements}\label{sec:yaml-config}
 
@@ -119,37 +124,48 @@ can be referenced by clicking the element.  Required elements are indicated in t
 element that is not marked "required" is omitted, the feature that performs that operation is not invoked
 for the configured service definition.
 
-\paragraph{YAML Root Elements}
+The \texttt{<root>} element indicates that elements directly under the root start at the farthest
+left index of the line (this means a line position with an index of 0).  YAML elements that appear
+under a parent element are intended to start at first tab stop past the parent element's tab stop.
+Anchor elements may be defined at the root but must not clash with the names of any of the root elements.
+
+Parts of the YAML tree have been split into individual trees to allow related elements to appear together.
+
+\paragraph{YAML Root Elements}\label{sec:yaml-root}
 
 \noindent\\
 
 \dirtree{%
-    .1 \hyperref[sec:yaml-root]{<root>}.
-    .2 \hyperref[sec:yaml-secret-root-path]{secret-root-path} \DTcomment{[Required]}.
-    .2 \hyperref[sec:yaml-server-base-url]{server-base-url} \DTcomment{[Required]}.
-    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
-    .3 \hyperref[sec:moniker-elements]{...see "YAML SCM Moniker Elements"}.
+    .1 <root>.
+    .2 \intlink{sec:yaml-secret-root-path}{secret-root-path} \DTcomment{[Required]}.
+    .2 \intlink{sec:yaml-server-base-url}{server-base-url} \DTcomment{[Required]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[At least 1 required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \intlink{sec:moniker-elements}{...see "YAML SCM Moniker Elements"}.
 }
 
 \pagebreak
 \paragraph{YAML SCM Moniker Elements}\label{sec:moniker-elements}
-\noindent\\
+\noindent\\The \texttt{<scm moniker>} element is a YAML list of dictionaries.  For a YAML list,
+each entry is indented to the next tab after the parent and prefixed with a "\texttt{-}" (dash).
+The elements in each list entry under \texttt{<scm moniker>} define key/value dictionary entries 
+as the list entry.  Each list entry is referred to as a "service definition"
+elsewhere in this document.\\\\
 
 \dirtree{%
-    .1 \hyperref[sec:yaml-root]{<root>}.
-    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
-    .3 \hyperref[sec:yaml-moniker-connection]{connection} \DTcomment{[Required]}.
-    .4 \hyperref[sec:connection-elements]{...see "YAML \texttt{connection} Elements"}.
-    .3 \hyperref[sec:yaml-moniker-cxone]{cxone} \DTcomment{[Required]}.
-    .4 \hyperref[sec:cxone-elements]{...see "YAML \texttt{cxone} Elements"}.
-    .3 \hyperref[sec:yaml-moniker-feedback]{feedback} \DTcomment{[Optional]}.
-    .4 \hyperref[sec:feedback-elements]{...see "YAML \texttt{feedback} Elements"}.
-    .3 \hyperref[sec:yaml-moniker-repo-match]{repo-match} \DTcomment{[Required]}.
-    .3 \hyperref[sec:yaml-moniker-resolver]{resolver} \DTcomment{[Optional]}.
-    .4 \hyperref[sec:resolver-elements]{...see "YAML \texttt{resolver} Elements"}.
-    .3 \hyperref[sec:yaml-moniker-scan-config]{scan-config} \DTcomment{[Optional]}.
-    .4 \hyperref[sec:scan-config-elements]{...see "YAML \texttt{scan-config} Elements"}.
-    .3 \hyperref[sec:yaml-moniker-service-name]{service-name} \DTcomment{[Required]}.
+    .1 <root>.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Limited to: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \intlink{sec:yaml-moniker-connection}{connection} \DTcomment{[Required]}.
+    .4 \intlink{sec:connection-elements}{...see "YAML \texttt{connection} Elements"}.
+    .3 \intlink{sec:yaml-moniker-cxone}{cxone} \DTcomment{[Required]}.
+    .4 \intlink{sec:cxone-elements}{...see "YAML \texttt{cxone} Elements"}.
+    .3 \intlink{sec:yaml-moniker-feedback}{feedback} \DTcomment{[Optional]}.
+    .4 \intlink{sec:feedback-elements}{...see "YAML \texttt{feedback} Elements"}.
+    .3 \intlink{sec:yaml-moniker-repo-match}{repo-match} \DTcomment{[Required]}.
+    .3 \intlink{sec:yaml-moniker-resolver}{resolver} \DTcomment{[Optional]}.
+    .4 \intlink{sec:resolver-elements}{...see "YAML \texttt{resolver} Elements"}.
+    .3 \intlink{sec:yaml-moniker-scan-config}{scan-config} \DTcomment{[Optional]}.
+    .4 \intlink{sec:scan-config-elements}{...see "YAML \texttt{scan-config} Elements"}.
+    .3 \intlink{sec:yaml-moniker-service-name}{service-name} \DTcomment{[Required]}.
 }
 
 \pagebreak
@@ -157,28 +173,28 @@ for the configured service definition.
 \noindent\\
 
 \dirtree{%
-    .1 \hyperref[sec:yaml-root]{<root>}.
-    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
-    .3 \hyperref[sec:yaml-moniker-connection]{connection} \DTcomment{[Required]}.
-    .4 \hyperref[sec:yaml-connection-base-url]{base-url} \DTcomment{[Required]}.
-    .4 \hyperref[sec:yaml-connection-base-display-url]{base-display-url} \DTcomment{[Required for some SCMs]}.
-    .4 \hyperref[sec:yaml-connection-api-url-suffix]{api-url-suffix} \DTcomment{[Required for some SCMs]}.
-    .4 \hyperref[sec:yaml-connection-shared-secret]{shared-secret} \DTcomment{[Required]}.
-    .4 \hyperref[sec:yaml-generic-proxies]{proxies} \DTcomment{[Optional]}.
-    .4 \hyperref[sec:yaml-generic-retries]{retries} \DTcomment{[Optional] Default: 3}.
-    .4 \hyperref[sec:yaml-generic-ssl-verify]{ssl-verify} \DTcomment{[Optional] Default: True}.
-    .4 \hyperref[sec:yaml-generic-timeout-seconds]{timeout-seconds}\DTcomment{[Optional] Default: 60s}.
-    .4 \hyperref[sec:yaml-connection-api-auth]{api-auth} \DTcomment{[Required]}.
-    .5 \hyperref[sec:yaml-api-auth-app-private-key]{app-private-key} \DTcomment{[See element documentation]}.
-    .5 \hyperref[sec:yaml-api-auth-password]{password} \DTcomment{[See element documentation]}.
-    .5 \hyperref[sec:yaml-api-auth-token]{token} \DTcomment{[See element documentation]}.
-    .5 \hyperref[sec:yaml-api-auth-username]{username} \DTcomment{[See element documentation]}.
-    .4 \hyperref[sec:yaml-connection-clone-auth]{clone-auth} \DTcomment{[Optional] Default: \texttt{api-auth}}.
-    .5 \hyperref[sec:yaml-api-auth-password]{password} \DTcomment{[See element documentation]}.
-    .5 \hyperref[sec:yaml-clone-auth-ssh]{ssh} \DTcomment{[See element documentation]}.
-    .5 \hyperref[sec:yaml-clone-auth-ssh-port]{ssh-port} \DTcomment{[See element documentation]}.
-    .5 \hyperref[sec:yaml-api-auth-token]{token} \DTcomment{[See element documentation]}.
-    .5 \hyperref[sec:yaml-api-auth-username]{username} \DTcomment{[See element documentation]}.
+    .1 <root>.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \intlink{sec:yaml-moniker-connection}{connection} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-connection-base-url}{base-url} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-connection-base-display-url}{base-display-url} \DTcomment{[Required for some SCMs]}.
+    .4 \intlink{sec:yaml-connection-api-url-suffix}{api-url-suffix} \DTcomment{[Required for some SCMs]}.
+    .4 \intlink{sec:yaml-connection-shared-secret}{shared-secret} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-generic-proxies}{proxies} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-generic-retries}{retries} \DTcomment{[Optional] Default: 3}.
+    .4 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
+    .4 \intlink{sec:yaml-generic-timeout-seconds}{timeout-seconds}\DTcomment{[Optional] Default: 60s}.
+    .4 \intlink{sec:yaml-connection-api-auth}{api-auth} \DTcomment{[Required]}.
+    .5 \intlink{sec:yaml-api-auth-app-private-key}{app-private-key} \DTcomment{[See element documentation]}.
+    .5 \intlink{sec:yaml-api-auth-password}{password} \DTcomment{[See element documentation]}.
+    .5 \intlink{sec:yaml-api-auth-token}{token} \DTcomment{[See element documentation]}.
+    .5 \intlink{sec:yaml-api-auth-username}{username} \DTcomment{[See element documentation]}.
+    .4 \intlink{sec:yaml-connection-clone-auth}{clone-auth} \DTcomment{[Optional] Default: \texttt{api-auth}}.
+    .5 \intlink{sec:yaml-api-auth-password}{password} \DTcomment{[See element documentation]}.
+    .5 \intlink{sec:yaml-clone-auth-ssh}{ssh} \DTcomment{[See element documentation]}.
+    .5 \intlink{sec:yaml-clone-auth-ssh-port}{ssh-port} \DTcomment{[See element documentation]}.
+    .5 \intlink{sec:yaml-api-auth-token}{token} \DTcomment{[See element documentation]}.
+    .5 \intlink{sec:yaml-api-auth-username}{username} \DTcomment{[See element documentation]}.
 }
 
 \pagebreak
@@ -186,18 +202,18 @@ for the configured service definition.
 \noindent\\
 
 \dirtree{%
-    .1 \hyperref[sec:yaml-root]{<root>}.
-    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
-    .3 \hyperref[sec:yaml-moniker-cxone]{cxone} \DTcomment{[Required]}.
-    .4 \hyperref[sec:yaml-cxone-api-endpoint]{api-endpoint} \DTcomment{[Required]}.
-    .4 \hyperref[sec:yaml-cxone-api-key]{api-key} \DTcomment{[Required without oauth]}.
-    .4 \hyperref[sec:yaml-cxone-iam-endpoint]{iam-endpoint} \DTcomment{[Required]}.
-    .4 \hyperref[sec:yaml-cxone-oauth]{oauth} \DTcomment{[Required without api-key]}.
-    .4 \hyperref[sec:yaml-generic-proxies]{proxies} \DTcomment{[Optional]}.
-    .4 \hyperref[sec:yaml-generic-retries]{retries} \DTcomment{[Optional] Default: 3}.
-    .4 \hyperref[sec:yaml-generic-ssl-verify]{ssl-verify} \DTcomment{[Optional] Default: True}.
-    .4 \hyperref[sec:yaml-cxone-tenant]{tenant} \DTcomment{[Required]}.
-    .4 \hyperref[sec:yaml-generic-timeout-seconds]{timeout-seconds}\DTcomment{[Optional] Default: 60s}.
+    .1 <root>.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \intlink{sec:yaml-moniker-cxone}{cxone} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-cxone-api-endpoint}{api-endpoint} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-cxone-api-key}{api-key} \DTcomment{[Required without oauth]}.
+    .4 \intlink{sec:yaml-cxone-iam-endpoint}{iam-endpoint} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-cxone-oauth}{oauth} \DTcomment{[Required without api-key]}.
+    .4 \intlink{sec:yaml-generic-proxies}{proxies} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-generic-retries}{retries} \DTcomment{[Optional] Default: 3}.
+    .4 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
+    .4 \intlink{sec:yaml-cxone-tenant}{tenant} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-generic-timeout-seconds}{timeout-seconds}\DTcomment{[Optional] Default: 60s}.
 }
 
 
@@ -207,24 +223,24 @@ for the configured service definition.
 
 
 \dirtree{%
-    .1 \hyperref[sec:yaml-root]{<root>}.
-    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
-    .3 \hyperref[sec:yaml-moniker-feedback]{feedback} \DTcomment{[Optional]}.
-    .4 \hyperref[sec:yaml-generic-amqp]{amqp} \DTcomment{[Optional] Default: container instance}.
-    .5 \hyperref[sec:yaml-generic-amqp-amqp-password]{amqp-password} \DTcomment{[Optional]}.
-    .5 \hyperref[sec:yaml-generic-amqp-amqp-url]{amqp-url} \DTcomment{[Required]}.
-    .5 \hyperref[sec:yaml-generic-amqp-amqp-user]{amqp-user} \DTcomment{[Optional]}.
-    .5 \hyperref[sec:yaml-generic-ssl-verify]{ssl-verify} \DTcomment{[Optional] Default: True}.
-    .4 \hyperref[sec:yaml-feedback-pull-request]{pull-request} \DTcomment{[Optional]}.
-    .5 \hyperref[sec:yaml-pull-request-enabled]{enabled} \DTcomment{[Optional] Default: False}.
-    .4 \hyperref[sec:yaml-feedback-scan-monitor]{scan-monitor} \DTcomment{[Optional]}.
-    .5 \hyperref[sec:yaml-scan-monitor-poll-backoff-multiplier]{poll-backoff-multiplier} \DTcomment{[Optional] Default: 2}.
-    .5 \hyperref[sec:yaml-scan-monitor-poll-interval-seconds]{poll-interval-seconds} \DTcomment{[Optional] Default: 90s}.
-    .5 \hyperref[sec:yaml-scan-monitor-poll-max-interval-seconds]{poll-max-interval-seconds} \DTcomment{[Optional] Default: 600s}.
-    .5 \hyperref[sec:yaml-scan-monitor-scan-timeout-hours]{scan-timeout-hours} \DTcomment{[Optional] Default: 48h}.
-    .4 \hyperref[sec:yaml-feedback-exclusions]{exclusions} \DTcomment{[Optional]}.
-    .5 \hyperref[sec:yaml-exclusions-severity]{severity} \DTcomment{[Optional]}.
-    .5 \hyperref[sec:yaml-exclusions-state]{state} \DTcomment{[Optional]}.
+    .1 <root>.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \intlink{sec:yaml-moniker-feedback}{feedback} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-generic-amqp}{amqp} \DTcomment{[Optional] Default: container instance}.
+    .5 \intlink{sec:yaml-generic-amqp-amqp-password}{amqp-password} \DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-generic-amqp-amqp-url}{amqp-url} \DTcomment{[Required]}.
+    .5 \intlink{sec:yaml-generic-amqp-amqp-user}{amqp-user} \DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
+    .4 \intlink{sec:yaml-feedback-pull-request}{pull-request} \DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-pull-request-enabled}{enabled} \DTcomment{[Optional] Default: False}.
+    .4 \intlink{sec:yaml-feedback-scan-monitor}{scan-monitor} \DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-scan-monitor-poll-backoff-multiplier}{poll-backoff-multiplier} \DTcomment{[Optional] Default: 2}.
+    .5 \intlink{sec:yaml-scan-monitor-poll-interval-seconds}{poll-interval-seconds} \DTcomment{[Optional] Default: 90s}.
+    .5 \intlink{sec:yaml-scan-monitor-poll-max-interval-seconds}{poll-max-interval-seconds} \DTcomment{[Optional] Default: 600s}.
+    .5 \intlink{sec:yaml-scan-monitor-scan-timeout-hours}{scan-timeout-hours} \DTcomment{[Optional] Default: 48h}.
+    .4 \intlink{sec:yaml-feedback-exclusions}{exclusions} \DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-exclusions-severity}{severity} \DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-exclusions-state}{state} \DTcomment{[Optional]}.
 }
 
 
@@ -233,19 +249,21 @@ for the configured service definition.
 \noindent\\
 
 \dirtree{%
-    .1 \hyperref[sec:yaml-root]{<root>}.
-    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
-    .3 \hyperref[sec:yaml-moniker-resolver]{resolver} \DTcomment{[Optional]}.
-    .4 \hyperref[sec:yaml-generic-amqp]{amqp} \DTcomment{[Optional] Default: container instance}.
-    .5 \hyperref[sec:yaml-generic-amqp-amqp-password]{amqp-password} \DTcomment{[Optional]}.
-    .5 \hyperref[sec:yaml-generic-amqp-amqp-url]{amqp-url} \DTcomment{[Required]}.
-    .5 \hyperref[sec:yaml-generic-amqp-amqp-user]{amqp-user} \DTcomment{[Optional]}.
-    .5 \hyperref[sec:yaml-generic-ssl-verify]{ssl-verify} \DTcomment{[Optional] Default: True}.
-    .3 \hyperref[sec:yaml-resolver-allowed-agent-tags]{allowed-agent-tags} \DTcomment{[Required]}.
-    .3 \hyperref[sec:yaml-resolver-capture-resolver-logs]{capture-resolver-logs} \DTcomment{[Optional] Default: False}.
-    .3 \hyperref[sec:yaml-resolver-default-agent-tag]{default-agent-tag} \DTcomment{[Optional]}.
-    .3 \hyperref[sec:yaml-resolver-private-key]{private-key} \DTcomment{[Required]}.
-    .3 \hyperref[sec:yaml-resolver-resolver-tag-key]{resolver-tag-key} \DTcomment{[Optional] Default: resolver}.
+    .1 <root>.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \intlink{sec:yaml-moniker-resolver}{resolver} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-generic-amqp}{amqp} \DTcomment{[Optional] Default: container instance}.
+    .5 \intlink{sec:yaml-generic-amqp-amqp-password}{amqp-password} \DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-generic-amqp-amqp-url}{amqp-url} \DTcomment{[Required]}.
+    .5 \intlink{sec:yaml-generic-amqp-amqp-user}{amqp-user} \DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
+    .3 \intlink{sec:yaml-resolver-allowed-agent-tags}{allowed-agent-tags} \DTcomment{[Required]}.
+    .3 \intlink{sec:yaml-resolver-capture-resolver-logs}{capture-resolver-logs} \DTcomment{[Optional] Default: False}.
+    .3 \intlink{sec:yaml-resolver-default-agent-tag}{default-agent-tag} \DTcomment{[Optional]}.
+    .3 \intlink{sec:yaml-resolver-private-key}{private-key} \DTcomment{[Required]}.
+    .3 \intlink{sec:yaml-resolver-resolver-tag-key}{resolver-tag-key} \DTcomment{[Optional] Default: resolver}.
+    .3 \intlink{sec:resolver-scan-retries}{scan-retries}\DTcomment{[Optional] Default: 3}.
+    .3 \intlink{sec:resolver-scan-timeout-seconds}]{scan-timeout-seconds}\DTcomment{[Optional] Default: 10800}.
 }
 
 
@@ -254,12 +272,12 @@ for the configured service definition.
 \noindent\\
 
 \dirtree{%
-    .1 \hyperref[sec:yaml-root]{<root>}.
-    .2 \hyperref[sec:yaml-scm-monikers]{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
-    .3 \hyperref[sec:yaml-moniker-scan-config]{scan-config} \DTcomment{[Optional]}.
-    .4 \hyperref[sec:yaml-scan-config-default-scan-engines]{default-scan-engines} \DTcomment{[Optional]}.
-    .4 \hyperref[sec:yaml-scan-config-default-project-tags]{default-project-tags} \DTcomment{[Optional]}.
-    .4 \hyperref[sec:yaml-scan-config-default-scan-tags]{default-scan-tags} \DTcomment{[Optional]}.
+    .1 <root>.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}]}.
+    .3 \intlink{sec:yaml-moniker-scan-config}{scan-config} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-scan-config-default-scan-engines}{default-scan-engines} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-scan-config-default-project-tags}{default-project-tags} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-scan-config-default-scan-tags}{default-scan-tags} \DTcomment{[Optional]}.
 }
 
 

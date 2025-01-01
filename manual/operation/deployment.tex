@@ -8,7 +8,7 @@ you are ready to deploy.
 
 \cxoneflow is published as a container image.  If using Docker, the
 latest\footnote{Previous versions are also available in the
-checkmarx-ts \href{https://github.com/checkmarx-ts/cxone-flow/pkgs/container/cxone\%2Fcxone-flow}{package repository}.} image can be pulled and cached locally
+checkmarx-ts \extlink{https://github.com/orgs/checkmarx-ts/packages}{package repository}.} image can be pulled and cached locally
 with the following command:
 
 \begin{code}{Caching the \cxoneflow Container Image Locally}{}{}
@@ -18,7 +18,7 @@ docker pull ghcr.io/checkmarx-ts/cxone/cxone-flow:latest
 \noindent\\While \cxoneflow is open source, making your own modified image may be difficult to support.  All
 support for \cxoneflow is provided by Checkmarx Professional Services.
 
-\section{\cxoneflow Execution}
+\section{\cxoneflowtext\space Execution}
 
 The following is an example of a command where \cxoneflow starts and is ready to accept webhook events:
 
@@ -58,18 +58,19 @@ running instance to ensure it is alive.
 
 \subsection{Scan Configuration Defaults}\label{sec:deployment-scan-defaults}
 
-Scan configuration defaults can be provided at the tenant-global and project scope
-in \cxone.  The \cxoneflow configuration can be configured to set configuration
-defaults for each scan.  It is important to understand how the \cxone default
+Scan configuration defaults can be provided at the tenant-scope and project-scope
+in \cxone.  Default parameters for each scan can be set in the \cxoneflow configuration
+that will be applied to scans invoked as part of the \cxoneflow scan orchestration logic.
+It is important to understand how the \cxone default
 scan configurations work given the \cxoneflow configuration can override all other
 settings based on how the tenant and project defaults are configured.
 
 The configurations in \cxone are defined in the tenant or project scope with a
-flag that allows the value to be overridden at a lower level of configuration.  A
+flag that allows the value to be overridden at a lower scope of configuration.  A
 SAST scan default preset, for example, is generally configured at the tenant scope
 as "ASA Premium" with the ability to override the preset at the project scope.  The
 result is that initial scans that do not define a preset at the project scope or
-at the time the scan is initiated use the globally-defined preset "ASA Premium".
+at the time the scan is initiated use the tenant-scope-defined preset "ASA Premium".
 
 Configuring the SAST preset in a project's settings to something other than
 the SAST preset configured at the tenant scope will change the scan preset for that project.
@@ -82,18 +83,18 @@ is that the scan configuration provided to the API when a scan is initiated is c
 all other configuration scopes.  If a project scope configuration was such that the SAST preset could
 not be overridden, then the \cxoneflow provided default preset set at the time of scan will be ignored.
 
-The configurations at the tenant, project, and scan level scopes work based on overrides.
+The configurations at the tenant, project, and scan scopes work based on overrides.
 This causes the value of a configuration to be set by the lowest level in which it is
 defined. This makes it possible to utilize the \cxoneflow per-scan defaults in a few
 different ways.
 
-If there are no per-scan defaults configured in \cxoneflow, all per-scan defaults
-can be configured at the tenant scope.  This gives the flexibility to override 
+If there are no per-scan defaults configured in \cxoneflowns, all per-scan defaults
+can be configured at the tenant or project scope.  This gives the flexibility to override 
 the tenant scoped settings at the project scope; this is usually required so that
 the project can configure scan settings that are specific to the project.
 
-If per-scan defaults are configured in \cxoneflow, project scope settings can
-still be set but will be overridden by the per-scan settings by default.  It will require
+If per-scan defaults are configured in \cxoneflowns, project scope settings can
+still be set but will be overridden by the \cxoneflow per-scan settings by default.  It will require
 configuring the project settings and disabling override to prevent \cxoneflow per-scan
 configurations from replacing the project scope configurations.  This may be confusing
 to users who are not fully aware of how the scan configuration overrides work.
@@ -101,12 +102,23 @@ to users who are not fully aware of how the scan configuration overrides work.
 \subsubsection{\cxoneflow Inheritance of \texttt{filter} Settings}
 
 The configuration scopes are implemented in \cxone as overrides for all
-configuration elements.  This is ideal for most elements, but not ideal for elements
-such as \texttt{filter} that defines the file/folder filters in each engine.  \cxoneflow
-interprets \texttt{filter} settings in each scan engine so that they are inherited
-in each scope rather than overridden.
+configuration elements defined at a higher scope.  The previous example of the
+preset demonstrates the effectiveness of an override; a SAST preset defined
+as a tenant-scope configuration is used for projects that don't explicitly define
+a SAST preset.  The project configuration can then be modified to override the tenant-scope
+SAST preset setting if required.
 
-\noindent\\As an example, consider these filters defined in each scope:
+The override is ideal for most configuration elements, but not ideal for elements
+such as \texttt{filter} that define the file/folder filters in each engine.  It is often
+the case that a tenant-scope setting will define the most general filter settings but
+each project will need additional project-specific filters.  The project-scope
+configuration would need to copy the tenant-scope settings each time the tenant-scope
+settings are modified.  Ideally, \texttt{filter} settings would extend the parent
+setting rather than override it. \cxoneflow interprets \texttt{filter} settings for each
+scan engine so that the resulting filter is composed of all values inherited from 
+the all the scopes rather than overridden.
+
+As an example, consider these filters defined in each scope:
 
 \begin{itemize}
     \item Tenant Scope: "!**/test,!**/tests"
@@ -114,11 +126,11 @@ in each scope rather than overridden.
     \item \cxoneflow Per-Scan configuration: "!**/node\_modules"
 \end{itemize}
 
-\noindent\\After \cxoneflow applies the inheritance algorithm, the resulting file/folder filter setting at the scan scope will be:
+After \cxoneflow applies the inheritance algorithm, the resulting file/folder filter setting at the scan scope will be:
 \\\\\texttt{"!**/test,!**/tests,!**/*.sql,!**/node\_modules"}
 
 
-\noindent\\From a maintenance perspective, configuring tenant-scope defaults
+From a maintenance perspective, configuring tenant-scope defaults
 with override enabled (such as SAST preset) can be used to avoid configuring
 per-scan defaults in \cxoneflow.  It is often desirable to also set engine-specific
 file/folder exclusions at the tenant scope to avoid scanning common exclusions.  

@@ -7,25 +7,25 @@ Azure DevOps Enterprise is an on-premise variation of the cloud-hosted Azure Dev
 Both versions are compatible with \cxoneflow and are generically referred to Azure DevOps Enterprise
 throughout this documentation.
 
-\noindent\\The \cxoneflow endpoint \texttt{/adoe} is the handler for all webhook event
+The \cxoneflow endpoint \texttt{/adoe} is the handler for all webhook event
 payloads originating from Azure DevOps Enterprise.  
 
 \section{Webhook Configuration}
 
 Azure DevOps Enterprise organizes source repositories at the top level by a \textit{Collection};
 at least one collection will exist and many organizations will keep the installation-default
-collection named \texttt{DefaultCollection}.  In each collection will exist one or more
-\textit{Projects} and in each project will exist one or more \textit{Repositories}.  
-Webhook configurations can be applied to a single repository via the repository configuration.
-Applying the configuration at the level of each individual repository is usually suitable
-for testing purposes only.
+collection named \texttt{DefaultCollection}.  In each collection there will exist one or more
+\textit{Projects} and in each project there will exist one or more \textit{Repositories}.  
+Webhook configurations can be applied to a single repository or at the project level which
+will trigger webhook events for all repositories in the project. Applying the configuration at the
+level of each individual repository is usually suitable for testing purposes only. Ideally,
+the webhook configuration will be applied at the project level.
 
-Webhook configurations applied at the \textit{Project} level can be configured to invoke webhook
-events for all repositories in the project.  This is the most ideal location to configure
-the webhook endpoints.  The project name will appear in clone URLs and can be used as part of 
-the regular expression placed in the \texttt{repo-match} configuration element.  Please see 
-Section \ref{sec:yaml-config} for a description of the \texttt{repo-match} configuration
-element.
+Webhook configurations applied at the \textit{Project} level are ideal since it delivers webhook
+events to \cxoneflow for all repositories in the project.  The project name will appear in 
+clone URLs and can be used as part of the regular expression configured as the \texttt{repo-match}
+configuration element.  Please see Section \ref{sec:yaml-config} for a description
+of the \texttt{repo-match} configuration element.
 
 The project's "Service Hooks" can be used to configure webhook events to be delivered to the
 \cxoneflow \texttt{/adoe} endpoint for each repository in the organization.  Azure DevOps
@@ -41,8 +41,8 @@ where the webhook connection parameters can be configured.
 
 Figure \ref{fig:adoe-endpoint-config} shows the configuration where the \cxoneflow
 endpoint connection configuration is to be provided.  A URL with the suffix
-\texttt{/adoe} and the \textit{Basic authentication password} are the only
-fields that are required by \cxoneflow\footnote{Azure DevOps Enterprise will require
+\texttt{/adoe} and the \textit{Basic authentication password} is the only
+field that is required by \cxoneflow\footnote{Azure DevOps Enterprise will require
 the use of an encrypted endpoint when using the basic authorization password.}.
 The basic authentication password should match the \texttt{shared-secret} \cxoneflow
 configuration element.  Please see section \ref{sec:yaml-config}
@@ -80,7 +80,7 @@ A complete configuration should emit web hook payloads on the following events:
     \label{fig:adoe-endpoint-config}
 \end{figure}
 
-\section{\cxoneflow Service Account}
+\section{\cxoneflowtext\space Service Account}
 
 Azure DevOps Enterprise utilizes user accounts to define access.  \cxoneflow will require
 at least one user account to use as a service account for API and cloning operations.  The
@@ -90,11 +90,11 @@ is used for all projects if the service account is assigned as a contributor to 
 relevant projects.  The \cxoneflow configuration can accommodate multiple user accounts
 if there is a need to have separate service accounts for some projects.
 
-\section{\cxoneflow SSH Keys}
+\section{\cxoneflowtext\space SSH Keys}
 
 While performing scan orchestration, \cxoneflow does access the Azure DevOps Enterprise API for
 certain operations.  This requires a configuration in the \texttt{api-auth} configuration
-element as described in Section \ref{sec:yaml-config}.  The \texttt{clone-auth},
+element as described in Section \ref{sec:yaml-config}.  The \texttt{clone-auth} element,
 described in Section \ref{sec:yaml-config}, is an optional element where the credentials
 used for cloning code can be provided.  If \texttt{clone-auth} is not provided, cloning will
 be attempted using the credentials defined by \texttt{api-auth}.
@@ -107,4 +107,5 @@ API use.
 
 Each repository in Azure DevOps Enterprise has a default branch defined in the project
 configuration.  The repository's default branch is considered the protected branch for
-workflow logic purposes.
+workflow logic purposes.  Any push to the default branch or pull request that targets
+the default branch will cause \cxoneflow to orchestrate a scan.

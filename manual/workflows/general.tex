@@ -6,7 +6,7 @@
 The asynchronous messaging utilizes the guaranteed delivery capability of the message queue platform
 to ensure workflows execute to the end even if worker agents are abnormally interrupted.  In most cases,
 an abnormal end to an executing process is resumed by the next available worker agent.  
-When using an \hyperref[sec:external-mq]{external message queue}, this allows for the \cxoneflow endpoint services and
+When using an \intlink{sec:external-mq}{external message queue}, this allows for the \cxoneflow endpoint services and
 any workflow agents to be recycled without losing workflow state.
 
 Figure \ref{fig:recovery-flowchart} shows the algorithm that is used

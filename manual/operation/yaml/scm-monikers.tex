@@ -6,7 +6,8 @@ A moniker for the service definition. The moniker is used for logging and workfl
 
 \subsubsection{YAML Element: repo-match}\label{sec:yaml-moniker-repo-match}
 A regex applied to the source repository.  If the webhook payload has
-a clone URL that matches the regex, this service definition is used to orchestrate the scanning.
+a clone URL that matches the regex, this service definition is used to orchestrate scanning
+for the received event.
 
 \subsubsection{YAML Element: connection}\label{sec:yaml-moniker-connection}
 A block element where the child elements define the SCM connection parameters for this service definition.

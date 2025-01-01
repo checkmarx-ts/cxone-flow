@@ -50,15 +50,14 @@ bbdc:
           <<: *common-connection-params
 \end{code}
 
-
-\noindent\\It is common to see a scenario where there are multiple organizations
+It is a common scenario where there are multiple organizations
 using the same SCM instance.  A single \cxoneflow instance can be configured to accept
 webhook events from all repos in each organization by using the \texttt{repo-match}
 regular expression.  When a webhook payload is received, the \texttt{repo-match}
-regular expression is applied to the clone URI until a match is found.
+regular expression is applied to the clone URI until a matching service definition is found.
 
-\noindent\\The example YAML below is used to demonstrate how \cxoneflow could be configured
-for mulitple organizations in a single SCM. In the example, YAML anchors are utilized to 
+The example YAML below is used to demonstrate how \cxoneflow could be configured
+for multiple organizations in a single SCM. In the example, YAML anchors are utilized to 
 re-use the common settings for each SCM organization.  Each organization, in this case, 
 exists in the same SCM server and shares the same \cxone instance.
 

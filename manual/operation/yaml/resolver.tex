@@ -11,6 +11,7 @@ agents.
 
 \subsubsection{YAML Element: resolver-tag-key}\label{sec:yaml-resolver-resolver-tag-key}
 The \cxone project tag key value used to find the resolver agent tag that should be used for a resolver scan.
+This is described in more detail in Section \ref{sec:resolver-agents}.
 
 \subsubsection{YAML Element: default-agent-tag}\label{sec:yaml-resolver-default-agent-tag}
 An agent tag found in the list of tags configured in \texttt{allowed-agent-tags}.  If provided,
@@ -20,3 +21,13 @@ will direct a resolver scan to agents with this tag.
 \subsubsection{YAML Element: allowed-agent-tags}\label{sec:yaml-resolver-allowed-agent-tags}
 A list of resolver agent tags that are handled by the \cxoneflow service.  The agent tags come from
 \cxone project tags using the \texttt{<resolver-tag-key>:<agent tag>} format.  
+
+
+\subsubsection{scan-retries}\label{sec:resolver-scan-retries}
+The number of times a request for a resolver scan will be retried after the initial request if no distributed resolver agent handles the scan.
+Any scan request not handled by a distributed resolver agent before the \intlink{sec:resolver-scan-timeout-seconds}{scan-timeout-seconds} setting 
+will be evaluated for resubmission.  If the number of retries exceeds this amount, the scan will be returned in a failed state.
+
+\subsubsection{scan-timeout-seconds}\label{sec:resolver-scan-timeout-seconds}
+The number of seconds before a scan request is not selected by a distributed resolver agent before it times out.  When the scan
+request times out, it may be resubmitted or aborted as a failed scan.

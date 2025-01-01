@@ -4,9 +4,9 @@ Implementing the distributed resolver agents requires an AMQP message queue serv
 is used for communication between the \cxoneflow server and the distributed resolver
 agents.  Details about the message queue deployment can be found in Section \ref{sec:external-mq}.
 
-\subsection{\cxoneflow Endpoint Configuration}
+\subsection{\cxoneflowtext\space Endpoint Configuration}
 
-The endpoint server \hyperref[sec:yaml-config]{YAML configuration} will not utilize resolver agents
+The endpoint server \intlink{sec:yaml-config}{YAML configuration} will not utilize resolver agents
 by default.  Using resolver agents requires a public/private key pair; the private key is configured
 for use on the \cxoneflow endpoint and the public key is distributed with each resolver agent.  Before
 configuring the use of distributed resolver agents, it is recommended to read about the security
@@ -55,7 +55,7 @@ and the file \texttt{rsa-pub.pem} that holds the public key.
 openssl genrsa 4096 |tee rsa-priv.pem | openssl rsa -pubout > rsa-pub.pem
 \end{code}
 
-The private key file may be stored as a secret referenced in the configuration YAML element \hyperref[sec:yaml-resolver-private-key]{resolver->private-key}.
+The private key file may be stored as a secret referenced in the configuration YAML element \intlink{sec:yaml-resolver-private-key}{resolver->private-key}.
 
 \subsubsection{Resolver YAML Configuration}\label{sec:resolver-yaml-config}
 The following YAML examples show a configuration for resolver agents with a list of allowed tags.
@@ -83,17 +83,17 @@ Configuring a distributed resolver agent will require each agent to have credent
 access to the message queue.  Section \ref{sec:resolver-agent-security} has more details about the
 authorization that should be assigned to credentials used by distributed agents.
 
-The YAML examples in \hyperref[sec:resolver-yaml-config]{the previous section} demonstrated the use of a single
+The YAML examples in \intlink{sec:resolver-yaml-config}{the previous section} demonstrated the use of a single
 message queue instance for both the communication with the distributed resolver agents and feedback workflow
 orchestration.  While using a single message queue may make the \cxoneflow configuration simpler, it is not
 strictly required to use the same message queue connection for all configurations.  Each configuration can
 use a segregated message queue server if this is desired.  This segregation includes the use
-of \href{https://www.rabbitmq.com/docs/vhosts}{virtual hosts} if supported by the AMQP endpoint server.
+of \extlink{https://www.rabbitmq.com/docs/vhosts}{virtual hosts} if supported by the AMQP endpoint server.
 
 
 \subsection{Deployment Considerations}
 
-The YAML examples in \hyperref[sec:resolver-yaml-config]{the previous section} demonstrated agent tags
+The YAML examples in \intlink{sec:resolver-yaml-config}{the previous section} demonstrated agent tags
 configured in a single endpoint service definition.  The allowed tags in each service endpoint are
 indicating which agent tags can perform resolver scans for an event handled by that service endpoint.
 The tags are used to communicate with agents that listen for messages directed to that agent tag and

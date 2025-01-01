@@ -1,6 +1,5 @@
 \documentclass[a4paper, 11pt, oneside]{book}
 \usepackage[a4paper, total={6.5in, 10in}]{geometry}
-\usepackage{hyperref}
 \usepackage[svgnames]{xcolor}
 \usepackage{graphicx}
 \usepackage[utf8]{inputenc}
@@ -20,7 +19,12 @@
 \usepackage{parskip}
 \usepackage{dirtree}
 \usepackage[T1]{fontenc}
-\usepackage{tgcursor}
+
+
+% LuxiMono for \texttt
+\renewcommand{\ttdefault}{ul9}
+
+\input{command_defs.tex}
 
 \tcbuselibrary{listings}
 
@@ -33,7 +37,6 @@
   urlcolor=green!70!black
 }
 
-\input{command_defs.tex}
 
 
 \begin{document}
@@ -52,7 +55,6 @@
 
 
 \tableofcontents
-
 
 \newtcblisting{xml}[3]{
     listing only,

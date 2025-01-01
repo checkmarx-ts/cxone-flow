@@ -1,13 +1,9 @@
-\subsubsection{YAML Element: Root}\label{sec:yaml-root}
-
-The root elements of the YAML configuration are formatted to the left-most
-position in the YAML file.  Anchor elements may be defined at the root but
-must not clash with the names of any of the root elements.
 
 \subsubsection{YAML Element: secret-root-path}\label{sec:yaml-secret-root-path}
 
 A string that is the path to a directory that contains one or more files containing secret values.  The names to these files are 
-referenced elsewhere in the YAML configuration file when used in a field that is a reference to a secret.
+referenced elsewhere in the YAML configuration file when used in a field that is a reference to a secret.  For most deployment
+purposes, this is a path to a location in the \cxoneflow running container.
 
 \subsubsection{YAML Element: server-base-url}\label{sec:yaml-server-base-url}
 A string that is the base URL for the \cxoneflow endpoint.  This is used when creating feedback content that loads image elements.
