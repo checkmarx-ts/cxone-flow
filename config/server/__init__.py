@@ -99,7 +99,7 @@ class CxOneFlowConfig(CommonConfig):
     def __resolver_service_factory(cxone_client : CxOneClient, config_path, moniker, **kwargs) -> ResolverScanService:
          if kwargs is None or len(kwargs) == 0:
             return ResolverScanService(moniker, cxone_client, CommonConfig._default_amqp_url, None, None, True, DummyResolverScanningWorkflow(), 
-                                       None, None, None, ResolverScanService.DEFAULT_SCAN_RETRIES, ResolverScanService.DEFAULT_SCAN_TIMEOUT)
+                                       None, None, None)
          else:
             msg_private_key = CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path, "private-key", kwargs)
             

@@ -130,44 +130,51 @@ class ResolverScanService(BaseWorkflowService):
         requeue_msg = await self._safe_deserialize_body(msg, DelegatedScanMessage)
         msg_identifier = f"{requeue_msg.moniker}:{requeue_msg.workflow}:{requeue_msg.details.clone_url}@{requeue_msg.details.commit_hash}:{requeue_msg.correlation_id}"
 
-        resub_count = await self.__workflow.get_resolver_scan_resubmit_count(
-            await self.mq_client(), requeue_msg, msg.headers
-        )
+        if 'x-death' in msg.headers.keys() and \
+            'reason' in msg.headers['x-death'][0].keys() and \
+            msg.headers['x-death'][0]['reason'] == 'expired':
 
-        if resub_count > 0:
-            # Requeue the message
-            self.log().warning(f"Requeue [{msg_identifier}]")
-            await self.__workflow.resolver_scan_resubmit(
-                await self.mq_client(),
-                msg.routing_key,
-                requeue_msg,
-                ResolverScanService.EXCHANGE_RESOLVER_SCAN,
-                resub_count,
+            resub_count = await self.__workflow.get_resolver_scan_resubmit_count(
+                await self.mq_client(), requeue_msg, msg.headers
             )
+
+            if resub_count > 0:
+                # Requeue the message
+                self.log().warning(f"Requeue [{msg_identifier}]")
+                await self.__workflow.resolver_scan_resubmit(
+                    await self.mq_client(),
+                    msg.routing_key,
+                    requeue_msg,
+                    ResolverScanService.EXCHANGE_RESOLVER_SCAN,
+                    resub_count,
+                )
+            else:
+                self.log().warning(
+                    f"Delegated scan for [{msg_identifier}] timed out, returning as failure."
+                    + f" This may indicate agents are not listening for messages delivered for {msg.routing_key}."
+                )
+
+                # Queue results message with failure
+                await self.__workflow.deliver_resolver_results(
+                    await self.mq_client(),
+                    ResolverScanService.ROUTEKEY_RESOLVER_RESULT_STUB,
+                    DelegatedScanResultMessage.factory(
+                        details=requeue_msg.details,
+                        details_signature=requeue_msg.details_signature,
+                        moniker=requeue_msg.moniker,
+                        state=ScanStates.FAILURE,
+                        workflow=requeue_msg.workflow,
+                        correlation_id=requeue_msg.correlation_id,
+                        resolver_results=None,
+                        container_results= None,
+                        exit_code=None,
+                        logs=None
+                    ),
+                    ResolverScanService.EXCHANGE_RESOLVER_SCAN,
+                )
         else:
-            self.log().warning(
-                f"Delegated scan for [{msg_identifier}] timed out, returning as failure."
-                + f" This may indicate agents are not listening for messages delivered for {msg.routing_key}."
-            )
+            self.log().debug(f"[{msg_identifier}] was not an expired message, gracefully rejecting.")
 
-            # Queue results message with failure
-            await self.__workflow.deliver_resolver_results(
-                await self.mq_client(),
-                ResolverScanService.ROUTEKEY_RESOLVER_RESULT_STUB,
-                DelegatedScanResultMessage.factory(
-                    details=requeue_msg.details,
-                    details_signature=requeue_msg.details_signature,
-                    moniker=requeue_msg.moniker,
-                    state=ScanStates.FAILURE,
-                    workflow=requeue_msg.workflow,
-                    correlation_id=requeue_msg.correlation_id,
-                    resolver_results=None,
-                    container_results= None,
-                    exit_code=None,
-                    logs=None
-                ),
-                ResolverScanService.EXCHANGE_RESOLVER_SCAN,
-            )
 
     async def request_resolver_scan(
         self,
