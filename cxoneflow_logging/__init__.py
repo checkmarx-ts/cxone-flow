@@ -3,7 +3,7 @@ from threading import Lock
 
 class SecretRegistry:
      __lock = Lock()
-     __default_regex = "Authorization: .+ (?P<header>[a-zA-Z0-9=+\\/-]+)"
+     __default_regex = "(?P<header>Auth.+: \w+ )(?P<secret>.+?)([\'\"]|$)"
      __compiled_regex = re.compile(__default_regex,  re.RegexFlag.I | re.RegexFlag.M)
      __secrets = []
      
@@ -13,7 +13,7 @@ class SecretRegistry:
             with SecretRegistry.__lock:
                 if not secret in SecretRegistry.__secrets:
                     SecretRegistry.__secrets.append(re.escape(secret.replace("\n", "").replace("\r", "")))
-                    SecretRegistry.__compiled_regex = re.compile(f"{SecretRegistry.__default_regex}|(?P<any>{'|'.join(SecretRegistry.__secrets)})", \
+                    SecretRegistry.__compiled_regex = re.compile(f"{SecretRegistry.__default_regex}|(?P<any>({'|'.join(SecretRegistry.__secrets)}))", \
                                                                  re.RegexFlag.I | re.RegexFlag.M)
         return secret
           
@@ -29,8 +29,11 @@ class RedactingStreamHandler(logging.StreamHandler):
     def format(self, record):
         msg = super().format(record)
         for secret in SecretRegistry.get_match_iter(msg):
-            for m in secret.groupdict().keys():
+            for m in [k for k in secret.groupdict().keys() if k in ['secret','any']]:
                 msg = msg[0:secret.start(m)] + ('*' * (secret.end(m) - secret.start(m))) + msg[secret.end(m):]
+
+            # for begin,end in secret.regs:
+            #     msg = msg[0:begin] + ('*' * (end - begin)) + msg[end:]
         
         return msg
 
