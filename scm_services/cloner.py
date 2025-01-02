@@ -49,13 +49,14 @@ class Cloner:
     __http_protocols = ['http', 'https']
     __ssh_protocols = ['ssh']
 
-    def __init__(self):
-        self.__additional_env = {}
+    def __init__(self, ssl_no_verify : bool):
+        self.__additional_env = {"GIT_SSL_NO_VERIFY" : str(ssl_no_verify).lower()}
 
     @property
     def __running_env(self):
-        cur_os_env = dict(os.environ)
-        cur_os_env.update(self.__additional_env)
+        ret_env = dict(os.environ)
+        ret_env.update(self.__additional_env)
+        return ret_env
 
     @classmethod
     def log(clazz) -> logging.Logger:
@@ -68,15 +69,15 @@ class Cloner:
         return urllib.parse.urlunsplit((split.scheme, new_netloc, split.path, split.query, split.fragment))
         
     @staticmethod
-    def using_basic_auth(username : str, password : str, in_header : bool=False):
+    def using_basic_auth(username : str, password : str, ssl_no_verify : bool, in_header : bool=False):
         Cloner.log().debug("Clone config: using_basic_auth")
 
 
         if not in_header:
-            retval = BasicAuthWithCredsInUrl(username, SecretRegistry.register(password))
+            retval = BasicAuthWithCredsInUrl(username, SecretRegistry.register(password), ssl_no_verify)
             retval.__clone_cmd_stub = ["git", "clone"]
         else:
-            retval = Cloner()
+            retval = Cloner(ssl_no_verify)
             encoded_creds = SecretRegistry.register(base64.b64encode(f"{username}:{password}".encode('UTF8')).decode('UTF8'))
             retval.__clone_cmd_stub = ["git", "clone", "-c", f"http.extraHeader=Authorization: Basic {encoded_creds}"]
 
@@ -87,10 +88,10 @@ class Cloner:
         return retval
 
     @staticmethod
-    def using_token_auth(token : str):
+    def using_token_auth(token : str, ssl_no_verify : bool):
         Cloner.log().debug("Clone config: using_token_auth")
 
-        retval = Cloner()
+        retval = Cloner(ssl_no_verify)
         retval.__protocol_matcher = Cloner.__https_matcher
         retval.__supported_protocols = Cloner.__http_protocols
         retval.__port = None
@@ -102,7 +103,7 @@ class Cloner:
     def using_ssh_auth(ssh_private_key_file : Path, ssh_port : int):
         Cloner.log().debug("Clone config: using_ssh_auth")
 
-        retval = Cloner()
+        retval = Cloner(False)
         retval.__protocol_matcher = Cloner.__ssh_matcher
         retval.__supported_protocols = Cloner.__ssh_protocols
         retval.__port = ssh_port
@@ -117,10 +118,10 @@ class Cloner:
         return retval
     
     @staticmethod
-    def using_github_app_auth(gh_auth_factory : GithubAppAuthFactory):
+    def using_github_app_auth(gh_auth_factory : GithubAppAuthFactory, ssl_no_verify : bool):
         Cloner.log().debug("Clone config: using_github_app_auth")
 
-        retval = GithubAppCloner(gh_auth_factory)
+        retval = GithubAppCloner(gh_auth_factory, ssl_no_verify)
         retval.__protocol_matcher = Cloner.__https_matcher
         retval.__supported_protocols = Cloner.__http_protocols
         retval.__port = None
@@ -172,8 +173,8 @@ class Cloner:
             raise
 
 class BasicAuthWithCredsInUrl(Cloner):
-    def __init__(self, username : str, password : str):
-        Cloner.__init__(self)
+    def __init__(self, username : str, password : str, ssl_no_verify : bool):
+        Cloner.__init__(self, ssl_no_verify)
         self.__username = username
         self.__password = password
 
@@ -182,8 +183,8 @@ class BasicAuthWithCredsInUrl(Cloner):
 
 
 class GithubAppCloner(Cloner):
-    def __init__(self, auth_factory : GithubAppAuthFactory):
-        Cloner.__init__(self)
+    def __init__(self, auth_factory : GithubAppAuthFactory, ssl_no_verify : bool):
+        Cloner.__init__(self, ssl_no_verify)
         self.__auth_factory = auth_factory
 
     async def _fix_clone_url(self, clone_url : str, event_context : EventContext=None, force_reauth : bool=False):
