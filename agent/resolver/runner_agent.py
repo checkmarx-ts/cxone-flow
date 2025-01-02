@@ -155,7 +155,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
                             )
         except subprocess.CalledProcessError as cpex:
             ResolverRunnerAgent.log().error(f"SCA Resolver: Process failure for Project: [{scan_msg.details.project_name}] with CorId: [{scan_msg.correlation_id}]")
-            self.log().exception(f"{scan_msg.correlation_id} log: [{cpex.output.decode()}]", cpex)
+            self.log().exception(cpex)
             await self.__send_failure_response(
                 workflow, scan_msg, cpex.returncode, cpex.output
             )
