@@ -20,7 +20,8 @@ class AbstractAsyncWorkflow:
 
     async def _publish(self, mq_client : aio_pika.abc.AbstractRobustConnection, topic : str, 
                        msg : aio_pika.abc.AbstractMessage, log_msg : str, exchange : str) -> bool:
-        async with await mq_client.channel() as channel:
+        try:
+            channel = await mq_client.channel()
             exchange = await channel.get_exchange(exchange)
 
             if exchange:
@@ -29,4 +30,9 @@ class AbstractAsyncWorkflow:
                 AbstractAsyncWorkflow.log().error(f"Client [{mq_client}] unable to retrieve exchange [{exchange}]")
             
             return False
+        except Exception:
+            raise
+        finally:
+            await channel.close()
+
 

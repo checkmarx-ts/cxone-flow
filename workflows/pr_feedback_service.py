@@ -63,49 +63,51 @@ class PRFeedbackService(BaseWorkflowService):
             PRFeedbackService.log().warning(f"Scan id {swm.scanid} polling timeout expired at {swm.drop_by}. Polling for this scan has been stopped.")
             await msg.ack()
         else:
-            async with await (await self.mq_client()).channel() as write_channel:
-                try:
-                    inspector = await cxone_service.load_scan_inspector(swm.scanid)
+            try:
+                write_channel = await (await self.mq_client()).channel()
+                inspector = await cxone_service.load_scan_inspector(swm.scanid)
 
-                    if not inspector.executing:
-                        try:
-                            requeue_on_finally = False
-                            
-                            if inspector.successful:
-                                PRFeedbackService.log().info(f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow.")
-                                await self.__workflow_map[swm.workflow].feedback_start(await self.mq_client(), swm.moniker, swm.projectid, swm.scanid, **(swm.workflow_details))
-                            else:
-                                PRFeedbackService.log().info(f"Scan failure for scan id {swm.scanid}, enqueuing annotation workflow.")
-                                await self.__workflow_map[swm.workflow].annotation_start(await self.mq_client(), swm.moniker, swm.projectid, swm.scanid, 
-                                                                                        inspector.state_msg, **(swm.workflow_details))
-                        except BaseException as bex:
-                            PRFeedbackService.log().exception(bex)
-                        finally:
-                                await msg.ack()
+                if not inspector.executing:
+                    try:
+                        requeue_on_finally = False
+                        
+                        if inspector.successful:
+                            PRFeedbackService.log().info(f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow.")
+                            await self.__workflow_map[swm.workflow].feedback_start(await self.mq_client(), swm.moniker, swm.projectid, swm.scanid, **(swm.workflow_details))
+                        else:
+                            PRFeedbackService.log().info(f"Scan failure for scan id {swm.scanid}, enqueuing annotation workflow.")
+                            await self.__workflow_map[swm.workflow].annotation_start(await self.mq_client(), swm.moniker, swm.projectid, swm.scanid, 
+                                                                                    inspector.state_msg, **(swm.workflow_details))
+                    except BaseException as bex:
+                        PRFeedbackService.log().exception(bex)
+                    finally:
+                            await msg.ack()
 
-                except ResponseException as ex:
-                    PRFeedbackService.log().exception(ex)
-                    PRFeedbackService.log().error(f"Polling for scan id {swm.scanid} stopped due to exception.")
-                    requeue_on_finally = False
-                    await msg.ack()
-                finally:
-                    if requeue_on_finally:
-                        exchange = await write_channel.get_exchange(PRFeedbackService.EXCHANGE_SCAN_INPUT)
+            except ResponseException as ex:
+                PRFeedbackService.log().exception(ex)
+                PRFeedbackService.log().error(f"Polling for scan id {swm.scanid} stopped due to exception.")
+                requeue_on_finally = False
+                await msg.ack()
+            finally:
+                if requeue_on_finally:
+                    exchange = await write_channel.get_exchange(PRFeedbackService.EXCHANGE_SCAN_INPUT)
 
-                        if exchange:
-                            orig_exp = int(msg.headers['x-death'][0]['original-expiration'])
-                            backoff=min(timedelta(milliseconds=orig_exp * self.__backoff), self.__max_interval)
-                            new_msg = aio_pika.Message(swm.to_binary(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                                                        expiration=backoff)
+                    if exchange:
+                        orig_exp = int(msg.headers['x-death'][0]['original-expiration'])
+                        backoff=min(timedelta(milliseconds=orig_exp * self.__backoff), self.__max_interval)
+                        new_msg = aio_pika.Message(swm.to_binary(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                                                    expiration=backoff)
 
-                            result = await exchange.publish(new_msg, routing_key=msg.routing_key)
+                        result = await exchange.publish(new_msg, routing_key=msg.routing_key)
 
-                            if type(result) == pamqp.commands.Basic.Ack:
-                                PRFeedbackService.log().debug(f"Scan id {swm.scanid} poll message re-enqueued with delay {backoff.total_seconds()}s.")
-                                await msg.ack()
-                            else:
-                                PRFeedbackService.log().debug(f"Scan id {swm.scanid} failed to re-enqueue new poll message.")
-                                await msg.nack()
+                        if type(result) == pamqp.commands.Basic.Ack:
+                            PRFeedbackService.log().debug(f"Scan id {swm.scanid} poll message re-enqueued with delay {backoff.total_seconds()}s.")
+                            await msg.ack()
+                        else:
+                            PRFeedbackService.log().debug(f"Scan id {swm.scanid} failed to re-enqueue new poll message.")
+                            await msg.nack()
+                
+                await write_channel.close()
 
 
     async def execute_pr_annotate_workflow(self, msg : aio_pika.abc.AbstractIncomingMessage, cxone_service : CxOneService, scm_service : SCMService):
