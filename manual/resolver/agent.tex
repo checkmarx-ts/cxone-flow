@@ -117,6 +117,8 @@ recommendations for a secure deployment of the distributed resolver agent.  The 
 for all platform deployments are:
 
 \begin{itemize}
+  \item \textbf{Assume that anyone with administrative access to a server with a distributed resolver agent installed
+    can intercept all secrets configured on the \cxoneflow server.}
   \item It is a best practice to not allow developers administrative control over the configuration and
     execution of the distributed resolver agent.
   \item Utilize file permissions on the secret values used by the agent to limit which running processes
@@ -330,11 +332,42 @@ Below is an example of a distributed agent YAML configuration.  This example dem
 \input{resolver/yaml/serviced-tags.tex}
 \input{resolver/yaml/tag.tex}
 
+\subsection{Resolver Configuration Recommendations}
+
+The YAML configuration option \intlink{sec:agent-resolver-opts}{resolver-opts} can be used to provide
+configuration options for \scaresolver during execution.  This section discusses recommended
+configuration options.
+
+\subsubsection{break-on-manifest-failure}\label{sec:break-manifest}
+
+This is a boolean option that is passed to \scaresolver as the argument \texttt{--break-on-manifest-failure}.  It is recommended
+that this is set in the \intlink{sec:agent-resolver-opts}{resolver-opts} configuration.  This will cause any manifest failures
+encountered when running \scaresolver to flag the scan with the resolver tag of \textbf{failed}.  If this option is not included,
+all scans will have a resolver tag of \textbf{success} regardless of if resoluton of any dependency trees failed when
+executing \scaresolverns.
+
+The reason \scaresolver should be configured to run with this option is to make it easy to filter a list of scans by resolver
+failure status.  All SCA scans are reported as successfully completed if the dependency tree resolution executes to
+any type of completion.  The dependency resolution may completely or partially fail but the scan status will reflect
+as a successful scan.  Any partial results will be reported but it requires some manual review of logs to understand if there
+were any partial dependency tree resolution failures.
+
+\subsubsection{scan-containers}
+This is a boolean option that is passed to \scaresolver as the argument \texttt{--scan-containers}.  It is recommended that
+this option is \textbf{not} set in the \intlink{sec:agent-resolver-opts}{resolver-opts} configuration.
+
+There are a few reasons for omitting this flag; the main reason is that container security scans have moved away from
+using \scaresolver to perform the scan.  Container security scans are now an independent scan option and no longer
+report results provided by \scaresolver when used by \cxonens.  This option may remain in \scaresolver for backwards
+compatibility with other Checkmarx products.
+
 \subsection{Limitations}
 Please note the following limitations apply when using the distributed resolver agent:
 
 \begin{itemize}
   \item Server-side configurations with \texttt{clone-auth} using SSH keys will fail.
   \item Windows base container images can not be used to run \scaresolver in a container.  Only Linux base images are supported.
+  \item The Containter Security scans recently moved away from using \scaresolverns, thus container scans will currently
+    execute in the \cxoneflow server side environment.
 \end{itemize}
 
