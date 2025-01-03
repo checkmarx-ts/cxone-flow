@@ -3,7 +3,7 @@ from threading import Lock
 
 class SecretRegistry:
      __lock = Lock()
-     __default_regex = "(?P<header>Auth.+: \w+ )(?P<secret>.+?)([\'\"]|$)"
+     __default_regex = "(?P<header>Auth.+: \\w+ )(?P<secret>.+?)([\\\'\\\"]|$)"
      __compiled_regex = re.compile(__default_regex,  re.RegexFlag.I | re.RegexFlag.M)
      __secrets = []
      
