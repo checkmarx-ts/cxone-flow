@@ -27,6 +27,7 @@ async def process_poll(msg: aio_pika.abc.AbstractIncomingMessage) -> None:
         await services.pr.execute_poll_scan_workflow(msg, services.cxone)
     except BaseException as ex:
         __log.exception(ex)
+        await msg.nack(requeue=False)
 
 
 async def process_pr_annotate(msg: aio_pika.abc.AbstractIncomingMessage) -> None:
@@ -41,6 +42,7 @@ async def process_pr_annotate(msg: aio_pika.abc.AbstractIncomingMessage) -> None
         )
     except BaseException as ex:
         __log.exception(ex)
+        await msg.nack(requeue=False)
 
 
 async def process_pr_feedback(msg: aio_pika.abc.AbstractIncomingMessage) -> None:
@@ -55,6 +57,7 @@ async def process_pr_feedback(msg: aio_pika.abc.AbstractIncomingMessage) -> None
         )
     except BaseException as ex:
         __log.exception(ex)
+        await msg.nack(requeue=False)
 
 
 async def spawn_agents():
