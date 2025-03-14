@@ -13,16 +13,26 @@ import urllib, asyncio, fnmatch
 
 class GitlabOrchestrator(OrchestratorBase):
 
+    __no_hash = "0000000000000000000000000000000000000000"
+
+    __push_actual_label = "actual"
+    __push_delete_label = "branch_delete"
+    __push_create_label = "branch_create"
+
+    __push_event_name = "push"
+
+    __pr_closed_states = ["closed"]
+
     __event_git_ssh_url_query = parse("$.project.git_ssh_url")
     __event_git_http_url_query = parse("$.project.git_http_url")
-    __event_name_query = parse("$.object_kind")
+    __event_type_query = parse("$.object_kind")
 
     __event_project_path_query = parse("$.project.path_with_namespace")
     __event_project_id_query = parse("$.project.id")
 
 
-    __push_target_hash_query = parse("$.after")
-    __push_source_hash_query = parse("$.before")
+    __push_after_hash_query = parse("$.after")
+    __push_before_hash_query = parse("$.before")
     __push_ref_query = parse("$.ref")
     __push_ref_protected_query = parse("$.ref_protected")
 
@@ -33,7 +43,7 @@ class GitlabOrchestrator(OrchestratorBase):
     __pr_status_query = parse("$.object_attributes.action")
     __pr_source_branch_query = parse("$.object_attributes.source_branch")
     __pr_target_branch_query = parse("$.object_attributes.target_branch")
-    __pr_source_hash_query = parse("$.object_attributes.last_commit.id")
+    __pr_commit_hash_query = parse("$.object_attributes.last_commit.id")
 
     __api_default_branch_query = parse("$.default_branch")
     __api_protected_branch_query = parse("$[*].name")
@@ -47,14 +57,36 @@ class GitlabOrchestrator(OrchestratorBase):
             self.__isdiagnostic = True
             return
         
-        self.__event = GitlabOrchestrator.__event_name_query.find(event_context.message).pop().value
+        event_type = GitlabOrchestrator.__event_type_query.find(event_context.message)
+        if len(event_type) > 0:
+            self.__event = event_type.pop().value
+        else:
+            self.__event = event_context.message['event_name'] \
+                if 'event_name' in event_context.message.keys() else "Unknown"
+            
+        if self.__event == GitlabOrchestrator.__push_event_name:
+            sub_event = GitlabOrchestrator.__push_actual_label
+            before =  GitlabOrchestrator.__push_before_hash_query.find(event_context.message)
+            if len(before) > 0:
+                if before.pop().value == GitlabOrchestrator.__no_hash:
+                    sub_event = GitlabOrchestrator.__push_create_label
 
-        self.__clone_urls = { 
-            "ssh" : GitlabOrchestrator.__event_git_ssh_url_query.find(event_context.message).pop().value
-            }
+            after =  GitlabOrchestrator.__push_after_hash_query.find(event_context.message)
+            if len(after) > 0:
+                if after.pop().value == GitlabOrchestrator.__no_hash:
+                    sub_event = GitlabOrchestrator.__push_delete_label
+
+            self.__event = f"{self.__event}:{sub_event}"
+
+        self.__clone_urls = {}
+        ssh_url = GitlabOrchestrator.__event_git_ssh_url_query.find(event_context.message)
+        if len(ssh_url) > 0:
+            self.__clone_urls['ssh'] = ssh_url.pop().value
         
-        http = GitlabOrchestrator.__event_git_http_url_query.find(event_context.message).pop().value
-        self.__clone_urls[urllib.parse.urlparse(http).scheme] = http
+        http_url = GitlabOrchestrator.__event_git_http_url_query.find(event_context.message)
+        if len(http_url) > 0:
+            http = http_url.pop().value
+            self.__clone_urls[urllib.parse.urlparse(http).scheme] = http
         
         self.__route_urls = list(self.__clone_urls.values())
 
@@ -125,8 +157,7 @@ class GitlabOrchestrator(OrchestratorBase):
 
         self.__source_branch = self.__target_branch = OrchestratorBase.normalize_branch_name(
             GitlabOrchestrator.__push_ref_query.find(self.event_context.message).pop().value)
-        self.__source_hash = GitlabOrchestrator.__push_source_hash_query.find(self.event_context.message).pop().value
-        self.__target_hash = GitlabOrchestrator.__push_target_hash_query.find(self.event_context.message).pop().value
+        self.__source_hash = self.__target_hash = GitlabOrchestrator.__push_after_hash_query.find(self.event_context.message).pop().value
 
         self.__populate_common_event_data()
 
@@ -159,7 +190,7 @@ class GitlabOrchestrator(OrchestratorBase):
     def __populate_common_pr_data(self):
         self.__source_branch = OrchestratorBase.normalize_branch_name(GitlabOrchestrator.__pr_source_branch_query.find(self.event_context.message).pop().value)
         self.__target_branch = OrchestratorBase.normalize_branch_name(GitlabOrchestrator.__pr_target_branch_query.find(self.event_context.message).pop().value)
-        self.__source_hash = GitlabOrchestrator.__pr_source_hash_query.find(self.event_context.message).pop().value
+        self.__source_hash = GitlabOrchestrator.__pr_commit_hash_query.find(self.event_context.message).pop().value
         self.__target_hash = None
         self.__pr_id = str(GitlabOrchestrator.__pr_id_query.find(self.event_context.message).pop().value)
         self.__pr_state = GitlabOrchestrator.__pr_state_query.find(self.event_context.message).pop().value
@@ -181,30 +212,35 @@ class GitlabOrchestrator(OrchestratorBase):
         if len(existing_scans) > 0:
             # This is a scan tag update, not a scan.
             return await OrchestratorBase._execute_pr_tag_update_workflow(self, services)
+        elif self.__pr_state in GitlabOrchestrator.__pr_closed_states:
+            pass
         else:
             self.__protected_branches = []
 
-            default_branch_resp, protected_branch_resp = await asyncio.gather(
-                services.scm.exec("GET", f"/projects/{project_id}"),
-                services.scm.exec("GET", f"/projects/{project_id}/protected_branches"))
-            
-            found_default = GitlabOrchestrator.__api_default_branch_query.find(json_on_ok(default_branch_resp))
+            if self.__pr_state in GitlabOrchestrator.__pr_closed_states:
+                self.log().warning(f"PR {self.__pr_id} is closed, ignoring.")
+            else:
+                default_branch_resp, protected_branch_resp = await asyncio.gather(
+                    services.scm.exec("GET", f"/projects/{project_id}"),
+                    services.scm.exec("GET", f"/projects/{project_id}/protected_branches"))
+                
+                found_default = GitlabOrchestrator.__api_default_branch_query.find(json_on_ok(default_branch_resp))
 
-            if len(found_default) > 0:
-                self.__protected_branches.append(OrchestratorBase.normalize_branch_name(found_default.pop().value))
-            
-            for pbranch in GitlabOrchestrator.__api_protected_branch_query.find(json_on_ok(protected_branch_resp)):
-                branch_value = OrchestratorBase.normalize_branch_name(pbranch.value)
+                if len(found_default) > 0:
+                    self.__protected_branches.append(OrchestratorBase.normalize_branch_name(found_default.pop().value))
+                
+                for pbranch in GitlabOrchestrator.__api_protected_branch_query.find(json_on_ok(protected_branch_resp)):
+                    branch_value = OrchestratorBase.normalize_branch_name(pbranch.value)
 
-                # This can be a wildcard, so add it to the list of protected branches
-                # then add the target/source branches if they match
-                self.__protected_branches.append(branch_value)
+                    # This can be a wildcard, so add it to the list of protected branches
+                    # then add the target/source branches if they match
+                    self.__protected_branches.append(branch_value)
 
-                if fnmatch.fnmatch(self.__target_branch, branch_value):
-                    self.__protected_branches.append(OrchestratorBase.normalize_branch_name(self.__target_branch))
+                    if fnmatch.fnmatch(self.__target_branch, branch_value):
+                        self.__protected_branches.append(OrchestratorBase.normalize_branch_name(self.__target_branch))
 
-                if fnmatch.fnmatch(self.__source_branch, branch_value):
-                    self.__protected_branches.append(OrchestratorBase.normalize_branch_name(self.__source_branch))
+                    if fnmatch.fnmatch(self.__source_branch, branch_value):
+                        self.__protected_branches.append(OrchestratorBase.normalize_branch_name(self.__source_branch))
             
             # dedupe
             self.__protected_branches = list(set(self.__protected_branches))
@@ -212,6 +248,7 @@ class GitlabOrchestrator(OrchestratorBase):
             return await OrchestratorBase._execute_pr_scan_workflow(self, services, additional_content, scan_tags)
 
     __workflow_map = {
-        "push" : _execute_push_scan_workflow,
+        f"push:{__push_actual_label}" : _execute_push_scan_workflow,
+        f"push:{__push_create_label}" : _execute_push_scan_workflow,
         "merge_request" : _execute_pr_scan_workflow
     }
