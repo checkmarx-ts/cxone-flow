@@ -751,7 +751,7 @@ class CxOneFlowConfig(CommonConfig):
     def __github_api_auth_factory(
         api_url: str, config_path: str, config_dict: Dict
     ) -> AuthFactory:
-        common = CxOneFlowConfig.__common_api_auth_factory(config_path, config_dict)
+        common = CxOneFlowConfig.__common_api_auth_factory(api_url, config_path, config_dict)
 
         if (
             common is None
