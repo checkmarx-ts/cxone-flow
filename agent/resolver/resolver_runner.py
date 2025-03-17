@@ -98,7 +98,7 @@ class ExecutionContext:
             {"e": merge_exclusions, "excludes": merge_exclusions}
         )
 
-        if not self.__opts.has_one_of(["excludes", "e"]):
+        if self.__opts is not None and not self.__opts.has_one_of(["excludes", "e"]):
             exclude_opts = ["--excludes", exclusions]
         else:
             exclude_opts = []

@@ -42,28 +42,29 @@ class DictCmdLineOpts:
     def _compile(self, opt_processor : Dict[str, Callable[[str], str]]=None) -> List[str]:
         ret_val = []
 
-        for k in self.__opts_dict:
+        if self.__opts_dict is not None:
+            for k in self.__opts_dict:
 
-            value = self.__opts_dict[k]
-            if opt_processor is None or k not in opt_processor.keys():
-                proc = lambda x: x
-            elif k in opt_processor.keys():
-                proc = opt_processor[k]
-            
-            if len(k) == 0 or not self._validate_arg(k, value):
-                self.log().warning(f"Command line option [{k}] is invalid, omitting.")
-                continue
-            
-            if value is not None and not isinstance(value, str):
-                continue
+                value = self.__opts_dict[k]
+                if opt_processor is None or k not in opt_processor.keys():
+                    proc = lambda x: x
+                elif k in opt_processor.keys():
+                    proc = opt_processor[k]
+                
+                if len(k) == 0 or not self._validate_arg(k, value):
+                    self.log().warning(f"Command line option [{k}] is invalid, omitting.")
+                    continue
+                
+                if value is not None and not isinstance(value, str):
+                    continue
 
-            if len(k) == 1:
-                ret_val.append(f"-{k}")
-            else:
-                ret_val.append(f"--{k}")
+                if len(k) == 1:
+                    ret_val.append(f"-{k}")
+                else:
+                    ret_val.append(f"--{k}")
 
-            if value is not None:
-                ret_val.append(proc(value))
+                if value is not None:
+                    ret_val.append(proc(value))
 
         return ret_val
 
@@ -71,6 +72,9 @@ class DictCmdLineOpts:
         return True
     
     def has_one_of(self, arg_keys : List[str]) -> bool:
+        if self.__opts_dict is None:
+            return False
+        
         return len([x for x in arg_keys if x in self.__opts_dict.keys()]) > 0
 
     def as_string(self, opt_processor : Dict[str, Callable[[str], str]]=None) -> str:
