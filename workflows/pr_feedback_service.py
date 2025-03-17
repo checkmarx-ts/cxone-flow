@@ -124,6 +124,8 @@ class PRFeedbackService(BaseWorkflowService):
                     await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
                                                     am.scanid, annotation.full_content, annotation.summary_content, pr_details.event_context)
                     await msg.ack()
+
+                    self.log().info(f"{am.moniker}: PR {pr_details.pr_id}@{pr_details.clone_url}: Annotation complete")
                 else:
                     PRFeedbackService.log().error(f"Unable for load scan {am.scanid}")
                     await msg.nack()
@@ -136,21 +138,23 @@ class PRFeedbackService(BaseWorkflowService):
 
 
     async def execute_pr_feedback_workflow(self, msg : aio_pika.abc.AbstractIncomingMessage, cxone_service : CxOneService, scm_service : SCMService):
-        am = await self._safe_deserialize_body(msg, ScanFeedbackMessage)
-        pr_details = PRDetails.from_dict(am.workflow_details)
+        fm = await self._safe_deserialize_body(msg, ScanFeedbackMessage)
+        pr_details = PRDetails.from_dict(fm.workflow_details)
         
         try:
             if await self.__workflow_map[ScanWorkflow.PR].is_enabled():
-                report = await cxone_service.retrieve_report(am.projectid, am.scanid)
+                report = await cxone_service.retrieve_report(fm.projectid, fm.scanid)
                 if report is None:
                     await msg.nack()
                 else:
                     feedback = PullRequestFeedback(self.__workflow_map[ScanWorkflow.PR].excluded_severities, 
-                        self.__workflow_map[ScanWorkflow.PR].excluded_states, cxone_service.display_link, am.projectid, am.scanid, report, 
+                        self.__workflow_map[ScanWorkflow.PR].excluded_states, cxone_service.display_link, fm.projectid, fm.scanid, report, 
                         scm_service.create_code_permalink, pr_details, self.__server_base_url)
                     await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
-                                                    am.scanid, feedback.full_content, feedback.summary_content, pr_details.event_context)
+                                                    fm.scanid, feedback.full_content, feedback.summary_content, pr_details.event_context)
                     await msg.ack()
+
+                    self.log().info(f"{fm.moniker}: PR {pr_details.pr_id}@{pr_details.clone_url}: Feedback complete")
             else:
                 await msg.ack()
         except CxOneException as ex:

@@ -3,6 +3,7 @@
 \begin{itemize}
     \item Fixed a branch naming bug that affected names of scanned branches that had "/" separated segments.
     \item Added Gitlab SCM support.
+    \item Improved logging for feedback workflows.
     \item A breaking configuration change was implemented such that \texttt{repo-match} values that are a wildcard
           match for any value are no longer allowed.  This is to prevent potential SSRF attacks exposing SCM credentials
           if the SCM shared secret is compromised.  The route match should, at minimum, specify common parts of the FQDN
