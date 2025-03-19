@@ -4,6 +4,10 @@ Implementing the distributed resolver agents requires an AMQP message queue serv
 is used for communication between the \cxoneflow server and the distributed resolver
 agents.  Details about the message queue deployment can be found in Section \ref{sec:external-mq}.
 
+The examples in this section show a configuration that uses team names as tags to establish
+build environment affinity to \scaresolver scanning.  The tags can be used to establish
+the build environment affinity in whatever way fits your organization best.
+
 \subsection{\cxoneflowtext\space Endpoint Configuration}
 
 The endpoint server \intlink{sec:yaml-config}{YAML configuration} will not utilize resolver agents
@@ -63,8 +67,8 @@ Some of the things to note in these examples:
 
 \begin{itemize}
   \item The AMQP URL is stored as a secret since it contains credentials.
-  \item The AMQP connection is common in both the \texttt{feedback} and \texttt{resolver} configuration.  This
-  means the feedback workflows are using the same external message queue as the resolver.
+  \item The AMQP connection is common in both the \texttt{feedback} and \texttt{resolver} configuration.
+  This configuration allows the feedback workflows and resolver workflows to use the same external message queue.
 \end{itemize}
 
 \input{resolver/server-yaml-examples.tex}
