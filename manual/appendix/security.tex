@@ -5,26 +5,29 @@
 
 The SCM event configurations all utilize a "shared secret" token that is used to validate that
 a webhook event is emitted from a trusted source SCM.  In some SCMs, the token is used to
-demonstrate mutual knowledge if the value using HMAC signing of the payload.  In most
-of the SCMs, however, the value is sent in either plaintext or base-64 encoded text.  Anyone
-monitoring the communication between the SCM and \cxoneflow can obtain the shared secret
-value when it is sent as part of the event payload.
+demonstrate mutual knowledge if the value using HMAC signing of the payload.  This prevents
+the need to expose the shared secret.  While not foolproof, a sufficiently complex shared
+secret will be difficult to reverse and thus prevent exposure to a certain extent.
 
-The shared secret is often the only mechanism available to prevent someone from
-spoofing the payload of an event.  The unfortunate truth is that setting up
-SCM webhooks will require this secret to be revealed to several people. The more people
-that know the secret, the more likely it is that it will be exposed.
+In most of the SCMs, however, the shared secret value is sent in either plaintext or as base-64 
+encoded text.  Anyone monitoring the communication between the SCM and \cxoneflow can obtain
+the shared secret value when it is sent as part of the event payload.  Using SSL to encrypt
+communication between the SCM and \cxoneflow can also minimize the risk of exposure
+of the shared secret to a certain extent.
 
-The \cxoneflow endpoint is designed to receive JSON payloads as a machine-to-machine 
-communication but anyone with a network connection path to \cxoneflow can send any
-payload.  The event payload formats and secret verification methods are well
-known.  If a threat-actor had the shared secret, this would not be desirable.
+Validation of received webhook event payloads using the shared secret is often the only mechanism
+available to prevent someone from sending a false webhook event payload.
+Unfortunately, the shared secret usually needs to be shared with those that are configuring
+SCM webhooks to send events to \cxoneflow.  As the number of people that know the shared secret
+grows, the risk of it being exposed to a threat actor becomes greater.  Anyone that knows
+the shared secret and can make a network connection to the \cxoneflow endpoint has the ability
+to send a false webhook event payload that could cause undesirable consequences.
 
 The \cxoneflow configuration uses a regular expression to match the service definition
 that is intended to handle a received webhook event.  The \texttt{repo-match} element
 configured with an all-matching regular expression such as \texttt{.*} means that the
 service definition will handle an event for any repository clone URL presented in the
-event.  If a threat actor with the shared secret were to send a modified payload
+received webhook payload.  If a threat actor with the shared secret were to send a modified payload
 containing a clone URL of their choosing, it would be accepted for handling by
 the matching service definition.  This would potentially allow exposure of the
 clone credentials via a SSRF attack.
@@ -81,5 +84,16 @@ needed.  These are generally:
 
 \begin{itemize}
   \item The IAM and API URLs hosting the \cxone tenant.
-  \item 
+  \item The SCM endpoints for API access and cloning.
+  \item If an external AMQP server is used, the external AMQP endpoint.
 \end{itemize}
+
+Egress from the \cxoneflow instance subnet can be controlled by firewall rules or
+through an outbound proxy.  If using a proxy, the \intlink{sec:yaml-generic-proxies}{proxies}
+YAML configuration element can be used to provide the proxy server's connection information.
+
+\subsubsection{Limit Inbound Network Connectivity of the \cxoneflowtext\space Endpoint}
+
+The only required inbound connections to \cxoneflow are from SCMs delivering webhook event
+payloads.  Controlling the source of connections made to \cxoneflow using firewall rules
+or reverse-proxy filtering can limit the risk that would come with an exposed shared secret.
