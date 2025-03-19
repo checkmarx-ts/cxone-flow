@@ -7,7 +7,14 @@ A moniker for the service definition. The moniker is used for logging and workfl
 \subsubsection{YAML Element: repo-match}\label{sec:yaml-moniker-repo-match}
 A regex applied to the source repository.  If the webhook payload has
 a clone URL that matches the regex, this service definition is used to orchestrate scanning
-for the received event.
+for the received event.  As of \cxoneflow 2.1.0, this element will no longer allow regular
+expressions such as \texttt{.*} that match any arbitrary value.  It is suggested to use
+a regular expression that uses the start position anchor (\^{}) along with an expression
+that matches the URL of the SCM that will be expected to emit the event.  The ending of
+the expression can be followed by \texttt{.*} to match events from any repository.
+
+This has been changed in consideration of secure deployment practices.  Please refer to
+Appendix \ref{sec:cxoneflow-security} for more information.
 
 \subsubsection{YAML Element: connection}\label{sec:yaml-moniker-connection}
 A block element where the child elements define the SCM connection parameters for this service definition.

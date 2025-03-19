@@ -19,6 +19,7 @@ Please refer to the [Releases](https://github.com/checkmarx-ts/cxone-flow/releas
     * BitBucket Data Center
     * Azure DevOps Enterprise, On-premise or Cloud
     * GitHub Enterprise and Cloud
+    * GitLab On-premise or Cloud
 * Scans are invoked by Push events when code is pushed to protected branches.
 * Scans are invoked on Pull-Requests that target a protected branch.
 * Scan results for Pull-Request scans are summarized in a pull-request comment.

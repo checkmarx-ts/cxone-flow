@@ -4,7 +4,7 @@ server-base-url: https://cxoneflow.mydomain.com:8443/
 
 gh:
     - service-name: GHC
-      repo-match: .*
+      repo-match: ^https:(\/){2}(.+\.)?github\.com.*
       feedback:
         pull-request:
           enabled: True

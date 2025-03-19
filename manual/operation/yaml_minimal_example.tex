@@ -24,9 +24,9 @@ server-base-url: https://cxoneflow.mydomain.com:8443/
 
 bbdc:
     - service-name: BitBucket DC
-      repo-match: .*
+      repo-match: ^http(s)?:(\/){2}bitbucket\.corp\.com.*
       connection:
-        base-url: https://scm.corp.com
+        base-url: https://bitbucket.corp.com
         shared-secret: scm-shared-secret
         api-auth:
           token: scm-token-secret
@@ -48,9 +48,9 @@ server-base-url: https://cxoneflow.mydomain.com:8443/
 
 bbdc:
     - service-name: BitBucket DC
-      repo-match: .*
+      repo-match: ^http(s)?:(\/){2}bitbucket\.corp\.com.*
       connection:
-      base-url: https://scm.corp.com
+      base-url: https://bitbucket.corp.com
       shared-secret: scm-shared-secret
       api-auth:
         token: scm-token-secret
@@ -70,9 +70,9 @@ server-base-url: https://cxoneflow.mydomain.com:8443/
 
 adoe:
     - service-name: MyADO
-      repo-match: .*
+      repo-match: ^http(s)?:(\/){2}ado\.corp\.com.*
       connection:
-      base-url: https://scm.corp.com/
+      base-url: https://ado.corp.com/
       shared-secret: scm-shared-secret
       api-auth:
         username: scm-username-secret
@@ -93,12 +93,12 @@ server-base-url: https://cxoneflow.mydomain.com:8443/
 
 bbdc:
     - service-name: BitBucket DC
-      repo-match: .*
+      repo-match: ^http(s)?:(\/){2}bitbucket\.corp\.com.*
       feedback:
         pull-request:
           enabled: True
       connection:
-        base-url: https://scm.corp.com
+        base-url: https://bitbucket.corp.com
         shared-secret: scm-shared-secret
         api-auth:
           token: scm-token-secret
@@ -119,7 +119,7 @@ as a GitHub App:
   
 \pagebreak
 A minimal example using GitHub Enterprise with the \cxoneflow integration using
-webhooks configured at the individual repository level:
+webhooks configured at the individual repository scope:
 \input{operation/ghe_webhook_minimal_example.tex}
 
 
@@ -136,3 +136,8 @@ as a GitHub App:
 A minimal example using GitHub Cloud with the \cxoneflow integration using
 webhooks configured at the individual repository level:
 \input{operation/ghc_webhook_minimal_example.tex}
+
+\pagebreak
+A minimal example using Gitlab with the \cxoneflow integration using
+webhooks configured at any scope:
+\input{operation/gl_minimal_example.tex}

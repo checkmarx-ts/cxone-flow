@@ -22,7 +22,7 @@ server-base-url: https://cxoneflow.mydomain.com:8443/
 
 bbdc:
     - service-name: BitBucket DC
-      repo-match: .*
+      repo-match: ^http(s)?:(\/){2}bitbucket\.corp\.com.*
       scan-config:
           default-scan-engines:
               sca:
@@ -40,7 +40,7 @@ bbdc:
           default-project-tags:
               onboarded-by: CxOneFlow
       connection:
-          base-url: https://scm.corp.com
+          base-url: https://bitbucket.corp.com
           shared-secret: scm-shared-secret
           timeout-seconds: 60
           retries: 3
@@ -74,14 +74,14 @@ orchestrate scans in a single \cxone tenant.
 secret-root-path: /run/secrets
 server-base-url: https://cxoneflow.mydomain.com:8443/
 adoe-connection: &adoe-con
-    base-url: http://adoe.scm.org/
+    base-url: https://ado.corp.com/
     shared-secret: scm-shared-secret
 bbdc-connection: &bbdc-con
-    base-url: http://bbdc.scm.org
+    base-url: https://bitbucket.corp.com
     shared-secret: scm-shared-secret
 adoe:
     - service-name: ADO-EastCoast
-        repo-match: .*East
+        repo-match: ^http(s)?:(\/){2}ado\.corp\.com.*East
         connection:
         <<: *adoe-con
         api-auth: 
@@ -96,7 +96,7 @@ adoe:
         iam-endpoint: US
         api-endpoint: US
     - service-name: ADO-WestCoast
-        repo-match: .*West
+        repo-match: ^http(s)?:(\/){2}ado\.corp\.com.*West
         connection:
         <<: *adoe-con
         api-auth:
@@ -104,7 +104,7 @@ adoe:
         cxone: *cxone
 bbdc:
     - service-name: BBDC-EastCoast
-        repo-match: .*EAS
+        repo-match: ^http(s)?:(\/){2}bitbucket\.corp\.com.*EAS
         connection:
         <<: *bbdc-con
         api-auth: 
@@ -112,7 +112,7 @@ bbdc:
         clone-auth: *clone-ssh
         cxone: *cxone
     - service-name: BBDC-WestCoast
-        repo-match: .*WES
+        repo-match: ^http(s)?:(\/){2}bitbucket\.corp\.com.*WES
         connection:
         <<: *bbdc-con
         api-auth:

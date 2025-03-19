@@ -14,7 +14,7 @@ my-connection-params: &common-connection-params
 
 bbdc:
     - service-name: BitBucket DC
-      repo-match: .*
+      repo-match: ^http(s)?:(\/){2}bitbucket\.corp\.com.*
       feedback:
         pull-request:
             enabled: True
@@ -35,7 +35,7 @@ bbdc:
           default-project-tags:
               onboarded-by: CxOneFlow
       connection:
-          base-url: https://scm.corp.com
+          base-url: https://bitbucket.corp.com
           shared-secret: scm-shared-secret
           api-auth:
               token: scm-token-secret
@@ -73,7 +73,7 @@ my-connection-params: &common-connection-params
 
 bbdc:
     - service-name: BBDC-West
-      repo-match: .*west
+      repo-match: ^http(s)?:(\/){2}bitbucket\.corp\.com.*West
       scan-config: 
           default-scan-engines: &common-engine-config
               sca:
@@ -92,7 +92,7 @@ bbdc:
               onboarded-by: CxOneFlow
               region: West
       connection:
-          base-url: https://scm.corp.com
+          base-url: https://bitbucket.corp.com
           shared-secret: scm-west-org-shared-secret
           api-auth:
               token: scm-token-secret
@@ -106,7 +106,7 @@ bbdc:
           api-endpoint: US
           <<: *common-connection-params
     - service-name: BBDC-East
-      repo-match: .*east
+      repo-match: ^http(s)?:(\/){2}bitbucket\.corp\.com.*East
       scan-config: 
           default-scan-engines: *common-engine-config
           default-scan-tags:
@@ -115,7 +115,7 @@ bbdc:
               onboarded-by: CxOneFlow
               region: East
       connection:
-          base-url: https://scm.corp.com
+          base-url: https://bitbucket.corp.com
           shared-secret: scm-east-org-shared-secret
           api-auth:
               token: scm-token-secret

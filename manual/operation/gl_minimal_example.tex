@@ -1,0 +1,25 @@
+\begin{code}{Minimal YAML Configuration Example}{Gitlab Webhooks}{}
+  secret-root-path: /run/secrets
+  server-base-url: https://cxoneflow.mydomain.com:8443/
+  
+  gh:
+      - service-name: Gitlab
+        repo-match: ^http(s)?:(\/){2}gitlab\.corp\.com.*
+        feedback:
+          pull-request:
+            enabled: True
+        connection:
+          base-url: https://gitlab.corp.com
+          api-url-suffix: api/v4
+          shared-secret: scm-shared-secret
+          api-auth:
+            token: ghe-token
+        cxone:
+          tenant: mytenant
+          oauth:
+            client-id: my-oauth-id
+            client-secret: my-oauth-secret
+          iam-endpoint: US
+          api-endpoint: US
+\end{code}
+    

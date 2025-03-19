@@ -1,0 +1,85 @@
+\chapter{\cxoneflowtext\space Security Considerations}\label{sec:cxoneflow-security}
+
+
+\section{SCM Shared Secret}
+
+The SCM event configurations all utilize a "shared secret" token that is used to validate that
+a webhook event is emitted from a trusted source SCM.  In some SCMs, the token is used to
+demonstrate mutual knowledge if the value using HMAC signing of the payload.  In most
+of the SCMs, however, the value is sent in either plaintext or base-64 encoded text.  Anyone
+monitoring the communication between the SCM and \cxoneflow can obtain the shared secret
+value when it is sent as part of the event payload.
+
+The shared secret is often the only mechanism available to prevent someone from
+spoofing the payload of an event.  The unfortunate truth is that setting up
+SCM webhooks will require this secret to be revealed to several people. The more people
+that know the secret, the more likely it is that it will be exposed.
+
+The \cxoneflow endpoint is designed to receive JSON payloads as a machine-to-machine 
+communication but anyone with a network connection path to \cxoneflow can send any
+payload.  The event payload formats and secret verification methods are well
+known.  If a threat-actor had the shared secret, this would not be desirable.
+
+The \cxoneflow configuration uses a regular expression to match the service definition
+that is intended to handle a received webhook event.  The \texttt{repo-match} element
+configured with an all-matching regular expression such as \texttt{.*} means that the
+service definition will handle an event for any repository clone URL presented in the
+event.  If a threat actor with the shared secret were to send a modified payload
+containing a clone URL of their choosing, it would be accepted for handling by
+the matching service definition.  This would potentially allow exposure of the
+clone credentials via a SSRF attack.
+
+The following recommendations can be used to mitigate and possibly prevent any
+issues that may occur due to exposure of the shared secret.
+
+\subsection{Mitigating Shared Secret Exposure}
+
+
+\subsubsection{Avoid All-Matching Regular Expressions}
+
+To prevent an SSRF scenario due to an all-matching regular expression, 
+\cxoneflow as of version 2.1.0 will not start if a configured \texttt{repo-match} element
+will match arbitrary values. Using a regular expression that matches the transport and FQDN
+of clone URLs expected in each event payload will prevent events from being matched to a 
+service definition.  As an example, most regular expressions would be in a format similar to the one below:
+
+\begin{code}{General Clone URL Regular Expression}{}{}
+^http(s)?:(\/){2}my\.scm\.corp\.com.*
+\end{code}
+
+In the case of cloud-hosted Azure DevOps, an slightly different regular expression
+is needed.  The reason for this is that pull request events emitted from the multi-tenant ADO cloud have
+the organization name in the clone URL.  Below is an example of an Azure DevOps cloud
+service endpoint:
+
+\begin{code}{Minimal YAML Configuration}{Azure DevOps Cloud}{}
+  secret-root-path: /run/secrets
+  server-base-url: https://cxoneflow.mydomain.com:8443/
+  
+  adoe:
+      - service-name: MyADO
+        repo-match: ^http(s)?:(\/){2}(.+@)?dev\.azure\.com.*
+        connection:
+        base-url: https://scm.corp.com/
+        shared-secret: scm-shared-secret
+        api-auth:
+          username: scm-username-secret
+          password: scm-password-secret
+        cxone:
+          tenant: mytenant
+          oauth:
+            client-id: my-cxone-client-id
+            client-secret: my-cxone-client-secret
+          iam-endpoint: US
+          api-endpoint: US
+\end{code}
+  
+\subsubsection{Limit Outbound Network Connectivity of the \cxoneflowtext\space Endpoint}
+
+When \cxoneflow is operating, there are only very few connections to external machines
+needed.  These are generally:
+
+\begin{itemize}
+  \item The IAM and API URLs hosting the \cxone tenant.
+  \item 
+\end{itemize}

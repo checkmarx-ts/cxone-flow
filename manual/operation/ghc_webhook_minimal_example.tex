@@ -3,13 +3,13 @@ secret-root-path: /run/secrets
 server-base-url: 'https://cxoneflow.mydomain.com:8443/'
 gh:
   - service-name: GHC
-    repo-match: .*
+    repo-match: ^https:(\/){2}(.+\.)?github\.com.*
     feedback:
       pull-request:
         enabled: true
     connection:
-      base-url: 'https://api.github.com'
-      base-display-url: 'https://www.github.com'
+      base-url: https://api.github.com
+      base-display-url: https://www.github.com
       shared-secret: scm-shared-secret
       api-auth:
         token: ghc-token
