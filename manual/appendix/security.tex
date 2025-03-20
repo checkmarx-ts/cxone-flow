@@ -18,7 +18,7 @@ of the shared secret to a certain extent.
 Validation of received webhook event payloads using the shared secret is often the only mechanism
 available to prevent someone from sending a false webhook event payload.
 Unfortunately, the shared secret usually needs to be shared with those that are configuring
-SCM webhooks to send events to \cxoneflow.  As the number of people that know the shared secret
+SCM webhooks to send events to \cxoneflowns.  As the number of people that know the shared secret
 grows, the risk of it being exposed to a threat actor becomes greater.  Anyone that knows
 the shared secret and can make a network connection to the \cxoneflow endpoint has the ability
 to send a false webhook event payload that could cause undesirable consequences.
@@ -43,7 +43,7 @@ issues that may occur due to exposure of the shared secret.
 To prevent an SSRF scenario due to an all-matching regular expression, 
 \cxoneflow as of version 2.1.0 will not start if a configured \texttt{repo-match} element
 will match arbitrary values. Using a regular expression that matches the transport and FQDN
-of clone URLs expected in each event payload will prevent events from being matched to a 
+of clone URLs expected in each event payload will prevent falsified events from being matched to a 
 service definition.  As an example, most regular expressions would be in a format similar to the one below:
 
 \begin{code}{General Clone URL Regular Expression}{}{}
@@ -95,5 +95,5 @@ YAML configuration element can be used to provide the proxy server's connection 
 \subsubsection{Limit Inbound Network Connectivity of the \cxoneflowtext\space Endpoint}
 
 The only required inbound connections to \cxoneflow are from SCMs delivering webhook event
-payloads.  Controlling the source of connections made to \cxoneflow using firewall rules
+payloads to the \cxoneflow endpoint.  Controlling the source of connections made to \cxoneflow using firewall rules
 or reverse-proxy filtering can limit the risk that would come with an exposed shared secret.
