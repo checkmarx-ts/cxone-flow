@@ -1,0 +1,10 @@
+BitBucket Data Center uses one or more \textbf{Project} logical unit to separate repositories
+into logical groups.  Webhooks can be deployed at the \textbf{Project} scope; any changes
+to a repository contained in a configured \textbf{Project} will emit webhook events.
+
+Configuration of webhooks at the \textbf{Project} scope is generally the preferred
+method of webhook deployment for BitBucket Data Center.
+
+Webhooks can be deployed at the scope of each \textbf{Repository} if desired.  The number of repositories
+in a large enterprise generally makes deployment at the \textbf{Repository} scope useful
+only for testing purposes.

@@ -10,21 +10,17 @@ throughout this documentation.
 The \cxoneflow endpoint \texttt{/adoe} is the handler for all webhook event
 payloads originating from Azure DevOps Enterprise.  
 
+\section{Webhook Topology}
+
+\input{scms/topology/adoe.tex}
+
+
 \section{Webhook Configuration}
 
-Azure DevOps Enterprise organizes source repositories at the top level by a \textit{Collection};
-at least one collection will exist and many organizations will keep the installation-default
-collection named \texttt{DefaultCollection}.  In each collection there will exist one or more
-\textit{Projects} and in each project there will exist one or more \textit{Repositories}.  
-Webhook configurations can be applied to a single repository or at the project level which
-will trigger webhook events for all repositories in the project. Applying the configuration at the
-level of each individual repository is usually suitable for testing purposes only. Ideally,
-the webhook configuration will be applied at the project level.
-
-Webhook configurations applied at the \textit{Project} level are ideal since it delivers webhook
-events to \cxoneflow for all repositories in the project.  The project name will appear in 
-clone URLs and can be used as part of the regular expression configured as the \texttt{repo-match}
-configuration element.  Please see Section \ref{sec:yaml-config} for a description
+Webhook configurations applied at the \textbf{Project} scope are ideal given
+that this configuration delivers webhook events to \cxoneflow for all repositories in the project.
+The project name will appear in clone URLs and can be used as part of the regular expression configured
+for the \texttt{repo-match} configuration element.  Please see Section \ref{sec:yaml-config} for a description
 of the \texttt{repo-match} configuration element.
 
 The project's "Service Hooks" can be used to configure webhook events to be delivered to the

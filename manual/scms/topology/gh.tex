@@ -1,0 +1,17 @@
+GitHub uses one or more \textbf{Organization} logical units to separate zero or more
+repositories into logical groupings. Each GitHub user is also a limited variation of an
+\textbf{Organization} in that a user account is also a logical unit that can have
+associated repositories.  Webhook configurations can be deployed at this scope.
+When webhooks are deployed at the \textbf{Organization} scope, events
+will be emitted for all repositories within the \textbf{Organization} logical unit.
+
+Configuration of webhooks at the \textbf{Organization} scope is generally the preferred
+method of webhook deployment for GitHub.
+
+A \textbf{GitHub App} can be created that functions as a webhook deployment template.
+The \textbf{GitHub App} can be deployed at the \textbf{Organization} scope using the
+GitHub user interface.  This is the preferred method of defining and executing the webhook deployment.
+
+Webhooks can be deployed at the scope of each \textbf{Repository} if desired.  The number of repositories
+in a large enterprise generally makes deployment at the \textbf{Repository} scope useful
+only for testing purposes.  

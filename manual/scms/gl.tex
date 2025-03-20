@@ -1,28 +1,17 @@
-\chapter{Gitlab On-Premise and Gitlab Cloud}
+\chapter{Self-Hosted Gitlab and Gitlab Cloud}
 
 
 \section{About Gitlab}
 
-The Gitlab integration supports both on-premise and cloud-hosted Gitlab instances.  Gitlab
-considers each "project" as a single code repository.  A project can exist in a "user" or "group"
-namespace; projects in a user namespace can be considered an individual repository for \cxoneflow
-deployment purposes.  Deploying a webhook to send events to \cxoneflow at the project scope
-is possible but would not be ideal for configuring a large number of repositories.
+The Gitlab integration supports both self-hosted and cloud-hosted Gitlab instances.  Each type
+of Gitlab instance uses a subscription model that can limit access to some of the webhook
+deployment features that can be utilized by \cxoneflowns. The effort to deploy \cxoneflow at scale
+across a large number of repositories can change based upon the level of subscription
+and how the Gitlab instance is hosted.
 
-A "group" in Gitlab can contain zero or more projects and zero or more sub-groups. Webhooks
-can be configured at a group scope to apply to all projects in the group or sub-groups.  A
-licensed version of Gitlab is required to deploy webhook configurations at the group scope.
+\section{Webhook Topology}
 
-The on-premise version of Gitlab has "system hooks" that can be utilized to deploy
-a single webhook configuration for \cxoneflow.  A system hook will emit events for
-all projects in all groups.
-
-Each \cxoneflow service definition for Gitlab will require a PAT that can access repositories
-in the scope where webhooks are deployed.  If deploying a system hook, which emits events
-for all projects in the Gitlab instance, the PAT will need to belong to an account
-that has the appropriate permissions for all projects.  If the webhook is deployed
-at the group or project scope, the PAT should have the appropriate permissions
-to access the group or project where the webhook configuration is deployed.
+\input{scms/topology/gl.tex}
 
 
 \section{\cxoneflowtext\space YAML Configuration for GitLab}
@@ -96,7 +85,7 @@ events to the configured \cxoneflow endpoint.
 
 Webhook configurations at the group or project scope operate the same.  The settings for each
 are accessed by navigating to the group or project view and selecting \textbf{Settings->Webhooks}.
-If attempting to configure webhooks at the group scope in a free Gitlab on-premise instance or
+If attempting to configure webhooks at the group scope in a free Gitlab self-hosted instance or
 a free Gitlab cloud account, you will be prompted to purchase a license.
 
 The webhook configuration can be initiated by clicking the \textbf{Add new webhook} button. Figure \ref{fig:gl-project-1}

@@ -2,23 +2,18 @@
 
 \section{About BitBucket Data Center}
 
-BitBucket Data Center is often confused with BitBucket Cloud; while there are name and some
-feature similarities in both products, the webhook event interface of each is completely different.
-It should be noted that the \cxoneflow configuration for BitBucket Data Center is not compatible with BitBucket Cloud.
+BitBucket Data Center is an on-premise, self-hosted SCM that is often confused with BitBucket Cloud; while there are name and some
+feature similarities in both products, the integration capabilities needed by \cxoneflow
+are significantly different.  This section covers configuring \cxoneflow for use with BitBucket Data Center.
 
 The \cxoneflow endpoint \texttt{/bbdc} is the handler for all webhook event
-payloads originating from BitBucket Data Center.  BitBucket Data Center has the concept of Project that
-contains zero or more repositories.  Webhook configurations can be set at both the project and repository
-level.  When a webhook configuration is set at the project level, webhook events are sent for all
-repositories in the project.
+payloads originating from BitBucket Data Center.  
 
+\section{Webhook Topology}
+
+\input{scms/topology/bbdc.tex}
 
 \section{Webhook Configuration}
-
-BitBucket Data Center can assign web hooks at the Project level as well as at the
-repository level.  Deploying web hook configurations for an enterprise-scale SCM is generally better
-at the project level since it will apply to all repositories in the project.  Deploying
-at the repository level is mostly suitable for testing purposes only.
 
 Figure \ref{fig:bbdc-project-config} shows the BitBucket Data Center project configuration screen.  The
 project key will appear in clone URLs and can be used as part of the regular expression 
@@ -39,7 +34,6 @@ can be used to configure the \cxoneflow endpoint \texttt{/bbdc} to receive webho
 \end{figure}
 
 
-
 Figure \ref{fig:bbdc-webhook-config} shows a typical webhook configuration.  The \textit{Secret} is how \cxoneflow
 validates the origin of the event payload.  The configuration element \texttt{shared-secret}, as described
 in Section \ref{sec:yaml-config}, should be configured with the webhook secret value.  If \cxoneflow
@@ -48,40 +42,23 @@ and receive back a positive response.  If the connection test fails, please ensu
 at the address specified in the URL field and that the BitBucket Data Center server can make a connection
 to that URL.
 
-If the webhook is configured at the Project level, the events sent apply to all repositories contained
+If the webhook is configured at the Project scope, the events sent apply to all repositories contained
 within the project.  Figure \ref{fig:bbdc-repo-event-config} shows the configured repository-level webhook 
 events that will send a webhook payload to the \cxoneflow endpoint. 
 Figure \ref{fig:bbdc-pr-event-config} shows the configured pull-request events that will be sent to 
 the \cxoneflow endpoint.  The following events are currently supported:
 
-
-\pagebreak
 \begin{itemize}
-    \item Repository Events
-        \begin{itemize}
-            \item Push
-        \end{itemize}
-    \item Pull Request Events
-        \begin{itemize}
-            \item Scanning Orchestration (Required)
-                \begin{itemize}
-                    \item Opened
-                    \item Source branch updated
-                    \item Modified
-                \end{itemize}
-        \end{itemize}
-        \begin{itemize}
-            \item Pull Request Scan Tagging (Optional)
-                \begin{itemize}
-                    \item Approved
-                    \item Changes requested
-                    \item Declined
-                    \item Unapproved
-                    \item Merged
-                    \item Deleted
-                \end{itemize}
-        \end{itemize}
-
+    \item Repository -> Push
+    \item Pull Request -> Opened
+    \item Pull Request -> Source branch updated
+    \item Pull Request -> Modified
+    \item Pull Request -> Approved
+    \item Pull Request -> Changes requested
+    \item Pull Request -> Declined
+    \item Pull Request -> Unapproved
+    \item Pull Request -> Merged
+    \item Pull Request -> Deleted
 \end{itemize}
 
 
@@ -106,13 +83,24 @@ this is a configuration that should be avoided.  In addition to Basic Authorizat
 server upgrades, an interactive user account may be subject to password changes and Captcha verification that
 can break \cxoneflow operations.  
 
-It is generally best to use a user HTTP Access Token for SCM connection
-configurations \texttt{api-auth} or \texttt{clone-auth}.  If a user access token is used, the user can be granted
-permissions for multiple projects; this will make the \cxoneflow configuration much easier. Please refer to 
-Section \ref{sec:yaml-config} for more details about the token configuration.
+It is generally best to utilize a user HTTP access token for SCM connection
+configurations \texttt{api-auth}.  If a user HTTP access token is used, the user can be granted
+permissions for multiple projects; this will make the \cxoneflow configuration much easier. 
 
-Figure \ref{fig:bbdc-token-config} shows the project-level "HTTP Access tokens" configuration.  The required
-token permissions for \cxoneflow operations are:
+BitBucket Data Center can create project HTTP access tokens that are similar in use to
+a user HTTP access token.  A project HTTP access token is not tied to a specific user, but the
+access scope is limited to accessing repositories in the project where it was generated.
+If using project HTTP access tokens, one project HTTP access token is required for \cxoneflow
+to handle events emitted from repositories in each corresponding project. This also implies that
+the \cxoneflow configuration will require one SCM service configuration per project with an
+associated \texttt{repo-match} regular expression so the correct project token is used when
+orchestrating the scan.
+
+Please refer to Section \ref{sec:yaml-config} for more details about using the HTTP access token
+to configure the BitBucket Data Center connection.
+
+Figure \ref{fig:bbdc-token-config} shows the project "HTTP Access tokens" configuration.  The required
+token permissions for \cxoneflow operations for any HTTP access token are:
 
 \begin{itemize}
     \item Project read
@@ -127,17 +115,12 @@ token permissions for \cxoneflow operations are:
     \label{fig:bbdc-token-config}
 \end{figure}
 
-Project-level access tokens do not have an associated user account that would be tied to
-a user's access.  If using project-level access tokens, one project-level token is required per-project
-for which \cxoneflow is orchestrating scans.  This also implies that configuration will require one SCM service 
-configuration per project with an associated route match to use the correct project-level token.
 
-User-level access tokens are tied to a user account but are not subject to password
+User HTTP access tokens are tied to a user account but are not subject to password
 changes, 2FA authentication, and captcha challenges with interactive logins.  A token generated
-from a user as a service account can be granted the required permissions across all projects.
+from a user as a service account can be granted the required permissions across multiple projects.
 In this scenario, a single SCM service configuration would be able to handle events coming from
-repositories in all projects.
-
+repositories in multiple projects.
 
 \section{\cxoneflowtext\space SSH Keys}
 

@@ -1,0 +1,18 @@
+Azure DevOps Enterprise (on-premise) uses one or more \textbf{Collection} logical units to separate
+repositories into logical groups.  A \textbf{Collection} in Azure DevOps Enterprise 
+corresponds to a Azure DevOps Cloud \textbf{Organization} in that the \textbf{Organization} is a logical unit 
+that separates repositories into logical groups. Web hook deployments are not available at this scope.
+
+In each \textbf{Collection} or \textbf{Organization}, zero or more \textbf{Project} logical
+units establish the next level of repository organization.  Each \textbf{Project} will 
+have one or more \textbf{Repository} units that will contain code that should be scanned.  Webhooks
+can be deployed at this scope; each \textbf{Repository} in the configured \textbf{Project} logical unit
+will emit webhook events when Service Hooks have been configured in the \textbf{Project} to
+deliver webhook events to \cxoneflow.
+
+Configuration of Service Hooks at the \textbf{Project} scope is generally the preferred
+method of webhook deployment for Azure DevOps.
+
+Webhooks can be deployed at the scope of each \textbf{Repository} if desired.  The number of repositories
+in a large enterprise generally makes deployment at the \textbf{Repository} scope useful
+only for testing purposes.

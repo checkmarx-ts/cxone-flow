@@ -6,17 +6,9 @@ The GitHub integration supports self-hosted GitHub Enterprise or GitHub Cloud.  
 are virtually the same for each GitHub platform.  Minor differences may exist due to license or subscription
 limitations of your GitHub platform type.  
 
-The GitHub integration, as with other SCM integrations, uses web hooks to emit events to the \cxoneflow endpoint.
-GitHub has both organization-level and repository-level webhook configurations
-that can be used for simple integration scenarios.  \cxoneflow can also be configured as a GitHub Application
-for easier deployment and visibility of deployment.
+\section{Webhook Topology}
 
-Deployment as a GitHub Application is the recommended deployment method.  It offers a single location where
-\cxoneflow can be integrated into all organizations in a GitHub Enterprise instance or GitHub Cloud subscription.
-When the GitHub application is defined by a logged in user, the scope of deployment may be limited by the access rights
-the user has to each organization.  The \cxoneflow GitHub application runs with limited rights in each installed
-organization, but it may require a user with administrative access across all organizations for deployment.
-
+\input{scms/topology/gh.tex}
 
 \section{GitHub Application Configuration}
 
@@ -27,7 +19,7 @@ be created with an organization or a user as owner.  The configuration method is
 for each type of ownership.  Deploying with a user as application owner may be disruptive if the user
 account is deleted or suspended.
 
-Once the type of ownership is decided, the GitHub Application configuration page can be found in the following
+Once the type of application ownership is chosen, the GitHub Application configuration page can be found in the following
 locations:
 
 \begin{itemize}
@@ -198,7 +190,7 @@ an automated method of auditing when the GitHub App is no longer active for an o
 \section{Webhook Configuration}
 
 If it is not possible to use the GitHub App for \cxoneflow integration, webhook definitions can be configured at either the
-organization or repository level.  When using webhooks instead of a GitHub App, please be aware of the following:
+organization or repository scope.  When using webhooks instead of a GitHub App, please be aware of the following:
 
 \begin{itemize}
     \item A user token (PAT) with appropriate permissions to all repositories in the scope of install must be used for API access.
@@ -206,9 +198,9 @@ organization or repository level.  When using webhooks instead of a GitHub App, 
     all repositories in scope.
     \item The webhook integration settings must be performed multiple times:
     \begin{itemize}
-        \item Configuring it at the organization level will apply for all repositories in the organization; the configuration must be repeated for
+        \item Configuring it at the organization scope will apply for all repositories in the organization; the configuration must be repeated for
         every organization.
-        \item Configuring at the repository level will apply only for that repository; the configuration must be repeated for every
+        \item Configuring at the repository scope will apply only for that repository; the configuration must be repeated for every
         repository.
     \end{itemize}
 \end{itemize}
@@ -293,11 +285,11 @@ configuration:
 \section{Protected Branches}
 
 GitHub allows a default branch to be defined for each repository.  A default branch name is defined at the organization
-level and is initially inherited by each repository in the organization.  The default branch may be changed in the repository
+scope and is initially inherited by each repository in the organization.  The default branch may be changed in the repository
 to any branch defined in the repository. If there are no branch protection rules for the repository generating a webhook event, 
 the default branch for the repository is assumed to be a protected branch.
 
-Branch protection rules can be defined at both the organization and repository levels.  If there are any branches
+Branch protection rules can be defined at both the organization and repository scopes.  If there are any branches
 defined as protected via the branch protection rules, those branches are considered protected branches.  When branch protection
 rules define protected branches, the repository default branch is not considered as a protected branch unless it is also included
 as a protected branch in the branch protection rules.

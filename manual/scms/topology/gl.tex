@@ -1,0 +1,19 @@
+Each Gitlab self-hosted instance has a system-wide Service Hook configuration where webhook
+configurations for \cxoneflow can be deployed.  When webhooks are deployed at this scope, 
+all repositories regardless of location in the Gitlab topology will send webhook events to \cxoneflowns.
+The Service Hook capability is available for any Gitlab subscription level.
+
+Configuration of webhooks using the system-wide scope is generally the preferred
+method of webhook deployment for Gitlab.  This is only available for Gitlab self-hosted instances.
+
+All variations of Gitlab have zero or more \textbf{Group} and/or \textbf{Repository} logical units
+at the root of the organizational topology.  Each \textbf{Group} logical unit can also hold zero or more
+\textbf{Group} and/or \textbf{Repository} units.  Webhook configuration at the \textbf{Group}
+scope in groups closest to the root of the topology are generally the preferred
+method of webhook deployment for Gitlab.  Deployment of webhook configurations at lower
+group scopes should be avoided.
+
+Webhooks can be deployed at the scope of each \textbf{Repository} if desired.  The number of repositories
+in a large enterprise generally makes deployment at the \textbf{Repository} scope useful
+only for testing purposes.
+

@@ -77,7 +77,8 @@ other factors to consider can include:
 
 This section is intended to provide a brief overview of the supported SCM repository organization topologies.
 This overview is not comprehensive; a deeper look into your organization's SCMs may be required
-to understand the full scope of deployment work.
+to understand the full scope of deployment work. Part \ref{part:scms} of this manual covers the
+details for integrating \cxoneflow with each supported SCM type.
 
 The tool \extlink{https://github.com/checkmarx-ts/cxone-flow-audit}{cxone-flow-audit} has been
 developed to assist in automating and auditing large scale deployments in some scenarios.  As
@@ -85,77 +86,19 @@ of the writing of this manual, the capabilities are limited to Azure DevOps.  As
 more deployment assistance capabilities will be added.
 
 
-\subsection{BitBucket Data Center Topology}
+\subsection{BitBucket Data Center Webhook Topology}
 
-BitBucket Data Center uses one or more \textbf{Project} logical unit to separate repositories
-into logical groups.  Webhooks can be deployed at the \textbf{Project} scope; any changes
-to a repository contained in a configured \textbf{Project} will emit webhook events.
+\input{scms/topology/bbdc.tex}
 
-Configuration of webhooks at the \textbf{Project} scope is generally the preferred
-method of webhook deployment for BitBucket Data Center.
+\subsection{Azure DevOps Webhook Topology}
 
-Webhooks can be deployed at the scope of each \textbf{Repository} if desired.  The number of repositories
-in a large enterprise generally makes deployment at the \textbf{Repository} scope useful
-only for testing purposes.
+\input{scms/topology/adoe.tex}
 
-\subsection{Azure DevOps Topology}
+\subsection{GitHub Webhook Topology}
 
-Azure DevOps Enterprise (on-premise) uses one or more \textbf{Collection} logical units to separate
-repositories into logical groups.  A \textbf{Collection} in Azure DevOps Enterprise 
-corresponds to a Azure DevOps Cloud \textbf{Organization} in that the \textbf{Organization} is a logical unit 
-that separates repositories into logical groups. Web hook deployments are not available at this scope.
+\input{scms/topology/gh.tex}
 
-In each \textbf{Collection} or \textbf{Organization}, zero or more \textbf{Project} logical
-units establish the next level of repository organization.  Each \textbf{Project} will 
-have one or more \textbf{Repository} units that will contain code that should be scanned.  Webhooks
-can be deployed at this scope; each \textbf{Repository} in the configured \textbf{Project} logical unit
-will emit webhook events when Service Hooks have been configured in the \textbf{Project} to
-deliver webhook events to \cxoneflow.
+\subsection{Gitlab Webhook Topology}
 
-Configuration of Service Hooks at the \textbf{Project} scope is generally the preferred
-method of webhook deployment for Azure DevOps.
+\input{scms/topology/gl.tex}
 
-Webhooks can be deployed at the scope of each \textbf{Repository} if desired.  The number of repositories
-in a large enterprise generally makes deployment at the \textbf{Repository} scope useful
-only for testing purposes.
-
-\subsection{GitHub Topology}
-
-GitHub uses one or more \textbf{Organization} logical units to separate zero or more
-repositories into logical groupings. Each GitHub user is also a limited variation of an
-\textbf{Organization} in that a user account is also a logical unit that can have
-associated repositories.  Webhook configurations can be deployed at this scope.
-When webhooks are deployed at the \textbf{Organization} scope, events
-will be emitted for all repositories within the \textbf{Organization} logical unit.
-
-Configuration of webhooks at the \textbf{Organization} scope is generally the preferred
-method of webhook deployment for GitHub.
-
-A \textbf{GitHub App} can be created that functions as a webhook deployment template.
-The \textbf{GitHub App} can be deployed at the \textbf{Organization} scope using the
-GitHub user interface.  This is the preferred method of defining and executing the webhook deployment.
-
-Webhooks can be deployed at the scope of each \textbf{Repository} if desired.  The number of repositories
-in a large enterprise generally makes deployment at the \textbf{Repository} scope useful
-only for testing purposes.  
-
-\subsection{Gitlab Topology}
-
-Each Gitlab on-premise, self-hosted instance has a system-wide Service Hook configuration where webhook
-configurations for \cxoneflow can be deployed.  When webhooks are deployed at this scope, 
-all repositories regardless of location in the Gitlab topology will send webhook events to \cxoneflowns. 
-
-Configuration of webhooks using the system-wide scope is generally the preferred
-method of webhook deployment for Gitlab.  This is only available for Gitlab on-premise,
-self-hosted instances.
-
-All variations of Gitlab have zero or more \textbf{Group} and/or \textbf{Repository} logical units
-at the root of the topology.  Each \textbf{Group} logical unit can also hold zero or more
-\textbf{Group} and/or \textbf{Repository} units.  Webhook configuration at the \textbf{Group}
-scope in groups closest to the root of the topology are generally the preferred
-method of webhook deployment for Gitlab.  Deployment of webhook configurations at lower
-group scopes should be avoided.
-
-Webhooks can be deployed at the scope of each \textbf{Repository} if desired.  The number of repositories
-in a large enterprise generally makes deployment at the \textbf{Repository} scope useful
-only for testing purposes.
