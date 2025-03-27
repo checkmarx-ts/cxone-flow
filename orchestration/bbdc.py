@@ -1,4 +1,5 @@
 from .base import OrchestratorBase
+from .naming.bbdc import BitbucketProjectNaming
 from api_utils.auth_factories import EventContext
 from api_utils import signature
 from jsonpath_ng import parse
@@ -190,9 +191,8 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
         
         return json['displayId'] if "displayId" in json.keys() else ""
 
-
     async def get_cxone_project_name(self) -> str:
-        return f"{self._repo_project_key}/{self.__repo_project_name}/{self._repo_name}"
+        return BitbucketProjectNaming.create_project_name({self._repo_project_key}, {self.__repo_project_name}, {self._repo_name})
 
     @property
     def _pr_state(self) -> str:

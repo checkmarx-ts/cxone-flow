@@ -4,6 +4,7 @@ from cxone_service import CxOneService
 from scm_services import SCMService
 from workflows.pr_feedback_service import PRFeedbackService
 from workflows.resolver_scan_service import ResolverScanService
+from kickoff_services import KickoffService
 
 @dataclass(frozen=True)
 class CxOneFlowServices:
@@ -12,5 +13,6 @@ class CxOneFlowServices:
     scm : SCMService
     pr : PRFeedbackService
     resolver : ResolverScanService
+    kickoff : KickoffService
 
 

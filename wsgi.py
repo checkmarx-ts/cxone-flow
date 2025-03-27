@@ -7,17 +7,20 @@ that is compatible with other methods of deployment.
 from _agent import __agent__
 from flask import Flask, request, Response, send_from_directory
 from orchestration import OrchestrationDispatch
+from orchestration.kickoff import KickoffOrchestrator
+from orchestration.kickoff.bbdc import BitBucketDataCenterKickoffOrchestrator
 from orchestration.bbdc import  BitBucketDataCenterOrchestrator
 from orchestration.adoe import AzureDevOpsEnterpriseOrchestrator
 from orchestration.gh import GithubOrchestrator
 from orchestration.gl import GitlabOrchestrator
 import json, logging, os
-from config import ConfigurationException, get_config_path
+from config import ConfigurationException, RouteNotFoundException, get_config_path
 from config.server import CxOneFlowConfig
-from time import perf_counter_ns
 from task_management import TaskManager
 import cxoneflow_logging as cof_logging
 from api_utils.auth_factories import EventContext, HeaderFilteredEventContext
+import cxoneflow_kickoff_api as ko
+from typing import Dict, Union
 
 cof_logging.bootstrap()
 
@@ -32,7 +35,6 @@ except ConfigurationException as ce:
     raise
 
 TaskManager.bootstrap()
-
 
 app = Flask(__app_name__)
 
@@ -54,6 +56,36 @@ async def bbdc_webhook_endpoint():
         __log.exception(ex)
         return Response(status=400)
 
+@app.post("/bbdc/kickoff")
+async def bbdc_kickoff_endpoint():
+    msg = None
+    code = 400
+
+    try:
+        ec = EventContext(request.get_data(), dict(request.headers))
+        orch = BitBucketDataCenterKickoffOrchestrator(ko.BitbucketKickoffMsg(**(ec.message)), ec)
+
+        if await OrchestrationDispatch.execute_kickoff(orch):
+            code = 201
+            msg = ko.KickoffResponseMsg(running_scans=orch.running_scans, started_scan=orch.started_scan)
+        else:
+            code = 400
+            msg = None
+    except KickoffOrchestrator.KickoffScanExistsException:
+        code = 299
+        msg = ko.KickoffResponseMsg(running_scans=orch.running_scans)
+    except KickoffOrchestrator.TooManyRunningScansExeception:
+        code = 429
+        msg = ko.KickoffResponseMsg(running_scans=orch.running_scans)
+    except RouteNotFoundException:
+        code = 403
+        msg = None
+    except OrchestrationDispatch.NotAuthorizedException:
+        code = 401
+        msg = None
+
+    return Response(msg.to_json() if msg is not None else None, status=code, content_type="application/json")
+
 @app.post("/gh")
 async def github_webhook_endpoint():
     __log.info("Received hook for Github")
@@ -74,7 +106,12 @@ async def github_webhook_endpoint():
     except Exception as ex:
         __log.exception(ex)
         return Response(status=400)
-  
+
+@app.post("/gh/kickoff")
+async def github_kickoff_endpoint():
+    return Response(status=200)
+
+
 @app.post("/adoe")
 async def adoe_webhook_endpoint():
     __log.info("Received hook for Azure DevOps Enterprise")

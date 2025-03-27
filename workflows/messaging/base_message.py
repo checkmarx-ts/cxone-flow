@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict, make_dataclass, field
+from dataclasses import dataclass, asdict, make_dataclass
 from dataclasses_json import dataclass_json
 from datetime import datetime, UTC
 import uuid
