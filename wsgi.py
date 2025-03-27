@@ -36,35 +36,11 @@ except ConfigurationException as ce:
 
 TaskManager.bootstrap()
 
-app = Flask(__app_name__)
-
-@app.route("/ping", methods=['GET', 'POST'])
-async def ping():
-    if request.method != "GET" and "ENABLE_DUMP" in os.environ.keys():
-        content = json.dumps(request.json) if request.content_type == "application/json" else request.data
-        __log.debug(f"ping webhook: headers: [{request.headers}] body: [{content}]")
-    return Response("pong", status=200)
-
-@app.post("/bbdc")
-async def bbdc_webhook_endpoint():
-    __log.info("Received hook for BitBucket Data Center")
-    __log.debug(f"bbdc webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
-    try:
-        TaskManager.in_background(OrchestrationDispatch.execute(BitBucketDataCenterOrchestrator(EventContext(request.get_data(), dict(request.headers)))))
-        return Response(status=204)
-    except Exception as ex:
-        __log.exception(ex)
-        return Response(status=400)
-
-@app.post("/bbdc/kickoff")
-async def bbdc_kickoff_endpoint():
+async def __kickoff_impl(orch : KickoffOrchestrator):
     msg = None
     code = 400
 
     try:
-        ec = EventContext(request.get_data(), dict(request.headers))
-        orch = BitBucketDataCenterKickoffOrchestrator(ko.BitbucketKickoffMsg(**(ec.message)), ec)
-
         if await OrchestrationDispatch.execute_kickoff(orch):
             code = 201
             msg = ko.KickoffResponseMsg(running_scans=orch.running_scans, started_scan=orch.started_scan)
@@ -85,6 +61,33 @@ async def bbdc_kickoff_endpoint():
         msg = None
 
     return Response(msg.to_json() if msg is not None else None, status=code, content_type="application/json")
+
+
+app = Flask(__app_name__)
+
+@app.route("/ping", methods=['GET', 'POST'])
+async def ping():
+    if request.method != "GET" and "ENABLE_DUMP" in os.environ.keys():
+        content = json.dumps(request.json) if request.content_type == "application/json" else request.data
+        __log.debug(f"ping webhook: headers: [{request.headers}] body: [{content}]")
+    return Response("pong", status=200)
+
+@app.post("/bbdc")
+async def bbdc_webhook_endpoint():
+    __log.info("Received hook for BitBucket Data Center")
+    __log.debug(f"bbdc webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
+    try:
+        TaskManager.in_background(OrchestrationDispatch.execute(BitBucketDataCenterOrchestrator(EventContext(request.get_data(), dict(request.headers)))))
+        return Response(status=204)
+    except Exception as ex:
+        __log.exception(ex)
+        return Response(status=400)
+    
+
+@app.post("/bbdc/kickoff")
+async def bbdc_kickoff_endpoint():
+    ec = EventContext(request.get_data(), dict(request.headers))
+    return await __kickoff_impl(BitBucketDataCenterKickoffOrchestrator(ko.BitbucketKickoffMsg(**(ec.message)), ec))
 
 @app.post("/gh")
 async def github_webhook_endpoint():
@@ -109,7 +112,8 @@ async def github_webhook_endpoint():
 
 @app.post("/gh/kickoff")
 async def github_kickoff_endpoint():
-    return Response(status=200)
+    ec = EventContext(request.get_data(), dict(request.headers))
+    return await __kickoff_impl(BitBucketDataCenterKickoffOrchestrator(ko.GithubKickoffMsg(**(ec.message)), ec))
 
 
 @app.post("/adoe")

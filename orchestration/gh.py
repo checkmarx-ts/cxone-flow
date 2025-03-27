@@ -10,6 +10,7 @@ from cxone_api.high.scans import ScanInspector
 from services import CxOneFlowServices
 from typing import List, Dict
 from workflows.utils import AdditionalScanContentWriter
+from .naming.gh import GithubProjectNaming
 
 class GithubOrchestrator(OrchestratorBase):
 
@@ -327,8 +328,7 @@ class GithubOrchestrator(OrchestratorBase):
         return self.__clone_urls[cloner.select_protocol_from_supported(self.__clone_urls.keys())]
 
     async def get_cxone_project_name(self) -> str:
-        return f"{self._repo_organization}/{self._repo_slug}"
-
+        return GithubProjectNaming.create_project_name(self._repo_organization, self._repo_slug)
 
     __workflow_map = {
         "installation:deleted" : __log_app_install,

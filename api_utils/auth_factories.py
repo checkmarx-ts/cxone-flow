@@ -62,6 +62,8 @@ class GithubAppAuthFactory(AuthFactory):
     __event_installation_id = parse("$.installation.id")
     __app_id_header = "X-Github-Hook-Installation-Target-Id"
 
+    __kickoff_installation_id = parse("$.install_id")
+    __kickoff_app_id = parse("$.app_id")
 
     def __init__(self, private_key : str, api_url : str):
         self.__pkey = private_key
@@ -77,17 +79,28 @@ class GithubAppAuthFactory(AuthFactory):
 
         return jwt.encode(payload, self.__pkey, algorithm='RS256')
     
-    async def __get_token_tuple(self, event_context : EventContext=None, force_reauth : bool=False):
-
+    def __find_install_id(self, event_context : EventContext):
         install_id_found = GithubAppAuthFactory.__event_installation_id.find(event_context.message)
         if len(install_id_found) == 0:
-            raise AuthFactoryException("GitHub installation id was not found in the event payload.")
-        install_id = install_id_found[0].value
+            install_id_found = GithubAppAuthFactory.__kickoff_installation_id.find(event_context.message)
+            if len(install_id_found) == 0:
+                raise AuthFactoryException("GitHub installation id was not found in the event payload.")
+        return install_id_found[0].value
 
+    def __find_app_id(self, event_context : EventContext):
         if GithubAppAuthFactory.__app_id_header in event_context.headers.keys():
-            app_id = event_context.headers[GithubAppAuthFactory.__app_id_header]
+            return event_context.headers[GithubAppAuthFactory.__app_id_header]
         else:
-            raise AuthFactoryException(f"Header {GithubAppAuthFactory.__app_id_header} not found in event context.")
+            app_id_found = GithubAppAuthFactory.__kickoff_app_id.find(event_context.message)
+            if len(app_id_found) > 0:
+                return app_id_found[0].value
+            
+        raise AuthFactoryException(f"GitHub AppId could not be determined from event header {GithubAppAuthFactory.__app_id_header} or in message body.")
+    
+    async def __get_token_tuple(self, event_context : EventContext=None, force_reauth : bool=False):
+
+        install_id = self.__find_install_id(event_context)
+        app_id = self.__find_app_id(event_context)
 
         token_tuple = None
         
