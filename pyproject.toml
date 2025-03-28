@@ -7,7 +7,8 @@ name = "cxoneflow_kickoff_api"
 dynamic = ["version"]
 dependencies = [
     "requests==2.32.3",
-    "PyJWT==2.10.1"
+    "PyJWT==2.10.1",
+    "dataclasses-json==0.6.7"
 ]
 description = "CxOneFlow Kickoff API"
 requires-python = ">=3.9"
