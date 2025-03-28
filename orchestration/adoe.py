@@ -1,4 +1,5 @@
 from .base import OrchestratorBase
+from .naming.adoe import AzureDevOpsProjectNaming
 import base64, urllib, urllib.parse
 from jsonpath_ng import parse
 from cxone_api.util import CloneUrlParser
@@ -133,7 +134,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
     async def get_cxone_project_name(self) -> str:
         p = CloneUrlParser("azure", self.__remote_url)
-        return f"{p.org}/{self._repo_project_key}/{self._repo_name}"
+        return AzureDevOpsProjectNaming.create_project_name(p.org, self._repo_project_key, self._repo_name)
 
     async def __is_pr_draft(self) -> bool:
         return bool(AzureDevOpsEnterpriseOrchestrator.__pr_draft_query.find(self.event_context.message)[0].value)

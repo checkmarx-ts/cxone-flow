@@ -7,13 +7,17 @@ that is compatible with other methods of deployment.
 from _agent import __agent__
 from flask import Flask, request, Response, send_from_directory
 from orchestration import OrchestrationDispatch
+
 from orchestration.kickoff import KickoffOrchestrator
 from orchestration.kickoff.bbdc import BitBucketDataCenterKickoffOrchestrator
 from orchestration.kickoff.gh import GithubKickoffOrchestrator
+from orchestration.kickoff.adoe import AzureDevOpsKickoffOrchestrator
+
 from orchestration.bbdc import  BitBucketDataCenterOrchestrator
 from orchestration.adoe import AzureDevOpsEnterpriseOrchestrator
 from orchestration.gh import GithubOrchestrator
 from orchestration.gl import GitlabOrchestrator
+
 import json, logging, os
 from config import ConfigurationException, RouteNotFoundException, get_config_path
 from config.server import CxOneFlowConfig
@@ -137,6 +141,13 @@ async def adoe_webhook_endpoint():
     except Exception as ex:
         __log.exception(ex)
         return Response(status=400)
+
+
+@app.post("/adoe/kickoff")
+async def adoe_kickoff_endpoint():
+    ec = EventContext(request.get_data(), dict(request.headers))
+    return await __kickoff_impl(AzureDevOpsKickoffOrchestrator(ko.AdoKickoffMsg(**(ec.message)), ec))
+
 
 @app.post("/gl")
 async def gitlab_webhook_endpoint():
