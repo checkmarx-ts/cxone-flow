@@ -1,8 +1,6 @@
 from . import KickoffOrchestrator
 from cxoneflow_kickoff_api import AdoKickoffMsg
 from orchestration.naming.adoe import AzureDevOpsProjectNaming
-from scm_services import SCMService
-from scm_services.cloner import CloneWorker
 
 class AzureDevOpsKickoffOrchestrator(KickoffOrchestrator):
 

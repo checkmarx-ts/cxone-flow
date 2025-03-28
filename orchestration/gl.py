@@ -1,4 +1,5 @@
 from .base import OrchestratorBase
+from .naming.gl import GitlabProjectNaming
 from api_utils.auth_factories import EventContext
 from jsonpath_ng import parse
 from services import CxOneFlowServices
@@ -181,7 +182,7 @@ class GitlabOrchestrator(OrchestratorBase):
         return self.__protected_branches
         
     async def get_cxone_project_name(self) -> str:
-        return self._repo_project_key
+        return GitlabProjectNaming.create_project_name(self._repo_project_key)
 
     async def __is_pr_draft(self) -> bool:
         return bool(GitlabOrchestrator.__pr_draft_query.find(self.event_context.message).pop().value)

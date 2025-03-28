@@ -12,6 +12,7 @@ from orchestration.kickoff import KickoffOrchestrator
 from orchestration.kickoff.bbdc import BitBucketDataCenterKickoffOrchestrator
 from orchestration.kickoff.gh import GithubKickoffOrchestrator
 from orchestration.kickoff.adoe import AzureDevOpsKickoffOrchestrator
+from orchestration.kickoff.gl import GitlabKickoffOrchestrator
 
 from orchestration.bbdc import  BitBucketDataCenterOrchestrator
 from orchestration.adoe import AzureDevOpsEnterpriseOrchestrator
@@ -25,7 +26,6 @@ from task_management import TaskManager
 import cxoneflow_logging as cof_logging
 from api_utils.auth_factories import EventContext, HeaderFilteredEventContext
 import cxoneflow_kickoff_api as ko
-from typing import Dict, Union
 
 cof_logging.bootstrap()
 
@@ -167,6 +167,11 @@ async def gitlab_webhook_endpoint():
     except Exception as ex:
         __log.exception(ex)
         return Response(status=400)
+
+@app.post("/gl/kickoff")
+async def gitlab_kickoff_endpoint():
+    ec = EventContext(request.get_data(), dict(request.headers))
+    return await __kickoff_impl(GitlabKickoffOrchestrator(ko.GitlabKickoffMsg(**(ec.message)), ec))
 
 
 @app.get("/artifacts/<path:path>" )
