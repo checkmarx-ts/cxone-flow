@@ -9,6 +9,7 @@ from flask import Flask, request, Response, send_from_directory
 from orchestration import OrchestrationDispatch
 from orchestration.kickoff import KickoffOrchestrator
 from orchestration.kickoff.bbdc import BitBucketDataCenterKickoffOrchestrator
+from orchestration.kickoff.gh import GithubKickoffOrchestrator
 from orchestration.bbdc import  BitBucketDataCenterOrchestrator
 from orchestration.adoe import AzureDevOpsEnterpriseOrchestrator
 from orchestration.gh import GithubOrchestrator
@@ -113,7 +114,7 @@ async def github_webhook_endpoint():
 @app.post("/gh/kickoff")
 async def github_kickoff_endpoint():
     ec = EventContext(request.get_data(), dict(request.headers))
-    return await __kickoff_impl(BitBucketDataCenterKickoffOrchestrator(ko.GithubKickoffMsg(**(ec.message)), ec))
+    return await __kickoff_impl(GithubKickoffOrchestrator(ko.GithubKickoffMsg(**(ec.message)), ec))
 
 
 @app.post("/adoe")
