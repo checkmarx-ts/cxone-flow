@@ -48,6 +48,29 @@ jobs:
           [ ${{ inputs.prerelease }} = false ] && docker tag $DOCKER_REPO:$BRIEFTAG $DOCKER_REPO:latest || :
           docker push --all-tags $DOCKER_REPO
   
+  build-kickoff-whl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Code
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        with:
+          ref: ${{ inputs.tag }}
+
+      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
+        with:
+          python-version: "3.12"
+
+      - name: Build package
+        run: |
+          echo "__version__='${{ inputs.tag }}'" > cxoneflow_kickoff_api/__version__.py
+          pip3 install build
+          python3 -m build
+
+      - name: Upload whl
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
+        with:
+          name: whl-${GITHUB_RUN_NUMBER}
+          path: dist/*.whl
 
   compile-manual:
     runs-on: ubuntu-latest
@@ -109,6 +132,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [publish-container,compile-manual,resolver-agent-deb-amd64]
     steps:
+      - name: Download whl
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: whl-${GITHUB_RUN_NUMBER}
+
       - name: Make release text
         run: |
           echo "# CxOneFlow ${{ inputs.tag }}" > release.md
@@ -119,6 +147,30 @@ jobs:
           echo '```' >> release.md
           echo The CxOneFlow Resolver Agent is an optional component for running SCA Resolver prior to a scan.  It >> release.md
           echo can be downloaded as an installer package appropriate for supported operating systems. >> release.md
+
+          echo "" >> release.md
+          echo "" >> release.md
+          echo "# CxOneFlow Kickoff API Client" >> release.md
+          echo 'Installation can be performed by adding one of the following lines to your `requirements.txt` file:' >> release.md
+
+          WHEEL_NAME=$(basename $(ls *.whl))
+          WHEEL_HASH=$(pip3 hash $WHEEL_NAME | grep "^--")
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/download/${{ inputs.tag }}/$WHEEL_NAME"
+
+          echo '```' >> release.md
+          echo $RELEASE_URL >> release.md
+          echo '```' >> release.md
+
+          echo '```' >> release.md
+          echo "git+https://github.com/${{ github.repository }}.git@${{ inputs.tag }}" >> release.md
+          echo '```' >> release.md
+
+          echo "## Hashes" >> release.md
+          echo "### $WHEEL_NAME" >> release.md
+          echo '```' >> release.md
+          echo "$WHEEL_HASH" >> release.md
+          echo '```' >> release.md
+
 
       - name: Download manual
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -146,7 +198,7 @@ jobs:
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: ./*.pdf, ./*.deb
+          artifacts: ./*.pdf, ./*.deb, ./*.whl
           bodyFile: release.md
           name: ${{ inputs.tag }}
           prerelease: ${{ inputs.prerelease }}
@@ -163,4 +215,5 @@ jobs:
             release-notes-${GITHUB_RUN_NUMBER}
             manual-${GITHUB_RUN_NUMBER}
             deb-amd64-${GITHUB_RUN_NUMBER}
+            whl-${GITHUB_RUN_NUMBER}
         

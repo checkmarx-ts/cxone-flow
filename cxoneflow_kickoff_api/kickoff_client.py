@@ -131,7 +131,7 @@ class KickoffClient:
                 resp_msg = None
 
             if resp.status_code == 201:
-                self.log().debug(f"Scan started: {resp_msg.to_json()}")
+                self.log().debug(f"Scan started: {resp_msg.to_json()}") # pylint: disable=E1101
                 return True, resp_msg
             elif resp.status_code == 299:
                 self.log().debug(f"The server indicated a kickoff scan is already running or has finished for {msg}")

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cxoneflow_kickoff_api"
+dynamic = ["version"]
+dependencies = [
+    "requests==2.32.3",
+    "PyJWT==2.10.1"
+]
+description = "CxOneFlow Kickoff API"
+requires-python = ">=3.9"
+
+[tool.setuptools]
+package-dir = {"cxoneflow_kickoff_api" = "cxoneflow_kickoff_api"}
+
+[tool.setuptools.dynamic]
+version = { attr = "cxoneflow_kickoff_api.__version__.__version__" }
