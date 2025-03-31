@@ -24,6 +24,7 @@ env:
 jobs:
   publish-container:
     runs-on: ubuntu-latest
+    needs: [compile-manual,resolver-agent-deb-amd64,build-kickoff-whl]
     steps:
       - name: Set up Docker Buildx
         id: buildx
@@ -73,7 +74,7 @@ jobs:
       - name: Upload whl
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
-          name: whl-${GITHUB_RUN_NUMBER}
+          name: whl-${{ env.GITHUB_RUN_NUMBER }}
           path: dist/*.whl
 
   compile-manual:
@@ -96,7 +97,7 @@ jobs:
       - name: Upload manual
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
-          name: manual-${GITHUB_RUN_NUMBER}
+          name: manual-${{ env.GITHUB_RUN_NUMBER }}
           path: manual/cxone-flow.pdf
   
       - name: Build PDF Release Notes
@@ -108,7 +109,7 @@ jobs:
       - name: Upload release notes
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
-          name: release-notes-${GITHUB_RUN_NUMBER}
+          name: release-notes-${{ env.GITHUB_RUN_NUMBER }}
           path: release_notes/release_notes.pdf
 
   resolver-agent-deb-amd64:
@@ -134,12 +135,12 @@ jobs:
 
   publish-release:
     runs-on: ubuntu-latest
-    needs: [publish-container,compile-manual,resolver-agent-deb-amd64, build-kickoff-whl]
+    needs: [publish-container,compile-manual,resolver-agent-deb-amd64,build-kickoff-whl]
     steps:
       - name: Download whl
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: whl-${GITHUB_RUN_NUMBER}
+          name: whl-${{ env.GITHUB_RUN_NUMBER }}
 
       - name: Make release text
         run: |
@@ -175,12 +176,12 @@ jobs:
       - name: Download manual
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: manual-${GITHUB_RUN_NUMBER}
+          name: manual-${{ env.GITHUB_RUN_NUMBER }}
 
       - name: Download release notes
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: release-notes-${GITHUB_RUN_NUMBER}
+          name: release-notes-${{ env.GITHUB_RUN_NUMBER }}
 
       - name: Rename documentation artifacts
         run: |
@@ -190,7 +191,7 @@ jobs:
       - name: Download deb-amd64
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: deb-amd64-${GITHUB_RUN_NUMBER}
+          name: deb-amd64-${{ env.GITHUB_RUN_NUMBER }}
 
       - name: Create GitHub Release
         id: create_release
@@ -211,9 +212,10 @@ jobs:
     steps:
       - uses: geekyeggo/delete-artifact@9d15d164b1dcd538ff1b1a2984bc2c0240986c3b
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           name: |
-            release-notes-${GITHUB_RUN_NUMBER}
-            manual-${GITHUB_RUN_NUMBER}
-            deb-amd64-${GITHUB_RUN_NUMBER}
-            whl-${GITHUB_RUN_NUMBER}
+            release-notes-${{ env.GITHUB_RUN_NUMBER }}
+            manual-${{ env.GITHUB_RUN_NUMBER }}
+            deb-amd64-${{ env.GITHUB_RUN_NUMBER }}
+            whl-${{ env.GITHUB_RUN_NUMBER }}
         
