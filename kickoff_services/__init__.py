@@ -3,7 +3,7 @@ from cxoneflow_kickoff_api.signature_alg import get_signature_alg
 from cxoneflow_kickoff_api import ExecutingScan
 from cxone_api import CxOneClient
 from cxone_api.low.scans import retrieve_list_of_scans
-from cxone_api.util import page_generator
+from cxone_api.util import page_generator, json_on_ok
 from typing import List
 import time, jwt, logging
 
@@ -57,6 +57,13 @@ class KickoffService:
 
     return True
   
+  async def one_scan_exists_on_branch(self, project_name : str, branch : str) -> bool:
+
+    result = json_on_ok(await retrieve_list_of_scans(self.__client, branch=branch, project_names=project_name, limit=1, 
+                                          statuses=["Running", "Queued","Completed"]))
+    
+    return "scans" in result.keys() and len(result['scans']) > 0
+
   async def get_completed_ko_scans_by_project(self, project_name : str) -> List[ExecutingScan]:
     scans = []
 

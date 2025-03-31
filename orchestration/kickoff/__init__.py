@@ -81,18 +81,22 @@ class KickoffOrchestrator(OrchestratorBase):
 
     self.__executing_scans = await services.kickoff.get_running_ko_scans()
 
+    target_branch, _ = await self._get_target_branch_and_hash()
+    project_name = await self.get_cxone_project_name()
+
+    if await services.kickoff.one_scan_exists_on_branch(project_name, target_branch):
+       raise KickoffOrchestrator.KickoffScanExistsException()
+
     if len(self.running_scans) >= services.kickoff.max_concurrent_scans:
        raise KickoffOrchestrator.TooManyRunningScansExeception()
 
-    completed = await services.kickoff.get_completed_ko_scans_by_project(await self.get_cxone_project_name())
+    completed = await services.kickoff.get_completed_ko_scans_by_project(project_name)
     if len(completed) >= 1:
        raise KickoffOrchestrator.KickoffScanExistsException()
 
     inspector, action = await self._execute_push_scan_workflow(services, scan_tags = services.kickoff.scan_tag_dict)
 
-    target_branch, _ = await self._get_target_branch_and_hash()
-
-    self.__started_scan = ko.ExecutingScan(await self.get_cxone_project_name(), inspector.project_id, inspector.scan_id, target_branch)
+    self.__started_scan = ko.ExecutingScan(project_name, inspector.project_id, inspector.scan_id, target_branch)
 
     return action == OrchestratorBase.ScanAction.EXECUTING
 
