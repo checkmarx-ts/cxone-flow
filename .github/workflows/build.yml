@@ -74,7 +74,7 @@ jobs:
       - name: Upload whl
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
-          name: whl-${{ env.GITHUB_RUN_NUMBER }}
+          name: whl-${{ github.run_number }}
           path: dist/*.whl
 
   compile-manual:
@@ -97,7 +97,7 @@ jobs:
       - name: Upload manual
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
-          name: manual-${{ env.GITHUB_RUN_NUMBER }}
+          name: manual-${{ github.run_number }}
           path: manual/cxone-flow.pdf
   
       - name: Build PDF Release Notes
@@ -109,7 +109,7 @@ jobs:
       - name: Upload release notes
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
-          name: release-notes-${{ env.GITHUB_RUN_NUMBER }}
+          name: release-notes-${{ github.run_number }}
           path: release_notes/release_notes.pdf
 
   resolver-agent-deb-amd64:
@@ -130,7 +130,7 @@ jobs:
       - name: Upload deb amd64 package
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
-          name: deb-amd64-${GITHUB_RUN_NUMBER}
+          name: deb-amd64-${{ github.run_number }}
           path: agent_packages/resolver/debian/*.deb
 
   publish-release:
@@ -140,7 +140,7 @@ jobs:
       - name: Download whl
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: whl-${{ env.GITHUB_RUN_NUMBER }}
+          name: whl-${{ github.run_number }}
 
       - name: Make release text
         run: |
@@ -176,12 +176,12 @@ jobs:
       - name: Download manual
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: manual-${{ env.GITHUB_RUN_NUMBER }}
+          name: manual-${{ github.run_number }}
 
       - name: Download release notes
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: release-notes-${{ env.GITHUB_RUN_NUMBER }}
+          name: release-notes-${{ github.run_number }}
 
       - name: Rename documentation artifacts
         run: |
@@ -191,7 +191,7 @@ jobs:
       - name: Download deb-amd64
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: deb-amd64-${{ env.GITHUB_RUN_NUMBER }}
+          name: deb-amd64-${{ github.run_number }}
 
       - name: Create GitHub Release
         id: create_release
@@ -214,8 +214,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: |
-            release-notes-${{ env.GITHUB_RUN_NUMBER }}
-            manual-${{ env.GITHUB_RUN_NUMBER }}
-            deb-amd64-${{ env.GITHUB_RUN_NUMBER }}
-            whl-${{ env.GITHUB_RUN_NUMBER }}
+            release-notes-${{ github.run_number }}
+            manual-${{ github.run_number }}
+            deb-amd64-${{ github.run_number }}
+            whl-${{ github.run_number }}
         

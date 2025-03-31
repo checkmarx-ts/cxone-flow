@@ -21,10 +21,10 @@ jobs:
       - name: Create tag
         run: |
           [ ${{ inputs.prerelease }} = false ] && echo "tag=${{ inputs.version }}" >> $GITHUB_OUTPUT || \
-            echo "tag=${{ inputs.version }}-$GITHUB_RUN_NUMBER-prerelease" >> $GITHUB_OUTPUT
+            echo "tag=${{ inputs.version }}-${{ github.run_number }}-prerelease" >> $GITHUB_OUTPUT
 
             [ ${{ inputs.prerelease }} = false ] && echo "whl_tag=${{ inputs.version }}" >> $GITHUB_OUTPUT || \
-            echo "whl_tag=${{ inputs.version }}rc$GITHUB_RUN_NUMBER" >> $GITHUB_OUTPUT
+            echo "whl_tag=${{ inputs.version }}rc${{ github.run_number }}" >> $GITHUB_OUTPUT
         id: tag-string
       
   validate-no-tag:
