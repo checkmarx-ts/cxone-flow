@@ -5,6 +5,10 @@ on:
           description: 'The version tag to use for stamping build artifacts and naming generated archives'
           required: true
           type: string
+        whl_tag:
+          description: 'The version tag to use for stamping Python whl build artifacts'
+          required: true
+          type: string
         prerelease:
           description: 'Set to true if published build is a prerelease'
           type: boolean
@@ -62,7 +66,7 @@ jobs:
 
       - name: Build package
         run: |
-          echo "__version__='${{ inputs.tag }}'" > cxoneflow_kickoff_api/__version__.py
+          echo "__version__='${{ inputs.whl_tag }}'" > cxoneflow_kickoff_api/__version__.py
           pip3 install build
           python3 -m build
 
@@ -159,10 +163,6 @@ jobs:
 
           echo '```' >> release.md
           echo $RELEASE_URL >> release.md
-          echo '```' >> release.md
-
-          echo '```' >> release.md
-          echo "git+https://github.com/${{ github.repository }}.git@${{ inputs.tag }}" >> release.md
           echo '```' >> release.md
 
           echo "## Hashes" >> release.md

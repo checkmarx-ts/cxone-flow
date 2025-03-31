@@ -5,6 +5,10 @@ on:
           description: 'The version tag string'
           required: true
           type: string
+        whl_tag:
+          description: 'The version tag string for Python whl files'
+          required: true
+          type: string
         prerelease:
           description: 'Set to true if publishing a pre-release.'
           required: true
@@ -31,6 +35,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       tag: ${{ inputs.tag }}
+      whl_tag: ${{ inputs.whl_tag }}
       prerelease: ${{ inputs.prerelease }}
     secrets:
       PACKAGE_USER: ${{ secrets.PACKAGE_USER }}

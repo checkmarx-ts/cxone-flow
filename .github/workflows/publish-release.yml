@@ -16,11 +16,15 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag-string.outputs.tag }}
+      whl_tag: ${{ steps.tag-string.outputs.whl_tag }}
     steps:
       - name: Create tag
         run: |
           [ ${{ inputs.prerelease }} = false ] && echo "tag=${{ inputs.version }}" >> $GITHUB_OUTPUT || \
             echo "tag=${{ inputs.version }}-$GITHUB_RUN_NUMBER-prerelease" >> $GITHUB_OUTPUT
+
+            [ ${{ inputs.prerelease }} = false ] && echo "whl_tag=${{ inputs.version }}" >> $GITHUB_OUTPUT || \
+            echo "whl_tag=${{ inputs.version }}rc$GITHUB_RUN_NUMBER" >> $GITHUB_OUTPUT
         id: tag-string
       
   validate-no-tag:
@@ -40,6 +44,7 @@ jobs:
     uses: ./.github/workflows/invoke-build.yml
     with:
       tag: ${{ needs.make-tag-string.outputs.tag }}
+      whl_tag: ${{ needs.make-tag-string.outputs.whl_tag }}
       prerelease: ${{ inputs.prerelease }}
     secrets:
       PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
