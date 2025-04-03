@@ -58,6 +58,10 @@ class TaskManager:
             TaskManager.__monitored.append(ts)
 
     @staticmethod
+    async def in_foreground(coro):
+        return asyncio.run_coroutine_threadsafe(coro, TaskManager.__bgloop).result()
+
+    @staticmethod
     def wait_for_exit():
         TaskManager.log().info("Gracefully shutting down...")
         while True:
