@@ -21,7 +21,7 @@ class KickoffClient:
 
     def __init__(self, private_ssh_key : str, private_key_password : Union[str,None], 
                  cxoneflow_ko_url : str, user_agent : str, 
-                 proxies : Dict[str, str] = None, ssl_verify : bool = True):
+                 proxies : Dict[str, str] = None, ssl_verify : Union[bool, str] = True):
         """A client for orchestrating initial repository scans with CxOneFlow.
 
         Args:
@@ -104,23 +104,23 @@ class KickoffClient:
             msg (KickoffMsg): A kickoff message type appropriate for the CxOneFlow SCM endpoint where the message will be delivered.
 
 
-            waiting_callback (Callable[[KickoffResponseMsg], bool]): An optional method that is called
-                                                                     when the CxOneFlow endpoint indicates there are too many
-                                                                     concurrently running scans.  The client will retry the scan
-                                                                     after a delay.  The delay continues until the scan is submitted
-                                                                     or the callback returns False. Defaults to None.
+            waiting_callback (Callable[[...], bool]): An optional method that is called
+                                                      when the CxOneFlow endpoint indicates there are too many
+                                                      concurrently running scans.  The client will retry the scan
+                                                      after a delay.  The delay continues until the scan is submitted
+                                                      or the callback returns False. Defaults to None.
 
-                                                                     Callback parameters:
+                                                      Callback parameters:
 
-                                                                     KickoffStatusCodes - A status code enumeration that indicates the server's
-                                                                                          response status.
+                                                      KickoffStatusCodes - A status code enumeration that indicates the server's
+                                                                           response status.
 
-                                                                     KickoffResponseMsg - The response payload received from the server
-                                                                                          to indicate current state of scanning.  This
-                                                                                          can be None if no message was received.
+                                                      KickoffResponseMsg - The response payload received from the server
+                                                                           to indicate current state of scanning.  This
+                                                                           can be None if no message was received.
 
-                                                                     int                - The number of seconds the client intends to sleep
-                                                                                          before the next submission attempt.
+                                                      int                - The number of seconds the client intends to sleep
+                                                                           before the next submission attempt.
         Raises:
             KickoffClientException: Throws an exception in the event there is an error when attempting to execute a scan kickoff.
 

@@ -160,6 +160,8 @@ elsewhere in this document.\\\\
     .4 \intlink{sec:cxone-elements}{...see "YAML \texttt{cxone} Elements"}.
     .3 \intlink{sec:yaml-moniker-feedback}{feedback} \DTcomment{[Optional]}.
     .4 \intlink{sec:feedback-elements}{...see "YAML \texttt{feedback} Elements"}.
+    .3 \intlink{sec:yaml-moniker-kickoff}{kickoff} \DTcomment{[Optional]}.
+    .4 \intlink{sec:kickoff-elements}{...see "YAML \texttt{kickoff} Elements"}.
     .3 \intlink{sec:yaml-moniker-repo-match}{repo-match} \DTcomment{[Required]}.
     .3 \intlink{sec:yaml-moniker-resolver}{resolver} \DTcomment{[Optional]}.
     .4 \intlink{sec:resolver-elements}{...see "YAML \texttt{resolver} Elements"}.
@@ -243,6 +245,17 @@ elsewhere in this document.\\\\
     .5 \intlink{sec:yaml-exclusions-state}{state} \DTcomment{[Optional]}.
 }
 
+\pagebreak
+\paragraph{YAML \texttt{kickoff} Elements}\label{sec:kickoff-elements}
+\noindent\\
+
+\dirtree{%
+    .1 <root>.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .3 \intlink{sec:yaml-moniker-kickoff}{kickoff} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-kickoff-max-concurrent-scans}{max-concurrent-scans} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-kickoff-ssh-public-key}{ssh-public-key} \DTcomment{[Required]}.
+}
 
 \pagebreak
 \paragraph{YAML \texttt{resolver} Elements}\label{sec:resolver-elements}
@@ -286,6 +299,7 @@ elsewhere in this document.\\\\
 \input{operation/yaml/scan-config.tex}
 \input{operation/yaml/cxone.tex}
 \input{operation/yaml/feedback.tex}
+\input{operation/yaml/kickoff.tex}
 \input{operation/yaml/pull-request.tex}
 \input{operation/yaml/scan-monitor.tex}
 \input{operation/yaml/exclusions.tex}

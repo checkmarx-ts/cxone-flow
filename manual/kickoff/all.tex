@@ -1,0 +1,253 @@
+\chapter{Mass Project Onboarding}\label{sec:kickoff}
+
+When \cxoneflow is integrated with an SCM, scans are initiated as developers mutate
+the contents of the SCM's repositories.  It is often the case, however, that a large
+number of repositories are not actively under development.  This may leave several
+repositories in an unknown state until a commit is made that delivers a webhook
+event to \cxoneflow to initiate a scan.
+
+The Kickoff API has been introduced in \cxoneflow to enable an external crawl-and-submit
+activity of SCM repositories.  The API, along with a Python client SDK library
+\footnote{The Kickoff Python client  SDK can be referenced as an external library from the \cxoneflow repository release artifacts.}, will allow
+the \cxoneflow workflows to be executed on a repository's default branch using the same
+push workflow executed upon receipt of a webhook event.  The Kickoff API and associated SDK library
+is used by the \cxoneflowaudit tool to perform an iterative crawl to mass-onboard scan
+projects.
+
+\section{Kickoff Workflow Logic}
+
+Each SCM event endpoint has a Kickoff API endpoint that accepts a payload containing
+elements needed for initiating a scan for that SCM.  This is mainly so that projects
+created when a Kickoff scan is requested are named the same as when the project
+is created in response to a webhook event.
+
+To avoid impacting scan times for production scans (such as those initiated from CI/CD
+pipelines or webhook events), the server side can be configured to limit the number of
+concurrent kickoff scans.  Upon receipt of a Kickoff API request, a list of scans
+with a \texttt{kickoff:<scm moniker>} tag that are in the Running, Finished, or Queued
+state is retrieved.  If the number of found scans is greater than or equal to the configured
+maximum number of concurrent scans, the Kickoff API responds with a 429 status to indicate
+the client should try later.  The response also contains the list of currently running scans.
+
+The purpose of the Kickoff API is to perform an initial scan of repositories that have not
+yet caused a webhook event that invokes the \cxoneflow push scan workflow.  For efficiency
+purposes, the project is checked for any existing scans.  If an existing scan exists in the
+state Running, Finished, or Queued, regardless of if it was initiated by the Kickoff API,
+the response of 299 with a list of currently running scans indicates that a new scan will
+not be initiated.
+
+If no scan is found related to the Kickoff API request, a new scan is initiated.  A response
+of 201 along with the details of the initiated scan and currently running scans is returned.
+
+The \cxoneflowaudit tool will use this logic to iterate through repositories and write an
+audit log for reconciling that all repositories have at least one scan.  The \cxoneflowaudit tool
+can be run multiple times without initiating duplicate scans.
+
+
+\subsection{Workflow Considerations}
+
+
+\subsubsection{Clone Time}
+
+The Kickoff API works synchronously to clone a repository and submit the contents for scan.  This
+is significantly different than how the webhook event handlers operate.
+
+When an SCM delivers a webhook event to \cxoneflow, it typically will not wait a long time for a response.  Most
+webhook deliveries want only a response status code to indicate success or failure in processing
+the event.  The \cxoneflow webhook endpoints therefore process events asynchronously after a brief
+verification of the source of the webhook event.  The process of cloning a repository can take a significant
+amount of time, so it is performed in the background after responding to the SCM that the event
+was successfully accepted for processing.
+
+The Kickoff API will respond to requests with the status of the scan submission.  This means the
+workflow for processing the Kickoff, including cloning the repository, will execute before
+a response is sent.  Clients typically will not wait longer than 30 seconds before disconnecting
+and reporting a timeout.  Even if the client disconnects, the \cxoneflow process will continue
+to execute and submit a scan on a successful clone.  Observing timeout errors on the client
+will not always indicate failure.  
+
+The \cxoneflowaudit tool will provide a mechanism of auditing when repositories have had
+at least one successful scan.  Any integration that uses the Kickoff API as part of a custom
+workflow should build in some of the same audit capabilities as \cxoneflow audit if there is
+a need to validate that each repository has been scanned at least once.
+
+
+\section{Server Configuration for the Kickoff API}\label{sec:kickoff-server-config}
+
+The Kickoff API is disabled by default.  Section \ref{sec:kickoff-elements} documents the elements that
+are to be added to each service definition to enable the Kickoff API.
+
+An SSH public key is used by the Kickoff API to authenticate a client request.  A client that
+securely holds the associated private key will sign a JWT that is presented to the server with each REST
+request.  If the signature is verified by the public key and the content is valid, the Kickoff request is executed.
+
+The key pair is generated by \texttt{ssh-keygen} and supports the following types of keys:
+
+\begin{itemize}
+  \item ed25519 (\texttt{ssh-keygen -t ed25519})
+  \item rsa-sha-256 (\texttt{ssh-keygen -t rsa-sha-256})
+  \item ecdsa (\texttt{ssh-keygen -t ecdsa})
+\end{itemize}
+
+Some \texttt{ssh-keygen} implementations will default to \texttt{ed25519}.  If the default is \texttt{rsa},
+it may be required to specify the hashing algorithm used to match the supported key type.  Follow the
+\texttt{ssh-keygen} to create the public/private key files.  The public key can then be referenced
+by the \cxoneflow deployment and stored in the configured location for secrets.
+
+The private key may be stored unencrypted or with password protection.  Clients should store the private key
+securely along with the password.  The private key can be used with the \intlink{sec:kickoff-sdk}{Kickoff Client SDK}
+to communicate with the API.
+
+The private key and password are required by \cxoneflowaudit if it is being used to crawl SCM
+repositories and submit scans to the Kickoff API.
+
+
+\section{Kickoff API Clients}
+
+\subsection{Prerequisites}
+
+Clients of the Kickoff API will require an SSH private key for creating a JWT used for authentication.
+The \cxoneflow server will need to be configured public SSH key that will validate the JWT signature.
+See Section \ref{sec:kickoff-server-config} for instructions about using \texttt{ssh-keygen} to generate
+an SSH public/private key pair.
+
+The Kickoff Client Python SDK will perform all required JWT operations when provided with the SSH
+private key.  If integration with the Kickoff API using a different method, a third-party JWT
+SDK can be used to perform JWT operations.  Documentation using other tools to integrate with
+the Kickoff API is beyond the scope of this document.
+
+For examples in how to integrate with the Kickoff API, reference the \cxoneflowaudit source code
+and the associated \texttt{cxoneflow\_kickoff\_api} source found in the \cxoneflow source repository.
+
+\subsection{Kickoff Client Python SDK}\label{sec:kickoff-sdk}
+
+\subsubsection{\texttt{KickoffClient} class}
+
+An instance of the \texttt{KickoffClient} class can be used to communicate with
+the \cxoneflow Kickoff API.  Table \ref{tab:kickoff-client-ctor-params} lists the
+constructor parameters that initialize the \texttt{KickoffClient} instance.
+
+\begin{table}[ht]
+  \caption{\texttt{KickoffClient} Constructor Parameters}\label{tab:kickoff-client-ctor-params}
+  \begin{tabularx}{\textwidth}{lcl}
+      \toprule
+      \textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+      \midrule
+      \texttt{private\_ssh\_key} & \makecell[c]{\texttt{str}} & \makecell[l]{The string representation of the private key used
+      to sign\\the authentication JWT.} \\
+      \midrule
+      \texttt{private\_key\_password} & \makecell[c]{\texttt{str}} & \makecell[l]{If the private key is encrypted with a password,
+      provide\\the string password in this parameter.  If there is no password,\\this can be set to \texttt{None}.
+      If the wrong password is provided, the\\constructor will throw an exception.} \\
+      \midrule
+      \texttt{cxoneflow\_ko\_url} & \makecell[c]{\texttt{str}} & \makecell[l]{The URL to the \cxoneflow Kickoff API endpoint for requests.
+      \\This is generally an endpoint with one of the following suffixes:
+      \\\quad\texttt{/gh/kickoff}
+      \\\quad\texttt{/gl/kickoff}
+      \\\quad\texttt{/adoe/kickoff}
+      \\\quad\texttt{/bbdc/kickoff}} \\
+      \midrule
+      \texttt{user\_agent} & \makecell[c]{\texttt{str}} & \makecell[l]{An value that identifies the source of the request.
+      This helps in\\troubleshooting.  It is suggested to use a form such as\\\textit{<name>/<version>}.} \\
+      \midrule
+      \texttt{proxies} & \makecell[c]{\texttt{dict}} & \makecell[l]{Defaults to \texttt{None}.  This is a dictionary that specifies a\\
+      proxy server for communication. The contents of this\\dictionary is described in the Python
+      \extlink{https://requests.readthedocs.io/en/latest/api/\#requests.Session.proxies}{\texttt{requests} API}\\documentation.} \\
+      \midrule
+      \texttt{ssl\_verify} & \makecell[c]{\texttt{str}\\\texttt{bool}} & \makecell[l]{Defaults to \texttt{True}.  Can be set to \texttt{False} to skip validation
+      of\\SSL certificates.  Alternately, it can be set to a path when a\\PEM encoded certificate that will validate the \cxoneflow\\
+      server's SSL certificate can be loaded for validation.} \\
+      \bottomrule
+  \end{tabularx}
+\end{table}
+
+
+The method \texttt{kickoff\_scan} of the \texttt{KickoffClient} instance will execute a request to kick off a scan.  The
+call to \texttt{kickoff\_scan} will block in the event that the server indicates that there are too many concurrent
+kickoff scans.  The client will retry the kickoff operation until success or error unless a callback method is passed
+and the callback method indicates the client should stop retrying the scan submit. Table \ref{tab:kickoff-scan-params}
+describes the parameters.
+
+If there is an unrecoverable error when \texttt{kickoff\_scan} attempts to submit the scan, \texttt{KickoffClientException}
+is raised.
+
+The return is a tuple:
+
+\begin{enumerate}
+  \item \texttt{KickoffStatusCodes} - Indicates the server's response code.
+  \item \texttt{KickoffResponseMsg} or \texttt{None} - The response to the last request, if any.
+\end{enumerate}
+
+\begin{table}[ht]
+  \caption{\texttt{KickoffClient.kickoff\_scan} Parameters}\label{tab:kickoff-scan-params}
+  \begin{tabularx}{\textwidth}{lcl}
+      \toprule
+      \textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+      \midrule
+      \texttt{msg} & \makecell[c]{\texttt{KickoffMsg}} & \makecell[l]{An instance of an SCM-specific \texttt{KickoffMsg} class.
+      Refer\\to Section \ref{sec:kickoffmsg-sub-classes} for information about the SCM-specific\\message classes.} \\
+      \midrule
+      \texttt{waiting\_callback} & \makecell[c]{\texttt{Callable}} & \makecell[l]{A callback method that is called as the client waits for 
+      the\\server to indicate it has started the requested scan. If the\\callback method returns \texttt{True}, the client will continue to wait\\
+      for the server to submit the scan.  If the callback method\\returns \texttt{False}, the client will stop attempting to submit
+      the scan.\\\\The callback method should accept the following parameters:\\
+      \quad\texttt{KickoffStatusCodes} - The server response code for the last\\
+      \qquad attempt to submit the scan.\\
+      \quad\texttt{KickoffResponseMsg} - \texttt{None} or the response payload sent as\\
+      \qquad the server response.\\
+      \quad\texttt{int} - The number of seconds before the next submission retry.\\
+       } \\
+      \bottomrule
+  \end{tabularx}
+\end{table}
+
+
+
+\subsubsection{SCM-Specific Sub-Classes of \texttt{KickoffMsg} }\label{sec:kickoffmsg-sub-classes}
+
+The \texttt{KickoffMsg} represents a JSON payload that is sent to each Kickoff API endpoint.  Each SCM
+requires a specific payload.
+
+TODO: Table explaining the elements of each, JSON example.
+
+\paragraph{\texttt{GithubKickoffMsg}}
+
+\paragraph{\texttt{AdoKickoffMsg}}
+\paragraph{\texttt{GitlabKickoffMsg}}
+\paragraph{\texttt{BitbucketKickoffMsg}}
+
+
+\subsection{Kickoff v1 REST API}
+
+If not using the Kickoff Python Client SDK, this section can be referenced to integrate directly with
+the REST API.
+
+
+\subsubsection{Authorization}
+
+Authorization for a request is performed by adding the \texttt{Authorization} request header
+with the content of \texttt{Bearer <jwt>}.  The JWT token is a signed JSON payload typically produced
+by a JWT SDK available for use with most languages.
+
+The signed JWT payload must contain the two following elements:
+
+\begin{itemize}
+  \item \texttt{exp} - Set to the \extlink{https://en.wikipedia.org/wiki/Unix_time}{Unix Epoch Time} when the token expires.
+  \item \texttt{alg} - The signature algorithm used to sign the JWT.  This will vary based on the type of SSH private key
+                       used to sign the payload.
+\end{itemize}
+
+If the JWT's signature can't be validated by the \cxoneflow server's configured public key, the Kickoff API will
+respond with a 403 status.
+
+The expiration time should be set to a time period in the future that would accommodate reasonable
+\extlink{https://en.wikipedia.org/wiki/Jitter}{time jitter} for clock synchronization between the client and the
+\cxoneflow server.  If the \texttt{exp} value is less than the \cxoneflow server's current time,
+the Kickoff API will respond with a 401 status.  The client can create a new JWT with an updated \texttt{exp}
+time and retry the operation.
+
+
+
+
+
+
