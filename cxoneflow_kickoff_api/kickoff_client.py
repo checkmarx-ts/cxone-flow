@@ -141,7 +141,7 @@ class KickoffClient:
             resp_status = KickoffStatusCodes(resp.status_code)
 
             if resp.ok or resp_status in [KickoffStatusCodes.SCAN_EXISTS, KickoffStatusCodes.TOO_MANY_SCANS]:
-                resp_msg = KickoffResponseMsg.from_dict(resp.json())
+                resp_msg = KickoffResponseMsg.from_dict(resp.json()) # pylint: disable=E1101
             else:
                 resp_msg = None
 
