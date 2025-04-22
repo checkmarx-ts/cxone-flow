@@ -19,11 +19,13 @@ class BaseMessage:
         return make_dataclass(clazz.__name__, json)
 
     def to_binary(self):
+        # pylint: disable=E1101
         return self.to_json().encode('UTF-8')
     
     @classmethod
     def from_binary(clazz, json_bin : bytearray):
         decoded = json_bin.decode()
+        # pylint: disable=E1101
         return clazz.from_json(decoded)
     
 

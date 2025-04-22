@@ -25,8 +25,8 @@ class ShellExecutionContext(ExecutionContext):
             and os.path.isfile(self.__resolver_path)
         ):
             cmd = [self.__resolver_path]
-        elif os.path.exists(ShellRunner.__resolver_name):
-            cmd = [ShellRunner.__resolver_name]
+        elif os.path.exists(ShellExecutionContext.__resolver_name):
+            cmd = [ShellExecutionContext.__resolver_name]
         
         exec_cmd = runas + cmd
 

@@ -84,7 +84,7 @@ class ExecutionContext:
         return not self._get_resolver_exec_cmd() == None
 
     def _get_resolver_exec_cmd(self) -> List[str]:
-        raise NotImplemented("_get_resolver_exec_cmd")
+        raise NotImplementedError("_get_resolver_exec_cmd")
 
     async def execute_resolver(
         self, project_name: str, exclusions: str
@@ -196,4 +196,4 @@ class ResolverRunner:
         )
 
     async def executor(self):
-        raise NotImplemented("executor")
+        raise NotImplementedError("executor")

@@ -317,6 +317,7 @@ class PullRequestFeedback(PullRequestDecoration):
     
     @staticmethod
     def __init_result_count_map() -> Dict[ResultSeverity, str]:
+        # pylint: disable=E1133
         return {k:"N/R" for k in ResultSeverity}
 
     def __add_engine_summary(self, engine : str, severitiesBreakdown : List[Dict[str, any]], included_severities : List[ResultSeverity]):
@@ -367,6 +368,7 @@ class PullRequestFeedback(PullRequestDecoration):
         
     @staticmethod
     def __included_severities(excluded_severities : List[ResultSeverity]) -> List[ResultSeverity]:
+        # pylint: disable=E1133
         return [x for x in ResultSeverity if x not in excluded_severities]
 
     def __add_summary_section(self):

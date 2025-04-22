@@ -180,6 +180,7 @@ class OrchestratorBase:
                             OrchestratorBase.log().warning(f"Resolver scan request failed for tag {resolver_tag}, proceeding with scanning via other engines.")
 
                 except WorkflowException as ex:
+                    # pylint: disable=E1205
                     OrchestratorBase.log().exception("Resolver workflow exception, SCA scan will run resolver server-side.", ex)
 
             return await self.__exec_immediate_scan(services.cxone, services.scm, clone_url, source_hash, 

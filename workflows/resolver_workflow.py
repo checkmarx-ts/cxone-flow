@@ -69,6 +69,7 @@ class ResolverScanningWorkflow(AbstractResolverWorkflow):
         try:
             self.__verifier.verify(signature, payload)
         except Exception as ex:
+            # pylint: disable=E1205
             ResolverScanningWorkflow.log().exception("Signature validation error.", ex)
             return False
         return True

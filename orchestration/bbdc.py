@@ -181,16 +181,6 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
         
         return list(set(retBranches))
 
-    async def _get_default_branch(self, project : str, slug : str) -> str:
-        default_resp = await self.exec("GET", f"/rest/api/latest/projects/{project}/repos/{slug}/default-branch")
-
-        if not default_resp.ok:
-            raise OrchestrationException.from_response(default_resp)
-
-        json = default_resp.json()
-        
-        return json['displayId'] if "displayId" in json.keys() else ""
-
     async def get_cxone_project_name(self) -> str:
         return BitbucketProjectNaming.create_project_name({self._repo_project_key}, {self.__repo_project_name}, {self._repo_name})
 

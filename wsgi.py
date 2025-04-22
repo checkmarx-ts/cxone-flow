@@ -67,6 +67,7 @@ async def __kickoff_impl(orch : KickoffOrchestrator):
         code = kostat.KickoffStatusCodes.NOT_AUTHORIZED
         msg = None
 
+    # pylint: disable=E1101
     return Response(msg.to_json() if msg is not None else None, status=code.value, content_type="application/json")
 
 

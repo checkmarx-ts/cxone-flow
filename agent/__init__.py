@@ -42,13 +42,13 @@ class DictCmdLineOpts:
     def _compile(self, opt_processor : Dict[str, Callable[[str], str]]=None) -> List[str]:
         ret_val = []
 
+        proc = lambda x: x
+
         if self.__opts_dict is not None:
             for k in self.__opts_dict:
 
                 value = self.__opts_dict[k]
-                if opt_processor is None or k not in opt_processor.keys():
-                    proc = lambda x: x
-                elif k in opt_processor.keys():
+                if opt_processor is not None and k in opt_processor.keys():
                     proc = opt_processor[k]
                 
                 if len(k) == 0 or not self._validate_arg(k, value):

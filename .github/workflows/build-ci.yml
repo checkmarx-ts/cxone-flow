@@ -90,7 +90,7 @@ jobs:
           shell: bash
           run: |
             . .venv/bin/activate
-            pylint --disable=all --enable=E,F --score=false --ignore=cxoneflow_kickoff_api .
+            pylint --disable=all --enable=E,F --score=false --ignore=cxoneflow_kickoff_api --ignore=.venv .
 
   build-deb-amd64:
     runs-on: ubuntu-latest

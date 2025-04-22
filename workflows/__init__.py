@@ -29,10 +29,12 @@ class ResolverOps(__base_enum):
 
 class GoofyEnum(MultiValueEnum):
     def __repr__(self):
+        # pylint: disable=E1101
         return str(self.value)
 
     @classmethod
     def names(clazz):
+        # pylint: disable=E1101
         return list(clazz._member_map_.values())
 
 class ResultStates(GoofyEnum):

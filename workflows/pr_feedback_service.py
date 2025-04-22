@@ -58,11 +58,12 @@ class PRFeedbackService(BaseWorkflowService):
         requeue_on_finally = True
 
         swm = await self._safe_deserialize_body(msg, ScanAwaitMessage)
-
+    
         if swm.is_expired():
             PRFeedbackService.log().warning(f"Scan id {swm.scanid} polling timeout expired at {swm.drop_by}. Polling for this scan has been stopped.")
             await msg.ack()
         else:
+            write_channel = None
             try:
                 write_channel = await (await self.mq_client()).channel()
                 inspector = await cxone_service.load_scan_inspector(swm.scanid)
@@ -90,7 +91,9 @@ class PRFeedbackService(BaseWorkflowService):
                 await msg.ack()
             finally:
                 if requeue_on_finally:
-                    exchange = await write_channel.get_exchange(PRFeedbackService.EXCHANGE_SCAN_INPUT)
+                    exchange = None
+                    if write_channel:
+                        exchange = await write_channel.get_exchange(PRFeedbackService.EXCHANGE_SCAN_INPUT)
 
                     if exchange:
                         orig_exp = int(msg.headers['x-death'][0]['original-expiration'])
