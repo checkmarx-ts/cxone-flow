@@ -27,14 +27,16 @@ class PullRequestDecoration:
     __details_end = __comment + "end:details"
 
 
+    __default_severity = "info.png"
+
     __severity_map = {
-        "critical" : "CRITICAL",
-        "high" : "HIGH",
-        "medium" : "MEDIUM",
-        "low" : "LOW",
-        "information" : "INFO",
-        "info" : "INFO",
-        "informational" : "INFO"
+        "critical" : "critical.png",
+        "high" : "high.png",
+        "medium" : "medium.png",
+        "low" : "low.png",
+        "information" : "low.png",
+        "info" : "low.png",
+        "informational" : "low.png"
     }
 
     @staticmethod
@@ -56,6 +58,11 @@ class PullRequestDecoration:
             PullRequestDecoration.__details_begin : [],
             PullRequestDecoration.__details_end : None,
         }
+
+    @property
+    def server_base_url(self) -> str:
+        return self.__server_base_url
+    
 
     @staticmethod
     def scan_link(display_url : str, project_id : str, scanid : str, branch : str):
@@ -86,9 +93,10 @@ class PullRequestDecoration:
         return f"{server_base_url.rstrip("/")}/artifacts/{urllib.parse.quote(artifact_path.lstrip("/"))}"
 
     @staticmethod
-    def severity_indicator(severity : str):
-        return PullRequestDecoration.__severity_map[severity.lower()] \
-            if severity.lower() in PullRequestDecoration.__severity_map.keys() else PullRequestDecoration.__default_emoji
+    def severity_indicator(server_base_url : str, severity : str):
+        img = PullRequestDecoration.__severity_map[severity.lower()] \
+            if severity.lower() in PullRequestDecoration.__severity_map.keys() else PullRequestDecoration.__default_severity
+        return PullRequestDecoration.image(PullRequestDecoration._form_artifact_url(server_base_url, img), severity)
 
     def add_to_annotation(self, line : str):
         self.__elements[PullRequestDecoration.__annotation_begin].append(line)
@@ -101,7 +109,7 @@ class PullRequestDecoration:
         self.__elements[PullRequestDecoration.__details_begin].append("# SAST Results")
         self.__elements[PullRequestDecoration.__details_begin].append("\n")
         self.__elements[PullRequestDecoration.__details_begin].append("| Severity | Issue | Source | Checkmarx Insight |")
-        self.__elements[PullRequestDecoration.__details_begin].append("| - | - | - | - |")
+        self.__elements[PullRequestDecoration.__details_begin].append("| :-: | - | - | - |")
 
     def add_sca_detail(self, severity : str, package_name : str, package_version : str, link : str):
         self.__elements[PullRequestDecoration.__details_begin].append(f"| {severity} | {package_name} | {package_version} | {link} |")
@@ -111,7 +119,7 @@ class PullRequestDecoration:
         self.__elements[PullRequestDecoration.__details_begin].append("# SCA Results")
         self.__elements[PullRequestDecoration.__details_begin].append("\n")
         self.__elements[PullRequestDecoration.__details_begin].append("| Severity | Package Name | Package Version | Checkmarx Insight |")
-        self.__elements[PullRequestDecoration.__details_begin].append("| - | - | - | - |")
+        self.__elements[PullRequestDecoration.__details_begin].append("| :-: | - | - | - |")
 
     def add_iac_detail(self, severity : str, technology : str, source_permalink : str, query : str, link : str):
         self.__elements[PullRequestDecoration.__details_begin].append(f"| {severity} | {technology} | {source_permalink} | {query} | {link} |")
@@ -121,7 +129,7 @@ class PullRequestDecoration:
         self.__elements[PullRequestDecoration.__details_begin].append("# IAC Results")
         self.__elements[PullRequestDecoration.__details_begin].append("\n")
         self.__elements[PullRequestDecoration.__details_begin].append("| Severity | Technology | Source | Query | Checkmarx Insight |")
-        self.__elements[PullRequestDecoration.__details_begin].append("| - | - | - | - | - |")
+        self.__elements[PullRequestDecoration.__details_begin].append("| :-: | - | - | - | - |")
 
     def add_resolved_detail(self, severity : str, name : str, link : str):
         self.__elements[PullRequestDecoration.__details_begin].append(f"| {severity} | {name} | {link} |")
@@ -131,7 +139,7 @@ class PullRequestDecoration:
         self.__elements[PullRequestDecoration.__details_begin].append("# Resolved Issues")
         self.__elements[PullRequestDecoration.__details_begin].append("\n")
         self.__elements[PullRequestDecoration.__details_begin].append("| Severity | Name | Checkmarx Insight |")
-        self.__elements[PullRequestDecoration.__details_begin].append("| - | - | - |")
+        self.__elements[PullRequestDecoration.__details_begin].append("| :-: | - | - |")
 
 
     def start_summary_section(self, included_severities : List[ResultSeverity]):
@@ -222,7 +230,7 @@ class PullRequestFeedback(PullRequestDecoration):
                             self.start_resolved_detail_section()
                             title_added = True
 
-                        self.add_resolved_detail(PullRequestDecoration.severity_indicator(result['severity']),
+                        self.add_resolved_detail(PullRequestDecoration.severity_indicator(self.server_base_url, result['severity']),
                                                 vuln['vulnerabilityName'], 
                                                 PullRequestDecoration.link(result['vulnerabilityLink'], "View"))
 
@@ -240,7 +248,7 @@ class PullRequestFeedback(PullRequestDecoration):
                             self.start_iac_detail_section()
                             title_added = True
 
-                        self.add_iac_detail(PullRequestDecoration.severity_indicator(result['severity']), x['name'],
+                        self.add_iac_detail(PullRequestDecoration.severity_indicator(self.server_base_url, result['severity']), x['name'],
                                             f"`{result['fileName']}`{PullRequestDecoration.link(self.__permalink(pr_details.organization, 
                                         pr_details.repo_project, pr_details.repo_slug, pr_details.source_branch, 
                                         result['fileName'], 1), "view")}", query['queryName'], 
@@ -261,7 +269,7 @@ class PullRequestFeedback(PullRequestDecoration):
                             self.start_sca_detail_section()
                             title_added = True
 
-                        self.add_sca_detail(PullRequestDecoration.severity_indicator(cat_result['severity']),
+                        self.add_sca_detail(PullRequestDecoration.severity_indicator(self.server_base_url, cat_result['severity']),
                                             x['packageName'], x['packageVersion'], 
                                             PullRequestDecoration.sca_result_link(display_url, project_id, scanid, "Risk Details", 
                                                                                 cat_result['cve'], x['packageId']))
@@ -281,7 +289,7 @@ class PullRequestFeedback(PullRequestDecoration):
                         self.start_sast_detail_section()
                         title_added = True
 
-                    self.add_sast_detail(PullRequestDecoration.severity_indicator(vuln['severity']), describe_link, 
+                    self.add_sast_detail(PullRequestDecoration.severity_indicator(self.server_base_url, vuln['severity']), describe_link, 
                                     f"`{vuln['sourceFileName']}`;{PullRequestDecoration.link(self.__permalink(pr_details.organization, 
                                         pr_details.repo_project, pr_details.repo_slug, pr_details.source_branch, 
                                         vuln['sourceFileName'], vuln['sourceLine']), 
