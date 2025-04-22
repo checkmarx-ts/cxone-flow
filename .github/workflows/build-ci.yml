@@ -61,6 +61,7 @@ jobs:
         - name: Pylint
           shell: bash
           run: |
+            . .venv/bin/activate
             pylint --disable=all --enable=E,F --disable=E1121 --score=false cxoneflow_kickoff_api
 
   execute-pylint-on-server:
@@ -88,6 +89,7 @@ jobs:
         - name: Pylint
           shell: bash
           run: |
+            . .venv/bin/activate
             pylint --disable=all --enable=E,F --score=false --ignore=cxoneflow_kickoff_api .
 
   build-deb-amd64:
