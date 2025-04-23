@@ -26,6 +26,10 @@ class OrchestrationDispatch:
         try:
             OrchestrationDispatch.log().debug(f"Service lookup: {orchestrator.route_urls}")
             services = CxOneFlowConfig.retrieve_services_by_route(orchestrator.route_urls, orchestrator.config_key)
+            if services is None:
+                OrchestrationDispatch.log().error(f"No configured services for SCM: {orchestrator.config_key}")
+                return
+
             OrchestrationDispatch.log().debug(f"Service lookup success: {orchestrator.route_urls}")
 
             if await orchestrator.is_signature_valid(services.scm.shared_secret):

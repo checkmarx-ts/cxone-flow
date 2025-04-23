@@ -47,7 +47,11 @@ class CxOneFlowConfig(CommonConfig):
     @staticmethod
     def retrieve_services_by_route(
         clone_urls: str, scm_config_key: str
-    ) -> CxOneFlowServices:
+    ) -> Union[CxOneFlowServices, None]:
+        
+        if scm_config_key not in CxOneFlowConfig.__ordered_scm_services_config.keys():
+            return None
+        
         if type(clone_urls) is list:
             it_list = clone_urls
         else:
