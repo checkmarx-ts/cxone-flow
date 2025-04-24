@@ -176,7 +176,7 @@ class GitlabOrchestrator(OrchestratorBase):
 
     async def execute_deferred(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter], scan_tags : Dict[str, str]=None):
         self.deferred_scan = True
-        return await GitlabOrchestrator.__workflow_map[self.__event](services, additional_content, scan_tags)
+        return await GitlabOrchestrator.__workflow_map[self.__event](self, services, additional_content, scan_tags)
 
     async def _get_protected_branches(self, scm_service : SCMService) -> list:
         return self.__protected_branches
