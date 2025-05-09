@@ -102,6 +102,12 @@ API use.
 \section{Protected Branches}
 
 Each repository in Azure DevOps Enterprise has a default branch defined in the project
-configuration.  The repository's default branch is considered the protected branch for
-workflow logic purposes.  Any push to the default branch or pull request that targets
-the default branch will cause \cxoneflow to orchestrate a scan.
+configuration.  The repository's default branch is considered a protected branch for
+workflow logic purposes.
+
+Azure DevOps has the concept of branch policies that can be applied to zero or more
+branches in a repository.  Any branch that has an assigned branch policy is also considered
+a protected branch for workflow logic purposes.
+
+A push to any protected branch or pull request that targets a protected branch will cause \cxoneflow to
+orchestrate a scan.

@@ -19,9 +19,12 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
     __remoteurl_query = parse("$.resource.repository.remoteUrl")
     __repo_project_key_query = parse("$.resource.repository.project.name")
     __repo_slug_query = parse("$.resource.repository.name")
+    __repo_id_query = parse("$.resource.repository.id")
     __payload_type_query = parse("$.eventType")
     __repository_id_query = parse("$.resource.repository.id")
     __collection_url_query = parse("$.resourceContainers.collection.baseUrl")
+
+    __policy_scope_query = parse("$.value[*].settings.scope[*]")
     
     __push_default_branch_query = parse("$.resource.repository.defaultBranch")
     __push_target_branch_query = parse("$.resource.refUpdates..name")
@@ -58,6 +61,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
         self.__repo_slug = [x.value for x in list(self.__repo_slug_query.find(self.event_context.message))][0]
         self.__collection_url = [x.value for x in list(self.__collection_url_query.find(self.event_context.message))][0]
         self.__collection = Path(urllib.parse.urlparse(self.__collection_url).path).name
+        self.__repo_id = self.__repo_id_query.find(self.event_context.message)[0].value
 
 
     @property
@@ -123,8 +127,28 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
     def _repo_clone_url(self, cloner) -> str:
         return self.__clone_urls[cloner.select_protocol_from_supported(self.__clone_urls.keys())]
 
+    async def __get_protected_branches_from_policies(self, scm_service : SCMService):
+        query = {}
+
+        branches = []
+
+        while True:
+            resp = await scm_service.exec("GET", f"/{self.__collection}/{self.__repo_key}/_apis/policy/configurations", query)
+
+            policies = self.__policy_scope_query.find(json_on_ok(resp))
+
+            branches = branches + [AzureDevOpsEnterpriseOrchestrator.normalize_branch_name(p.value['refName']) 
+                                   for p in policies if p.value['repositoryId'] == self.__repo_id]
+
+            if 'x-ms-continuationtoken' in resp.headers.keys():
+                query['continuationToken'] = resp.headers['x-ms-continuationtoken']
+            else:
+                break
+    
+        return list(set(branches))
+
     async def _get_protected_branches(self, scm_service : SCMService):
-        return self.__default_branches
+        return self.__default_branches + await self.__get_protected_branches_from_policies(scm_service)
 
     async def _get_target_branch_and_hash(self):
         return self.__target_branch, self.__target_hash
