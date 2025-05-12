@@ -95,6 +95,8 @@ async def bbdc_webhook_endpoint():
 
 @app.post("/bbdc/kickoff")
 async def bbdc_kickoff_endpoint():
+    __log.info("Received kickoff request for BitBucket Data Center")
+    __log.debug(f"bbdc kickoff: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     ec = EventContext(request.get_data(), dict(request.headers))
     return await TaskManager.in_foreground(__kickoff_impl(BitBucketDataCenterKickoffOrchestrator(ko.BitbucketKickoffMsg(**(ec.message)), ec)))
 
@@ -121,6 +123,8 @@ async def github_webhook_endpoint():
 
 @app.post("/gh/kickoff")
 async def github_kickoff_endpoint():
+    __log.info("Received kickoff request for GitHub")
+    __log.debug(f"github kickoff: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     ec = EventContext(request.get_data(), dict(request.headers))
     return await TaskManager.in_foreground(__kickoff_impl(GithubKickoffOrchestrator(ko.GithubKickoffMsg(**(ec.message)), ec)))
 
@@ -149,12 +153,14 @@ async def adoe_webhook_endpoint():
 
 @app.post("/adoe/kickoff")
 async def adoe_kickoff_endpoint():
+    __log.info("Received kickoff request for Azure DevOps")
+    __log.debug(f"adoe kickoff: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     ec = EventContext(request.get_data(), dict(request.headers))
     return await TaskManager.in_foreground(__kickoff_impl(AzureDevOpsKickoffOrchestrator(ko.AdoKickoffMsg(**(ec.message)), ec)))
 
 @app.post("/gl")
 async def gitlab_webhook_endpoint():
-    __log.info("Received hook for GitLab")
+    __log.info("Received hook for Gitlab")
     __log.debug(f"gitlab webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     try:
         orch = GitlabOrchestrator(HeaderFilteredEventContext(request.get_data(), dict(request.headers), "User-Agent|X-Gitlab|Idempotency-Key"))
@@ -173,6 +179,8 @@ async def gitlab_webhook_endpoint():
 
 @app.post("/gl/kickoff")
 async def gitlab_kickoff_endpoint():
+    __log.info("Received kickoff request for Gitlab")
+    __log.debug(f"gitlab kickoff: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     ec = EventContext(request.get_data(), dict(request.headers))
     return await TaskManager.in_foreground(__kickoff_impl(GitlabKickoffOrchestrator(ko.GitlabKickoffMsg(**(ec.message)), ec)))
 
