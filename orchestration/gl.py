@@ -1,5 +1,5 @@
-from .base import OrchestratorBase
-from .naming.gl import GitlabProjectNaming
+from orchestration.base import OrchestratorBase
+from orchestration.naming.gl import GitlabProjectNaming
 from api_utils.auth_factories import EventContext
 from jsonpath_ng import parse
 from services import CxOneFlowServices

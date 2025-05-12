@@ -1,4 +1,4 @@
-from .base import OrchestratorBase
+from orchestration.base import OrchestratorBase
 from api_utils import signature
 from api_utils.pagers import async_api_page_generator
 from api_utils.auth_factories import EventContext
@@ -10,7 +10,7 @@ from cxone_api.high.scans import ScanInspector
 from services import CxOneFlowServices
 from typing import List, Dict
 from workflows.utils import AdditionalScanContentWriter
-from .naming.gh import GithubProjectNaming
+from orchestration.naming.gh import GithubProjectNaming
 
 class GithubOrchestrator(OrchestratorBase):
 

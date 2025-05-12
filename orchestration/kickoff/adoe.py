@@ -1,4 +1,4 @@
-from . import KickoffOrchestrator
+from orchestration.kickoff import KickoffOrchestrator
 from cxoneflow_kickoff_api import AdoKickoffMsg
 from orchestration.naming.adoe import AzureDevOpsProjectNaming
 

@@ -1,5 +1,5 @@
-from .base import OrchestratorBase
-from .naming.bbdc import BitbucketProjectNaming
+from orchestration.base import OrchestratorBase
+from orchestration.naming.bbdc import BitbucketProjectNaming
 from api_utils.auth_factories import EventContext
 from api_utils import signature
 from jsonpath_ng import parse
