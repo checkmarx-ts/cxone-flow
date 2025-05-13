@@ -1,8 +1,9 @@
 from _version import __version__
 from _agent import __agent__
 from pathlib import Path
-from .. import ConfigurationException, RouteNotFoundException, CommonConfig
+from config import ConfigurationException, RouteNotFoundException, CommonConfig
 import re, uuid
+from importlib import import_module
 from scm_services import SCMService, ADOEService, BBDCService, GHService, GLService
 from scm_services.cloner import Cloner
 from api_utils import auth_basic, auth_bearer
@@ -19,9 +20,11 @@ from workflows.resolver_workflow import (
 )
 from workflows import ResultSeverity, ResultStates
 from services import CxOneFlowServices
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Coroutine, Tuple
 from cxone_api import CxOneClient
 from kickoff_services import DummyKickoffService, KickoffService
+from api_utils.auth_factories import EventContext
+from naming_services import ProjectNamingService
 
 
 class CxOneFlowConfig(CommonConfig):
@@ -82,9 +85,12 @@ class CxOneFlowConfig(CommonConfig):
                     "", "server-base-url", raw_yaml
                 )
             )
+
             CommonConfig._secret_root = CxOneFlowConfig._get_value_for_key_or_fail(
-                "", "secret-root-path", raw_yaml
-            )
+                "", "secret-root-path", raw_yaml)
+
+            CxOneFlowConfig.__script_root = CxOneFlowConfig._get_value_for_key_or_default("script-path",
+                raw_yaml, None)
 
             if len(raw_yaml.keys() - CxOneFlowConfig.__cloner_factories.keys()) == len(
                 raw_yaml.keys()
@@ -362,6 +368,19 @@ class CxOneFlowConfig(CommonConfig):
             CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path, "ssh-public-key", config_dict),
             moniker, max_scans)
 
+
+    @staticmethod
+    def __setup_naming(config_path :str, config_dict : Dict) -> Tuple[ProjectNamingService.CORO_SPEC, bool]:
+        if config_dict is None:
+            return None, False
+
+        module_name = CxOneFlowConfig._get_value_for_key_or_fail(config_path, "module", config_dict)
+        try:
+            return import_module(module_name).event_project_name_factory, \
+                CxOneFlowConfig._get_value_for_key_or_default("update-name", config_dict, False)
+        except ModuleNotFoundError as ex:
+            raise ConfigurationException.module_load_error(config_path, module_name)
+
     @staticmethod
     def __setup_scm(
         cloner_factory, api_auth_factory, scm_class, config_dict, config_path
@@ -414,6 +433,9 @@ class CxOneFlowConfig(CommonConfig):
             "scan-config", config_dict, {}
         )
 
+        naming_coro, naming_update_flag = CxOneFlowConfig.__setup_naming(f"{config_path}/project-naming",
+                CxOneFlowConfig._get_value_for_key_or_default("project-naming", config_dict, None))
+
         cxone_service = CxOneService(
             service_moniker,
             cxone_client,
@@ -426,6 +448,7 @@ class CxOneFlowConfig(CommonConfig):
             CxOneFlowConfig._get_value_for_key_or_default(
                 "default-project-tags", scan_config_dict, {}
             ),
+            naming_update_flag
         )
 
         connection_config_dict = CxOneFlowConfig._get_value_for_key_or_fail(
@@ -523,7 +546,9 @@ class CxOneFlowConfig(CommonConfig):
             pr_feedback_service,
             resolver_service,
             CxOneFlowConfig.__kickoff_service_factory(cxone_client,
-                CxOneFlowConfig._get_value_for_key_or_default("kickoff", config_dict, None), f"{config_path}/kickoff", service_moniker)
+                CxOneFlowConfig._get_value_for_key_or_default("kickoff", config_dict, None), 
+                f"{config_path}/kickoff", service_moniker),
+            ProjectNamingService(naming_coro, scm_service)
         )
 
     @staticmethod

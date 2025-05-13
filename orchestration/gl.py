@@ -181,7 +181,7 @@ class GitlabOrchestrator(OrchestratorBase):
     async def _get_protected_branches(self, scm_service : SCMService) -> list:
         return self.__protected_branches
         
-    async def get_cxone_project_name(self) -> str:
+    async def get_default_cxone_project_name(self) -> str:
         return GitlabProjectNaming.create_project_name(self._repo_project_key)
 
     async def __is_pr_draft(self) -> bool:
@@ -208,7 +208,8 @@ class GitlabOrchestrator(OrchestratorBase):
 
         project_id = GitlabOrchestrator.__event_project_id_query.find(self.event_context.message).pop().value
 
-        existing_scans = await services.cxone.find_pr_scans(await self.get_cxone_project_name(), self.__pr_id, self.__source_hash)
+        existing_scans = await services.cxone.find_pr_scans(await services.naming.get_project_name(
+            await self.get_default_cxone_project_name(), self.event_context), self.__pr_id, self.__source_hash)
 
         if len(existing_scans) > 0:
             # This is a scan tag update, not a scan.

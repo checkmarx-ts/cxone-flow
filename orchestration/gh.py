@@ -327,7 +327,7 @@ class GithubOrchestrator(OrchestratorBase):
     def _repo_clone_url(self, cloner) -> str:
         return self.__clone_urls[cloner.select_protocol_from_supported(self.__clone_urls.keys())]
 
-    async def get_cxone_project_name(self) -> str:
+    async def get_default_cxone_project_name(self) -> str:
         return GithubProjectNaming.create_project_name(self._repo_organization, self._repo_slug)
 
     __workflow_map = {

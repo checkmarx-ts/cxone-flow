@@ -166,7 +166,8 @@ class OrchestratorBase:
             raise OrchestrationException("Clone URL could not be determined.")
 
         if target_branch in protected_branches:
-            project_config = await services.cxone.load_project_config(await self.get_cxone_project_name())
+            project_config = await services.cxone.load_project_config(
+                await services.naming.get_project_name(await self.get_default_cxone_project_name(), self.event_context))
 
             if not self.deferred_scan and not services.resolver.skip and await services.cxone.sca_selected(project_config, source_branch):
                 try:
@@ -249,8 +250,9 @@ class OrchestratorBase:
         _, source_hash = await self._get_source_branch_and_hash()
         target_branch, _ = await self._get_target_branch_and_hash()
 
-        updated_scans = await services.cxone.update_scan_pr_tags(await self.get_cxone_project_name(), self._pr_id, source_hash,
-                                                                target_branch, self._pr_state, self._pr_status)
+        updated_scans = await services.cxone.update_scan_pr_tags(await services.naming.get_project_name(
+            await self.get_default_cxone_project_name(), self.event_context), self._pr_id, source_hash,
+            target_branch, self._pr_state, self._pr_status)
 
         OrchestratorBase.log().info(f"Updated scan tags for scans: {updated_scans}")
         return updated_scans
@@ -268,9 +270,8 @@ class OrchestratorBase:
     async def is_signature_valid(self, shared_secret : str) -> bool:
         raise NotImplementedError("is_signature_valid")
     
-    async def get_cxone_project_name(self) -> str:
+    async def get_default_cxone_project_name(self) -> str:
         raise NotImplementedError("get_cxone_project_name")
-
 
     @property
     def _pr_state(self) -> str:

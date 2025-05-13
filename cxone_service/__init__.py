@@ -6,7 +6,10 @@ from cxone_api.low.projects import retrieve_list_of_projects, create_a_project, 
 from cxone_api.low.reports import create_a_report, retrieve_report_status, download_a_report
 from cxone_api.low.scans import retrieve_list_of_scans, update_scan_tags
 from cxone_api.util import page_generator, json_on_ok
-import logging,asyncio
+from cxone_api import CxOneClient
+from typing import Dict, Coroutine
+from api_utils.auth_factories import EventContext
+import logging, asyncio
 from datetime import datetime
 
 class CxOneException(Exception):
@@ -32,7 +35,10 @@ class CxOneService:
 
     __minimum_engine_selection = {'sast' : {} }
 
-    def __init__(self, moniker, cxone_client, default_engines, default_scan_tags, default_project_tags):
+    def __init__(self, moniker : str, cxone_client : CxOneClient, default_engines : Dict,
+                 default_scan_tags : Dict, default_project_tags : Dict, 
+                 rename_legacy_projects : bool):
+        self.__rename_legacy = rename_legacy_projects
         self.__client = cxone_client
         self.__moniker = moniker
         self.__default_project_tags = default_project_tags if default_project_tags is not None else {}

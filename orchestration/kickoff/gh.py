@@ -22,7 +22,7 @@ class GithubKickoffOrchestrator(KickoffOrchestrator):
   def kickoff_msg(self) -> GithubKickoffMsg:
      return self.__msg
 
-  async def get_cxone_project_name(self) -> str:
+  async def get_default_cxone_project_name(self) -> str:
     return GithubProjectNaming.create_project_name(
        self.kickoff_msg.repo_organization_name, self.kickoff_msg.repo_name)
   

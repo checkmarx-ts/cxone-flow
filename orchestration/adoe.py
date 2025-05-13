@@ -156,7 +156,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
     async def _get_source_branch_and_hash(self) -> tuple:
         return self.__source_branch, self.__source_hash
 
-    async def get_cxone_project_name(self) -> str:
+    async def get_default_cxone_project_name(self) -> str:
         p = CloneUrlParser("azure", self.__remote_url)
         return AzureDevOpsProjectNaming.create_project_name(p.org, self._repo_project_key, self._repo_name)
 
@@ -193,7 +193,9 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
 
         self.__pr_state = AzureDevOpsEnterpriseOrchestrator.__pr_state_query.find(self.event_context.message)[0].value
 
-        existing_scans = await services.cxone.find_pr_scans(await self.get_cxone_project_name(), self.__pr_id, self.__source_hash)
+        existing_scans = await services.cxone.find_pr_scans(await services.naming.get_project_name
+                                                            (await self.get_default_cxone_project_name(), self.event_context), 
+                                                            self.__pr_id, self.__source_hash)
 
         if len(existing_scans) > 0:
             # This is a scan tag update, not a scan.

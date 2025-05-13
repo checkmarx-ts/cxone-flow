@@ -181,7 +181,7 @@ class BitBucketDataCenterOrchestrator(OrchestratorBase):
         
         return list(set(retBranches))
 
-    async def get_cxone_project_name(self) -> str:
+    async def get_default_cxone_project_name(self) -> str:
         return BitbucketProjectNaming.create_project_name(self._repo_project_key, self.__repo_project_name, self._repo_name)
 
     @property

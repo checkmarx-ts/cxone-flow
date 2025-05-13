@@ -74,6 +74,10 @@ class ConfigurationException(Exception):
     @staticmethod
     def invalid_keys(key_path, keys : List):
         return ConfigurationException(f"These keys are invalid: {["/".join([key_path, x]) for x in keys]}")
+    
+    @staticmethod
+    def module_load_error(key_path, module_name):
+        return ConfigurationException(f"Error loading module {module_name} at {key_path}")
 
 class RouteNotFoundException(Exception):
     pass

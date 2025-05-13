@@ -20,7 +20,7 @@ class AzureDevOpsKickoffOrchestrator(KickoffOrchestrator):
   def kickoff_msg(self) -> AdoKickoffMsg:
      return self.__msg
 
-  async def get_cxone_project_name(self) -> str:
+  async def get_default_cxone_project_name(self) -> str:
     return AzureDevOpsProjectNaming.create_project_name(self.kickoff_msg.collection_name,
                                                         self.kickoff_msg.project_name, self.kickoff_msg.repo_name)
   

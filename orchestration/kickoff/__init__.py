@@ -82,7 +82,7 @@ class KickoffOrchestrator(OrchestratorBase):
     self.__executing_scans = await services.kickoff.get_running_ko_scans()
 
     target_branch, _ = await self._get_target_branch_and_hash()
-    project_name = await self.get_cxone_project_name()
+    project_name = await services.naming.get_project_name(await self.get_default_cxone_project_name(), self.event_context)
 
     if await services.kickoff.one_scan_exists_on_branch(project_name, target_branch):
        raise KickoffOrchestrator.KickoffScanExistsException()
