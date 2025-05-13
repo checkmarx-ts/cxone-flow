@@ -5,9 +5,10 @@ from cxone_api.high.projects import ProjectRepoConfig
 from cxone_api.low.projects import retrieve_list_of_projects, create_a_project, update_a_project
 from cxone_api.low.reports import create_a_report, retrieve_report_status, download_a_report
 from cxone_api.low.scans import retrieve_list_of_scans, update_scan_tags
-from cxone_api.util import page_generator, json_on_ok
+from cxone_api.util import page_generator
 from cxone_api import CxOneClient
-from typing import Dict, Coroutine
+from typing import Dict
+from jsonpath_ng.ext import parser
 from api_utils.auth_factories import EventContext
 import logging, asyncio
 from datetime import datetime
@@ -109,19 +110,29 @@ class CxOneService:
         return 'sca' in (await self.__get_engine_config_for_scan(project_config, branch)).keys()
        
 
-    async def __create_or_retrieve_project(self, project_name : str) -> dict:
-        projects_response = CxOneService.__get_json_or_fail (await retrieve_list_of_projects(self.__client, name=project_name))
+    async def __create_or_retrieve_project(self, default_project_name : str, dynamic_project_name : str) -> dict:
+        projects_response = CxOneService.__get_json_or_fail (await retrieve_list_of_projects(self.__client, 
+            names=",".join([default_project_name, dynamic_project_name])))
+
 
         if int(projects_response['filteredTotalCount']) == 0:
             project_json = CxOneService.__get_json_or_fail (await create_a_project (self.__client, \
-                name=project_name, origin=__agent__, tags=self.__default_project_tags | {"cxone-flow" : __version__, "service" : self.moniker}))
+                name=dynamic_project_name, origin=__agent__, tags=self.__default_project_tags | {"cxone-flow" : __version__, "service" : self.moniker}))
             project_id = project_json['id']
         else:
-            project_json = projects_response['projects'][0]
-            project_id = project_json['id']
+            dynamic_search = parser.parse(f"$.projects[?(@.name=='{dynamic_project_name}')]").find(projects_response)
+            default_search = parser.parse(f"$.projects[?(@.name=='{default_project_name}')]").find(projects_response)
 
+            do_name_update = False
+            if len(dynamic_search) > 0:
+                project_json = dynamic_search.pop().value
+            else:
+                project_json = default_search.pop().value
+                do_name_update = self.__rename_legacy
+
+            project_id = project_json['id']
             new_tags = {k:self.__default_project_tags[k] \
-                                     for k in self.__default_project_tags.keys() if k not in project_json['tags'].keys()}
+                                    for k in self.__default_project_tags.keys() if k not in project_json['tags'].keys()}
             
             # Update the service moniker if it has changed or does not exist.
             if "service" in project_json['tags'].keys():
@@ -130,8 +141,16 @@ class CxOneService:
             else:
                 new_tags['service'] = self.moniker
 
+            exec_update = False
             if len(new_tags.keys()) > 0:
                 project_json['tags'] = new_tags | project_json['tags']
+                exec_update = True
+            
+            if do_name_update:
+                exec_update = True
+                project_json['name'] = dynamic_project_name
+
+            if exec_update:
                 CxOneService.__succeed_or_throw(await update_a_project (self.__client, project_id, **project_json))
             
         return project_json
@@ -151,8 +170,8 @@ class CxOneService:
         
         return return_engine_config
     
-    async def load_project_config(self, project_name : str) -> ProjectRepoConfig:
-        return await ProjectRepoConfig.from_project_json(self.__client, await self.__create_or_retrieve_project(project_name))
+    async def load_project_config(self, default_project_name : str, dynamic_project_name : str) -> ProjectRepoConfig:
+        return await ProjectRepoConfig.from_project_json(self.__client, await self.__create_or_retrieve_project(default_project_name, dynamic_project_name))
 
     async def execute_scan(self, zip_path : str, project_config : ProjectRepoConfig, commit_branch : str, repo_url : str, scan_tags : dict ={}):
         engine_config = await self.__get_engine_config_for_scan(project_config, commit_branch)

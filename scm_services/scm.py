@@ -18,6 +18,8 @@ class BasicSCMService:
                    extra_headers : Dict=None, event_context : EventContext=None, url_vars : Dict = None) -> Response:
         return await self.__session.exec(event_context, method, path, query, body, extra_headers, url_vars)
 
+    def _form_url(self, url_path, anchor=None, **kwargs):
+        return self.__session._form_url(url_path, anchor, **kwargs)
 
 class SCMService(BasicSCMService):
 
@@ -43,10 +45,7 @@ class SCMService(BasicSCMService):
     @property
     def shared_secret(self) -> str:
         return self.__shared_secret
-    
-    def _form_url(self, url_path, anchor=None, **kwargs):
-        return self.__session._form_url(url_path, anchor, **kwargs)
-    
+
     async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, 
         summary_markdown : str, event_context : EventContext):
         raise NotImplementedError("exec_pr_decorate")

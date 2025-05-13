@@ -166,7 +166,7 @@ class OrchestratorBase:
             raise OrchestrationException("Clone URL could not be determined.")
 
         if target_branch in protected_branches:
-            project_config = await services.cxone.load_project_config(
+            project_config = await services.cxone.load_project_config(await self.get_default_cxone_project_name(),
                 await services.naming.get_project_name(await self.get_default_cxone_project_name(), self.event_context))
 
             if not self.deferred_scan and not services.resolver.skip and await services.cxone.sca_selected(project_config, source_branch):
