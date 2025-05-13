@@ -5,6 +5,9 @@
 !.github/**/*.yml
 !agent_packages/**/*.yaml
 
+# Dynamic scripts
+scripts
+
 # package builds
 agent_packages/**/*-package/etc/**
 agent_packages/**/*-package/opt/**
