@@ -2,7 +2,7 @@ from _version import __version__
 from _agent import __agent__
 from pathlib import Path
 from config import ConfigurationException, RouteNotFoundException, CommonConfig
-import re, uuid
+import re, uuid, sys
 from importlib import import_module
 from scm_services import SCMService, ADOEService, BBDCService, GHService, GLService
 from scm_services.cloner import Cloner
@@ -20,10 +20,9 @@ from workflows.resolver_workflow import (
 )
 from workflows import ResultSeverity, ResultStates
 from services import CxOneFlowServices
-from typing import List, Dict, Union, Coroutine, Tuple
+from typing import List, Dict, Union, Tuple
 from cxone_api import CxOneClient
 from kickoff_services import DummyKickoffService, KickoffService
-from api_utils.auth_factories import EventContext
 from naming_services import ProjectNamingService
 
 
@@ -91,6 +90,9 @@ class CxOneFlowConfig(CommonConfig):
 
             CxOneFlowConfig.__script_root = CxOneFlowConfig._get_value_for_key_or_default("script-path",
                 raw_yaml, None)
+            
+            if CxOneFlowConfig.__script_root is not None:
+                sys.path.append(CxOneFlowConfig.__script_root)
 
             if len(raw_yaml.keys() - CxOneFlowConfig.__cloner_factories.keys()) == len(
                 raw_yaml.keys()
