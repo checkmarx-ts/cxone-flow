@@ -106,7 +106,6 @@ container and adjust the path via the \texttt{CONFIG\_YAML\_PATH} environment va
 \newpage
 \input{operation/yaml_full_example.tex}
 
-
 \subsubsection{Complex YAML Configurations using YAML Anchors}
 
 For complex configurations, it is possible to use 
@@ -137,6 +136,7 @@ Parts of the YAML tree have been split into individual trees to allow related el
 
 \dirtree{%
     .1 <root>.
+    .2 \intlink{sec:yaml-script-path}{script-path} \DTcomment{[Optional]}.
     .2 \intlink{sec:yaml-secret-root-path}{secret-root-path} \DTcomment{[Required]}.
     .2 \intlink{sec:yaml-server-base-url}{server-base-url} \DTcomment{[Required]}.
     .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[At least 1 required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
@@ -162,6 +162,8 @@ elsewhere in this document.\\\\
     .4 \intlink{sec:feedback-elements}{...see "YAML \texttt{feedback} Elements"}.
     .3 \intlink{sec:yaml-moniker-kickoff}{kickoff} \DTcomment{[Optional]}.
     .4 \intlink{sec:kickoff-elements}{...see "YAML \texttt{kickoff} Elements"}.
+    .3 \intlink{sec:yaml-moniker-project-naming}{project-naming} \DTcomment{[Optional]}.
+    .4 \intlink{sec:project-naming-elements}{...see "YAML \texttt{project-naming} Elements"}.
     .3 \intlink{sec:yaml-moniker-repo-match}{repo-match} \DTcomment{[Required]}.
     .3 \intlink{sec:yaml-moniker-resolver}{resolver} \DTcomment{[Optional]}.
     .4 \intlink{sec:resolver-elements}{...see "YAML \texttt{resolver} Elements"}.
@@ -258,6 +260,19 @@ elsewhere in this document.\\\\
 }
 
 \pagebreak
+\paragraph{YAML \texttt{project-naming} Elements}\label{sec:project-naming-elements}
+\noindent\\
+
+\dirtree{%
+    .1 <root>.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .3 \intlink{sec:yaml-moniker-project-naming}{project-naming} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-project-naming-module}{module} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-project-naming-update-name}{update-name} \DTcomment{[Optional] Default: False}.
+}
+
+
+\pagebreak
 \paragraph{YAML \texttt{resolver} Elements}\label{sec:resolver-elements}
 \noindent\\
 
@@ -300,6 +315,7 @@ elsewhere in this document.\\\\
 \input{operation/yaml/cxone.tex}
 \input{operation/yaml/feedback.tex}
 \input{operation/yaml/kickoff.tex}
+\input{operation/yaml/project-naming.tex}
 \input{operation/yaml/pull-request.tex}
 \input{operation/yaml/scan-monitor.tex}
 \input{operation/yaml/exclusions.tex}

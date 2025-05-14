@@ -1,0 +1,15 @@
+\subsubsection{YAML Element: module}\label{sec:yaml-project-naming-module}
+
+A dotted path to a Python module that contains an implementation of a method named\linebreak
+\texttt{event\_project\_name\_factory}.  This Python module is imported at \cxoneflow
+startup; if the module fails to import, the \cxoneflow startup is aborted.
+
+The module should be stored at the path indicated set in the
+\intlink{sec:yaml-script-path}{script-path} configuration element.
+
+\subsubsection{YAML Element: update-name}\label{sec:yaml-project-naming-update-name}
+
+A boolean value that defaults to False.  If set to True, projects with default project names
+will be renamed to the new dynamic project name. The name change only occurs if a project with
+a dynamic project name does not exist.  If a project with the dynamic project name exists,
+the corresponding default project name will not be updated with a name change.
