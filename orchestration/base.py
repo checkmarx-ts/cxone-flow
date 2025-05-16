@@ -167,7 +167,8 @@ class OrchestratorBase:
 
         if target_branch in protected_branches:
             project_config = await services.cxone.load_project_config(await self.get_default_cxone_project_name(),
-                await services.naming.get_project_name(await self.get_default_cxone_project_name(), self.event_context))
+                await services.naming.get_project_name(await self.get_default_cxone_project_name(), self.event_context), 
+                clone_url)
 
             if not self.deferred_scan and not services.resolver.skip and await services.cxone.sca_selected(project_config, source_branch):
                 try:

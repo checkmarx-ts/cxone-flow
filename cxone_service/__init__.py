@@ -7,11 +7,12 @@ from cxone_api.low.reports import create_a_report, retrieve_report_status, downl
 from cxone_api.low.scans import retrieve_list_of_scans, update_scan_tags
 from cxone_api.util import page_generator
 from cxone_api import CxOneClient
-from typing import Dict
+from typing import Dict, List
 from jsonpath_ng.ext import parser
 from api_utils.auth_factories import EventContext
 import logging, asyncio
 from datetime import datetime
+from cxone_service.grouping import GroupingService
 
 class CxOneException(Exception):
     pass
@@ -38,13 +39,15 @@ class CxOneService:
 
     def __init__(self, moniker : str, cxone_client : CxOneClient, default_engines : Dict,
                  default_scan_tags : Dict, default_project_tags : Dict, 
-                 rename_legacy_projects : bool):
+                 rename_legacy_projects : bool, update_groups : bool, grouping_service : GroupingService):
         self.__rename_legacy = rename_legacy_projects
         self.__client = cxone_client
         self.__moniker = moniker
         self.__default_project_tags = default_project_tags if default_project_tags is not None else {}
         self.__default_scan_tags = default_scan_tags if default_scan_tags is not None else {}
         self.__default_engine_config = default_engines
+        self.__update_groups = update_groups
+        self.__group_service = grouping_service
     
     @property
     def moniker(self):
@@ -109,15 +112,21 @@ class CxOneService:
 
         return 'sca' in (await self.__get_engine_config_for_scan(project_config, branch)).keys()
        
+    async def __resolve_group_memberships(self, existing_groups : List[str], clone_url : str) -> List[str]:
+        return list(set(existing_groups + await self.__group_service.resolve_groups(clone_url)))
 
-    async def __create_or_retrieve_project(self, default_project_name : str, dynamic_project_name : str) -> dict:
+    async def __create_or_retrieve_project(self, default_project_name : str, 
+                                           dynamic_project_name : str, clone_url : str) -> dict:
+        
         projects_response = CxOneService.__get_json_or_fail (await retrieve_list_of_projects(self.__client, 
             names=",".join([default_project_name, dynamic_project_name])))
 
 
         if int(projects_response['filteredTotalCount']) == 0:
             project_json = CxOneService.__get_json_or_fail (await create_a_project (self.__client, \
-                name=dynamic_project_name, origin=__agent__, tags=self.__default_project_tags | {"cxone-flow" : __version__, "service" : self.moniker}))
+                groups = await self.__group_service.resolve_groups(clone_url),
+                name=dynamic_project_name, origin=__agent__, 
+                tags=self.__default_project_tags | {"cxone-flow" : __version__, "service" : self.moniker}))
             project_id = project_json['id']
         else:
             dynamic_search = parser.parse(f"$.projects[?(@.name=='{dynamic_project_name}')]").find(projects_response)
@@ -150,8 +159,35 @@ class CxOneService:
                 exec_update = True
                 project_json['name'] = dynamic_project_name
 
+            project_orig_groups = project_json['groups']
+            if self.__update_groups:
+                new_list = await self.__resolve_group_memberships(project_orig_groups, clone_url)
+                # Check if there is a new group assignment needed for the project
+                if len([x for x in new_list if x not in project_orig_groups]) > 0:
+                    project_json['groups'] = new_list
+                    exec_update = True
+
             if exec_update:
-                CxOneService.__succeed_or_throw(await update_a_project (self.__client, project_id, **project_json))
+                retried = False
+
+                while True:
+                    # Bad groups will cause an error and may need to be retried.  If someone deletes
+                    # a group, assigning projects to it won't work.  This prevents constant errors.
+                    update_response = await update_a_project (self.__client, project_id, **project_json)
+
+                    if update_response.ok:
+                        break
+                    elif not retried:
+                        CxOneService.log().warning(f"Error updating project {project_id}, reloading group ids and trying again.")
+                        await self.__group_service.purge_cache()
+                        project_json['groups'] = await self.__resolve_group_memberships(project_orig_groups, clone_url)
+
+                    if retried:
+                        break
+                    else:
+                        retried = True
+
+                CxOneService.__succeed_or_throw(update_response)
             
         return project_json
 
@@ -170,8 +206,9 @@ class CxOneService:
         
         return return_engine_config
     
-    async def load_project_config(self, default_project_name : str, dynamic_project_name : str) -> ProjectRepoConfig:
-        return await ProjectRepoConfig.from_project_json(self.__client, await self.__create_or_retrieve_project(default_project_name, dynamic_project_name))
+    async def load_project_config(self, default_project_name : str, dynamic_project_name : str, clone_url : str) -> ProjectRepoConfig:
+        return await ProjectRepoConfig.from_project_json(self.__client, 
+            await self.__create_or_retrieve_project(default_project_name, dynamic_project_name, clone_url))
 
     async def execute_scan(self, zip_path : str, project_config : ProjectRepoConfig, commit_branch : str, repo_url : str, scan_tags : dict ={}):
         engine_config = await self.__get_engine_config_for_scan(project_config, commit_branch)

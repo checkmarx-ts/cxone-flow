@@ -10,6 +10,7 @@ from api_utils import auth_basic, auth_bearer
 from api_utils.apisession import APISession
 from api_utils.auth_factories import AuthFactory, GithubAppAuthFactory
 from cxone_service import CxOneService
+from cxone_service.grouping import GroupingService
 from password_strength import PasswordPolicy
 from workflows.pr_feedback_service import PRFeedbackService
 from workflows.resolver_scan_service import ResolverScanService
@@ -384,6 +385,25 @@ class CxOneFlowConfig(CommonConfig):
             raise ConfigurationException.module_load_error(config_path, module_name)
 
     @staticmethod
+    def __setup_grouping(config_path :str, config_dict : Dict, client : CxOneClient) -> Tuple[GroupingService, bool]:
+        grouping = GroupingService(client)
+        update_flag = False
+
+        if config_dict is not None:
+            assignments = CxOneFlowConfig._get_value_for_key_or_fail(f"{config_path}/group-assigments", "group-assigments", config_dict)
+            update_flag = CxOneFlowConfig._get_value_for_key_or_default("update-groups", config_dict, False)
+            assign_index = 0
+            for assign in assignments:
+                grouping.add_assignment_rule(CxOneFlowConfig._get_value_for_key_or_fail(
+                                            f"{config_path}/group-assigments[{assign_index}]", "repo-match", assign),
+                                            CxOneFlowConfig._get_value_for_key_or_fail(
+                                            f"{config_path}/group-assigments[{assign_index}]", "groups", assign))
+                assign_index += 1
+
+        return grouping, update_flag
+
+
+    @staticmethod
     def __setup_scm(
         cloner_factory, api_auth_factory, scm_class, config_dict, config_path
     ) -> CxOneFlowServices:
@@ -437,6 +457,9 @@ class CxOneFlowConfig(CommonConfig):
 
         naming_coro, naming_update_flag = CxOneFlowConfig.__setup_naming(f"{config_path}/project-naming",
                 CxOneFlowConfig._get_value_for_key_or_default("project-naming", config_dict, None))
+        
+        grouping_service, group_update_flag = CxOneFlowConfig.__setup_grouping(f"{config_path}/project-groups",
+                CxOneFlowConfig._get_value_for_key_or_default("project-groups", config_dict, None), cxone_client)
 
         cxone_service = CxOneService(
             service_moniker,
@@ -450,7 +473,9 @@ class CxOneFlowConfig(CommonConfig):
             CxOneFlowConfig._get_value_for_key_or_default(
                 "default-project-tags", scan_config_dict, {}
             ),
-            naming_update_flag
+            naming_update_flag,
+            group_update_flag,
+            grouping_service
         )
 
         connection_config_dict = CxOneFlowConfig._get_value_for_key_or_fail(
