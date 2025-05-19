@@ -35,6 +35,8 @@ class ProjectNamingService:
     async with self.__call_timer():  
       try:
         name = await self.__naming_coro(context, self.__scm_service)
+        if name is None:
+          ProjectNamingService.log().warning(f"Naming module [{self.__naming_coro.__name__}] returned None, using default name {default_name}.")
         return name if name is not None else default_name
       except BaseException as ex:
         ProjectNamingService.log().info(f"Exception thrown by naming module [{self.__naming_coro.__name__}].  Using default name [{default_name}].")
