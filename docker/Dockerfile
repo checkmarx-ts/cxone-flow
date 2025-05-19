@@ -5,7 +5,7 @@ RUN openssl genrsa -out /tmp/key.private.pem 2048 && \
 
 
 
-FROM ubuntu:24.04
+FROM ubuntu:25.10
 LABEL org.opencontainers.image.source https://github.com/checkmarx-ts/cxone-flow
 LABEL org.opencontainers.image.vendor Checkmarx Professional Services
 LABEL org.opencontainers.image.title Checkmarx One Flow
@@ -26,7 +26,7 @@ ENV CXONEFLOW_HOSTNAME=localhost
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata locales && \
-    apt-get install -y python3.12 python3-pip nginx git openssh-client bash gettext-base curl gnupg apt-transport-https && \
+    apt-get install -y python3.13 python3-pip nginx git openssh-client bash gettext-base curl gnupg apt-transport-https && \
     pip install -r requirements.txt --no-cache-dir --break-system-packages && \
     curl -1sLf https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA | gpg --dearmor | tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null && \
     curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key | gpg --dearmor | tee /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null && \
