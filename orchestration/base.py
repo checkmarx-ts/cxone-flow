@@ -74,8 +74,10 @@ class OrchestratorBase:
         for entry in p.iterdir():
             if entry.is_dir():
                 return_dict |= OrchestratorBase.__get_path_dict(entry, use_root)
-            else:
+            elif entry.is_file():
                 return_dict[entry] = PurePath(entry).relative_to(use_root)
+            else:
+                OrchestratorBase.log().warning(f"File skipped: {str(entry)} (Symlink: {entry.is_symlink()})")
         return return_dict
     
     def get_header_key_safe(self, key):
