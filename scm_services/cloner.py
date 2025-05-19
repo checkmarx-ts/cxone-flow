@@ -75,11 +75,11 @@ class Cloner:
 
         if not in_header:
             retval = BasicAuthWithCredsInUrl(username, SecretRegistry.register(password), ssl_no_verify)
-            retval.__clone_cmd_stub = ["git", "clone"]
+            retval.__clone_cmd_stub = ["git", "clone", "--recurse-submodules"]
         else:
             retval = Cloner(ssl_no_verify)
             encoded_creds = SecretRegistry.register(base64.b64encode(f"{username}:{password}".encode('UTF8')).decode('UTF8'))
-            retval.__clone_cmd_stub = ["git", "clone", "-c", f"http.extraHeader=Authorization: Basic {encoded_creds}"]
+            retval.__clone_cmd_stub = ["git", "clone", "--recurse-submodules", "-c", f"http.extraHeader=Authorization: Basic {encoded_creds}"]
 
         retval.__protocol_matcher = Cloner.__https_matcher
         retval.__supported_protocols = Cloner.__http_protocols
@@ -95,7 +95,7 @@ class Cloner:
         retval.__protocol_matcher = Cloner.__https_matcher
         retval.__supported_protocols = Cloner.__http_protocols
         retval.__port = None
-        retval.__clone_cmd_stub = ["git", "clone", "-c", f"http.extraHeader=Authorization: Bearer {token}"]
+        retval.__clone_cmd_stub = ["git", "clone", "--recurse-submodules", "-c", f"http.extraHeader=Authorization: Bearer {token}"]
 
         return retval
 
@@ -113,7 +113,7 @@ class Cloner:
                 retval.__keyfile = dest.file.name
 
         retval.__additional_env['GIT_SSH_COMMAND'] = f"ssh -i '{shlex.quote(retval.__keyfile)}' -oIdentitiesOnly=yes -oStrictHostKeyChecking=accept-new -oHostKeyAlgorithms=+ssh-rsa -oPubkeyAcceptedAlgorithms=+ssh-rsa"
-        retval.__clone_cmd_stub = ["git", "clone"]
+        retval.__clone_cmd_stub = ["git", "clone", "--recurse-submodules"]
 
         return retval
     
