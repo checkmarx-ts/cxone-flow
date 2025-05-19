@@ -125,7 +125,7 @@ class Cloner:
         retval.__protocol_matcher = Cloner.__https_matcher
         retval.__supported_protocols = Cloner.__http_protocols
         retval.__port = None
-        retval.__clone_cmd_stub = ["git", "clone"]
+        retval.__clone_cmd_stub = ["git", "clone", "--recurse-submodules"]
 
         return retval
    
