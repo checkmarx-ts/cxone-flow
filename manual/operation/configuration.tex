@@ -162,6 +162,8 @@ elsewhere in this document.\\\\
     .4 \intlink{sec:feedback-elements}{...see "YAML \texttt{feedback} Elements"}.
     .3 \intlink{sec:yaml-moniker-kickoff}{kickoff} \DTcomment{[Optional]}.
     .4 \intlink{sec:kickoff-elements}{...see "YAML \texttt{kickoff} Elements"}.
+    .3 \intlink{sec:yaml-moniker-project-groups}{project-groups} \DTcomment{[Optional]}.
+    .4 \intlink{sec:project-groups-elements}{...see "YAML \texttt{project-groups} Elements"}.
     .3 \intlink{sec:yaml-moniker-project-naming}{project-naming} \DTcomment{[Optional]}.
     .4 \intlink{sec:project-naming-elements}{...see "YAML \texttt{project-naming} Elements"}.
     .3 \intlink{sec:yaml-moniker-repo-match}{repo-match} \DTcomment{[Required]}.
@@ -180,25 +182,25 @@ elsewhere in this document.\\\\
     .1 <root>.
     .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-connection}{connection} \DTcomment{[Required]}.
-    .4 \intlink{sec:yaml-connection-base-url}{base-url} \DTcomment{[Required]}.
-    .4 \intlink{sec:yaml-connection-base-display-url}{base-display-url} \DTcomment{[Required for some SCMs]}.
-    .4 \intlink{sec:yaml-connection-api-url-suffix}{api-url-suffix} \DTcomment{[Required for some SCMs]}.
-    .4 \intlink{sec:yaml-connection-shared-secret}{shared-secret} \DTcomment{[Required]}.
-    .4 \intlink{sec:yaml-generic-proxies}{proxies} \DTcomment{[Optional]}.
-    .4 \intlink{sec:yaml-generic-retries}{retries} \DTcomment{[Optional] Default: 3}.
-    .4 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
-    .4 \intlink{sec:yaml-generic-timeout-seconds}{timeout-seconds}\DTcomment{[Optional] Default: 60s}.
     .4 \intlink{sec:yaml-connection-api-auth}{api-auth} \DTcomment{[Required]}.
     .5 \intlink{sec:yaml-api-auth-app-private-key}{app-private-key} \DTcomment{[See element documentation]}.
     .5 \intlink{sec:yaml-api-auth-password}{password} \DTcomment{[See element documentation]}.
     .5 \intlink{sec:yaml-api-auth-token}{token} \DTcomment{[See element documentation]}.
     .5 \intlink{sec:yaml-api-auth-username}{username} \DTcomment{[See element documentation]}.
+    .4 \intlink{sec:yaml-connection-api-url-suffix}{api-url-suffix} \DTcomment{[Required for some SCMs]}.
+    .4 \intlink{sec:yaml-connection-base-url}{base-url} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-connection-base-display-url}{base-display-url} \DTcomment{[Required for some SCMs]}.
     .4 \intlink{sec:yaml-connection-clone-auth}{clone-auth} \DTcomment{[Optional] Default: \texttt{api-auth}}.
     .5 \intlink{sec:yaml-api-auth-password}{password} \DTcomment{[See element documentation]}.
     .5 \intlink{sec:yaml-clone-auth-ssh}{ssh} \DTcomment{[See element documentation]}.
     .5 \intlink{sec:yaml-clone-auth-ssh-port}{ssh-port} \DTcomment{[See element documentation]}.
     .5 \intlink{sec:yaml-api-auth-token}{token} \DTcomment{[See element documentation]}.
     .5 \intlink{sec:yaml-api-auth-username}{username} \DTcomment{[See element documentation]}.
+    .4 \intlink{sec:yaml-generic-proxies}{proxies} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-generic-retries}{retries} \DTcomment{[Optional] Default: 3}.
+    .4 \intlink{sec:yaml-connection-shared-secret}{shared-secret} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
+    .4 \intlink{sec:yaml-generic-timeout-seconds}{timeout-seconds}\DTcomment{[Optional] Default: 60s}.
 }
 
 \pagebreak
@@ -260,6 +262,26 @@ elsewhere in this document.\\\\
 }
 
 \pagebreak
+\paragraph{YAML \texttt{project-groups} Elements}\label{sec:project-groups-elements}
+\noindent\\
+
+The \texttt{group-assignments} element is a list containing one or more group matching specifications.
+The \texttt{group-assignments.groups} element is a list containing one or more groups to which a project
+is assigned.\\
+
+
+\dirtree{%
+    .1 <root>.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .3 \intlink{sec:yaml-moniker-project-groups}{project-groups} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-project-groups-group-assignments}{group-assignments} \DTcomment{[Required]}.
+    .5 \intlink{sec:yaml-project-groups-group-assignments-groups}{groups}.
+    .5 \intlink{sec:yaml-project-groups-group-assignments-repo-match}{repo-match}.
+    .4 \intlink{sec:yaml-project-groups-update-groups}{update-groups} \DTcomment{[Optional] Default: False}.
+}
+
+
+\pagebreak
 \paragraph{YAML \texttt{project-naming} Elements}\label{sec:project-naming-elements}
 \noindent\\
 
@@ -285,13 +307,13 @@ elsewhere in this document.\\\\
     .5 \intlink{sec:yaml-generic-amqp-amqp-url}{amqp-url} \DTcomment{[Required]}.
     .5 \intlink{sec:yaml-generic-amqp-amqp-user}{amqp-user} \DTcomment{[Optional]}.
     .5 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
-    .3 \intlink{sec:yaml-resolver-allowed-agent-tags}{allowed-agent-tags} \DTcomment{[Required]}.
-    .3 \intlink{sec:yaml-resolver-capture-resolver-logs}{capture-resolver-logs} \DTcomment{[Optional] Default: False}.
-    .3 \intlink{sec:yaml-resolver-default-agent-tag}{default-agent-tag} \DTcomment{[Optional]}.
-    .3 \intlink{sec:yaml-resolver-private-key}{private-key} \DTcomment{[Required]}.
-    .3 \intlink{sec:yaml-resolver-resolver-tag-key}{resolver-tag-key} \DTcomment{[Optional] Default: resolver}.
-    .3 \intlink{sec:resolver-scan-retries}{scan-retries}\DTcomment{[Optional] Default: 3}.
-    .3 \intlink{sec:resolver-scan-timeout-seconds}]{scan-timeout-seconds}\DTcomment{[Optional] Default: 10800}.
+    .4 \intlink{sec:yaml-resolver-allowed-agent-tags}{allowed-agent-tags} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-resolver-capture-resolver-logs}{capture-resolver-logs} \DTcomment{[Optional] Default: False}.
+    .4 \intlink{sec:yaml-resolver-default-agent-tag}{default-agent-tag} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-resolver-private-key}{private-key} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-resolver-resolver-tag-key}{resolver-tag-key} \DTcomment{[Optional] Default: resolver}.
+    .4 \intlink{sec:resolver-scan-retries}{scan-retries}\DTcomment{[Optional] Default: 3}.
+    .4 \intlink{sec:resolver-scan-timeout-seconds}{scan-timeout-seconds}\DTcomment{[Optional] Default: 10800}.
 }
 
 
@@ -315,8 +337,8 @@ elsewhere in this document.\\\\
 \input{operation/yaml/cxone.tex}
 \input{operation/yaml/feedback.tex}
 \input{operation/yaml/kickoff.tex}
+\input{operation/yaml/project-groups.tex}
 \input{operation/yaml/project-naming.tex}
-\input{operation/yaml/pull-request.tex}
 \input{operation/yaml/scan-monitor.tex}
 \input{operation/yaml/exclusions.tex}
 \input{operation/yaml/connection.tex}

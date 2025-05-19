@@ -1,26 +1,4 @@
-\subsubsection{YAML Element: base-url}\label{sec:yaml-connection-base-url}
-The base url of the SCM server's API endpoint. This should be the root URL for the API that can be used when composing all
-API calls related to the source of the received webhook event.
-
-\subsubsection{YAML Element: base-display-url}\label{sec:yaml-connection-base-display-url}
-An optional URL for use when composing links as part of an information display such as pull-request
-feedback. Most SCMs will not require this setting.
-
-\subsubsection{YAML Element: api-url-suffix}\label{sec:yaml-connection-api-url-suffix}
-An optional API URL suffix used when composing API request URLs. Most SCMs will not require this setting.
-
-\subsubsection{YAML Element: shared-secret}\label{sec:yaml-connection-shared-secret}
-The shared secret configured in the SCM used to sign webhook payloads. The shared secret must meet the
-following minimum criteria: 
-
-\begin{itemize}
-  \item 20 characters long
-  \item contains at least 3 numbers
-  \item contains at least 3 upper-case letters
-  \item contains at least 2 special characters
-\end{itemize}
-
-\subsubsection{YAML Element: api-auth}\label{sec:yaml-connection-api-auth}
+\subsubsection{YAML Element: <scm moniker>.connection.api-auth}\label{sec:yaml-connection-api-auth}
 A YAML dictionary of SCM authorization options for using the API.
 
 The authorization methods for \texttt{api-auth} 
@@ -32,8 +10,30 @@ authorization under the \texttt{clone-auth} element.
 The elements of \texttt{api-auth} are required depending on the type of authorization that
 needs to be performed.
 
-\subsubsection{YAML Element: clone-auth}\label{sec:yaml-connection-clone-auth}
+\subsubsection{YAML Element: <scm moniker>.connection.api-url-suffix}\label{sec:yaml-connection-api-url-suffix}
+An optional API URL suffix used when composing API request URLs. Most SCMs will not require this setting.
+
+\subsubsection{YAML Element: <scm moniker>.connection.base-url}\label{sec:yaml-connection-base-url}
+The base url of the SCM server's API endpoint. This should be the root URL for the API that can be used when composing all
+API calls related to the source of the received webhook event.
+
+\subsubsection{YAML Element: <scm moniker>.connection.base-display-url}\label{sec:yaml-connection-base-display-url}
+An optional URL for use when composing links as part of an information display such as pull-request
+feedback. Most SCMs will not require this setting.
+
+\subsubsection{YAML Element: <scm moniker>.connection.clone-auth}\label{sec:yaml-connection-clone-auth}
 Defines authorization options for performing clones when it differs from authorization for API requests.
 
 The \texttt{clone-auth} element is optional;  if not provided, the connection information defined
 in \texttt{api-auth} will be used.
+
+\subsubsection{YAML Element: <scm moniker>.connection.shared-secret}\label{sec:yaml-connection-shared-secret}
+The shared secret configured in the SCM used to sign webhook payloads. The shared secret must meet the
+following minimum criteria: 
+
+\begin{itemize}
+  \item 20 characters long
+  \item contains at least 3 numbers
+  \item contains at least 3 upper-case letters
+  \item contains at least 2 special characters
+\end{itemize}

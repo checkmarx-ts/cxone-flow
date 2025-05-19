@@ -1,13 +1,11 @@
-\subsubsection{YAML Element: poll-interval-seconds}\label{sec:yaml-scan-monitor-poll-interval-seconds}
-The number of seconds to use in calculating scan status polling time intervals.
-
-
-\subsubsection{YAML Element: poll-max-interval-seconds}\label{sec:yaml-scan-monitor-poll-max-interval-seconds}
-The maximum polling interval seconds.
-
-
-\subsubsection{YAML Element: poll-backoff-multiplier}\label{sec:yaml-scan-monitor-poll-backoff-multiplier}
+\subsubsection{YAML Element: <scm moniker>.feedback.scan-monitor.poll-backoff-multiplier}\label{sec:yaml-scan-monitor-poll-backoff-multiplier}
 A scalar used to increase the scan polling interval after each poll execution.
 
-\subsubsection{YAML Element: scan-timeout-hours}\label{sec:yaml-scan-monitor-scan-timeout-hours}
+\subsubsection{YAML Element: <scm moniker>.feedback.scan-monitor.poll-interval-seconds}\label{sec:yaml-scan-monitor-poll-interval-seconds}
+The number of seconds to use in calculating scan status polling time intervals.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.scan-monitor.poll-max-interval-seconds}\label{sec:yaml-scan-monitor-poll-max-interval-seconds}
+The maximum polling interval seconds.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.scan-monitor.scan-timeout-hours}\label{sec:yaml-scan-monitor-scan-timeout-hours}
 The number of hours before a feedback workflow aborts waiting for a scan to finish executing.  Set to 0 to wait forever.

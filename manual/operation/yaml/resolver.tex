@@ -1,33 +1,31 @@
-\subsubsection{YAML Element: private-key}\label{sec:yaml-resolver-private-key}
-The value specifies a file name found under the path defined by \texttt{secret-root-path}
-containing an unencrypted RSA or elliptic curve private key.  The associated public key will be distributed to
-resolver agents.
+\subsubsection{YAML Element: <scm moniker>.resolver.allowed-agent-tags}\label{sec:yaml-resolver-allowed-agent-tags}
+A list of resolver agent tags that are handled by the \cxoneflow service.  The agent tags come from
+\cxone project tags using the \texttt{<resolver-tag-key>:<agent tag>} format.  
 
-
-\subsubsection{YAML Element: capture-resolver-logs}\label{sec:yaml-resolver-capture-resolver-logs}
+\subsubsection{YAML Element: <scm moniker>.resolver.capture-resolver-logs}\label{sec:yaml-resolver-capture-resolver-logs}
 If set to True, any logs emitted by the resolver agent are transported back to the \cxoneflow server and
 emitted in the \cxoneflow logs.  This can be used to troubleshoot resolver issues encountered by resolver
 agents.
 
-\subsubsection{YAML Element: resolver-tag-key}\label{sec:yaml-resolver-resolver-tag-key}
-The \cxone project tag key value used to find the resolver agent tag that should be used for a resolver scan.
-This is described in more detail in Section \ref{sec:resolver-agents}.
-
-\subsubsection{YAML Element: default-agent-tag}\label{sec:yaml-resolver-default-agent-tag}
+\subsubsection{YAML Element: <scm moniker>.resolver.default-agent-tag}\label{sec:yaml-resolver-default-agent-tag}
 An agent tag found in the list of tags configured in \texttt{allowed-agent-tags}.  If provided,
 any \cxone project that does not have an agent tag (assigned with the format \texttt{<resolver-tag-key>:<agent tag>})
 will direct a resolver scan to agents with this tag.
 
-\subsubsection{YAML Element: allowed-agent-tags}\label{sec:yaml-resolver-allowed-agent-tags}
-A list of resolver agent tags that are handled by the \cxoneflow service.  The agent tags come from
-\cxone project tags using the \texttt{<resolver-tag-key>:<agent tag>} format.  
+\subsubsection{YAML Element: <scm moniker>.resolver.private-key}\label{sec:yaml-resolver-private-key}
+The value specifies a file name found under the path defined by \texttt{secret-root-path}
+containing an unencrypted RSA or elliptic curve private key.  The associated public key will be distributed to
+resolver agents.
 
+\subsubsection{YAML Element: <scm moniker>.resolver.resolver-tag-key}\label{sec:yaml-resolver-resolver-tag-key}
+The \cxone project tag key value used to find the resolver agent tag that should be used for a resolver scan.
+This is described in more detail in Section \ref{sec:resolver-agents}.
 
-\subsubsection{scan-retries}\label{sec:resolver-scan-retries}
+\subsubsection{<scm moniker>.resolver.scan-retries}\label{sec:resolver-scan-retries}
 The number of times a request for a resolver scan will be retried after the initial request if no distributed resolver agent handles the scan.
 Any scan request not handled by a distributed resolver agent before the \intlink{sec:resolver-scan-timeout-seconds}{scan-timeout-seconds} setting 
 will be evaluated for resubmission.  If the number of retries exceeds this amount, the scan will be returned in a failed state.
 
-\subsubsection{scan-timeout-seconds}\label{sec:resolver-scan-timeout-seconds}
+\subsubsection{<scm moniker>.resolver.scan-timeout-seconds}\label{sec:resolver-scan-timeout-seconds}
 The number of seconds before a scan request is not selected by a distributed resolver agent before it times out.  When the scan
 request times out, it may be resubmitted or aborted as a failed scan.

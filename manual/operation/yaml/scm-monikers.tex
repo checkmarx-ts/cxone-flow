@@ -1,10 +1,25 @@
-\subsubsection{YAML Element: scan-config}\label{sec:yaml-moniker-scan-config}
-A block element where the child elements define the default scan configuration for this service endpoint.
+\subsubsection{YAML Element: <scm moniker>.connection}\label{sec:yaml-moniker-connection}
+A block element where the child elements define the SCM connection parameters for this service definition.
 
-\subsubsection{YAML Element: service-name}\label{sec:yaml-moniker-service-name}
-A moniker for the service definition. The moniker is used for logging and workflow purposes.
+\subsubsection{YAML Element: <scm moniker>.cxone}\label{sec:yaml-moniker-cxone}
+A block element where the child elements define the connection configuration for the \cxone API. 
 
-\subsubsection{YAML Element: repo-match}\label{sec:yaml-moniker-repo-match}
+\subsubsection{YAML Element: <scm moniker>.feedback}\label{sec:yaml-moniker-feedback}
+A block element where the child elements define the configuration for feedback workflows. 
+
+\subsubsection{YAML Element: <scm moniker>.kickoff}\label{sec:yaml-moniker-kickoff}
+A block element where the child elements define the configuration for kickoff workflows. 
+
+\subsubsection{YAML Element: <scm moniker>.project-groups}\label{sec:yaml-moniker-project-groups}
+A block element where the child elements define the configuration for automatic project group assignment. 
+
+\subsubsection{YAML Element: <scm moniker>.project-naming}\label{sec:yaml-moniker-project-naming}
+A block element where the child elements define the configuration for dynamic project naming. 
+
+\subsubsection{YAML Element: <scm moniker>.resolver}\label{sec:yaml-moniker-resolver}
+A block element where the child elements define the configuration for support of resolver agents. 
+
+\subsubsection{YAML Element: <scm moniker>.repo-match}\label{sec:yaml-moniker-repo-match}
 A regex applied to the source repository.  If the webhook payload has
 a clone URL that matches the regex, this service definition is used to orchestrate scanning
 for the received event.  As of \cxoneflow 2.1.0, this element will no longer allow regular
@@ -16,21 +31,15 @@ the expression can be followed by \texttt{.*} to match events from any repositor
 This has been changed in consideration of secure deployment practices.  Please refer to
 Appendix \ref{sec:cxoneflow-security} for more information.
 
-\subsubsection{YAML Element: connection}\label{sec:yaml-moniker-connection}
-A block element where the child elements define the SCM connection parameters for this service definition.
+\subsubsection{YAML Element: <scm moniker>.scan-config}\label{sec:yaml-moniker-scan-config}
+A block element where the child elements define the default scan configuration for this service endpoint.
 
-\subsubsection{YAML Element: cxone}\label{sec:yaml-moniker-cxone}
-A block element where the child elements define the connection configuration for the \cxone API. 
+\subsubsection{YAML Element: <scm moniker>.service-name}\label{sec:yaml-moniker-service-name}
+A moniker for the service definition. The moniker is used for logging and workflow purposes.
 
-\subsubsection{YAML Element: feedback}\label{sec:yaml-moniker-feedback}
-A block element where the child elements define the configuration for feedback workflows. 
 
-\subsubsection{YAML Element: kickoff}\label{sec:yaml-moniker-kickoff}
-A block element where the child elements define the configuration for kickoff workflows. 
 
-\subsubsection{YAML Element: project-naming}\label{sec:yaml-moniker-project-naming}
-A block element where the child elements define the configuration for dynamic project naming. 
 
-\subsubsection{YAML Element: resolver}\label{sec:yaml-moniker-resolver}
-A block element where the child elements define the configuration for support of resolver agents. 
+
+
 

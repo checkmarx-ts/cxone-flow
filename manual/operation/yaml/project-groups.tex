@@ -1,0 +1,18 @@
+\subsubsection{YAML Element: <scm moniker>.project-groups.group-assignments}\label{sec:yaml-project-groups-group-assignments}
+A list of one or more group assignment specifications containing a \texttt{repo-match} element and an associated \texttt{groups}
+element.
+
+\subsubsection{YAML Element: <scm moniker>.project-groups.group-assignments.groups}\label{sec:yaml-project-groups-group-assignments-groups}
+A list of one or more group paths to which a project is assigned when orchestrating a scan.  The groups are assigned only when the
+clone URL is a match to the regular expression configured in the \texttt{repo-match} element.
+
+\subsubsection{YAML Element: <scm moniker>.project-groups.group-assignments.repo-match}\label{sec:yaml-project-groups-group-assignments-repo-match}
+A regular expression that is applied to the clone URL.  If the regular expression matches the clone URL, the project is set as a
+member of the groups found in the \texttt{groups} list.
+
+\subsubsection{YAML Element: <scm moniker>.project-groups.update-groups}\label{sec:yaml-project-groups-update-groups}
+
+A boolean value that defaults to False.  If set to True, a check is made at the time a scan is orchestrated to validate that
+an existing \cxone project is correctly assigned to the defined group memberships.  If any of the groups for which the project
+would be assigned are missing, the project is updated with the configured group assignments.
+

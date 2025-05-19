@@ -1,0 +1,34 @@
+\begin{code}{Minimal Groups YAML Configuration Example}{Azure DevOps}{}
+  secret-root-path: /run/secrets
+  server-base-url: https://cxoneflow.mydomain.com:8443/
+  script-path: /scripts
+
+  adoe:
+      - service-name: AzureDevOps
+        repo-match: ^http(s)?:(\/){2}(.+@)?dev\.azure\.com.*
+        feedback:
+          pull-request:
+            enabled: True
+        project-groups:
+          update-groups: True
+          group-assignments:
+            - repo-match: .*prod
+              groups:
+                - /Production
+            - repo-match: .*
+              groups:
+                - /All
+        connection:
+          base-url: https://dev.azure.com
+          shared-secret: scm-shared-secret
+          api-auth:
+            token: adoe-token
+        cxone:
+          tenant: mytenant
+          oauth:
+            client-id: my-oauth-id
+            client-secret: my-oauth-secret
+          iam-endpoint: US
+          api-endpoint: US
+\end{code}
+    

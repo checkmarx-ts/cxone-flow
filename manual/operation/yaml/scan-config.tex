@@ -1,4 +1,4 @@
-\subsubsection{YAML Element: default-scan-engines}\label{sec:yaml-scan-config-default-scan-engines}
+\subsubsection{YAML Element: <scm moniker>.scan-config.default-scan-engines}\label{sec:yaml-scan-config-default-scan-engines}
 
 A dictionary YAML element that follows the format \texttt{<engine-name>:<engine config option dictionary>}
 corresponding to the configuration element of the
@@ -6,9 +6,10 @@ corresponding to the configuration element of the
 Any static engine configuration supported by an engine can be defined here.  If a configuration is defined that is not supported
 by the engine, scans may fail to start.
 
-\subsubsection{YAML Element: default-scan-tags}\label{sec:yaml-scan-config-default-scan-tags}
+\subsubsection{YAML Element: <scm moniker>.scan-config.default-project-tags}\label{sec:yaml-scan-config-default-project-tags}
+A dictionary YAML element containing static key:value pairs that are assigned\\to each project upon project creation.
+
+\subsubsection{YAML Element: <scm moniker>.scan-config.default-scan-tags}\label{sec:yaml-scan-config-default-scan-tags}
 A dictionary YAML element containing static key:value pairs that are assigned to each scan.
 
-\subsubsection{YAML Element: default-project-tags}\label{sec:yaml-scan-config-default-project-tags}
-A dictionary YAML element containing static key:value pairs that are assigned\\to each project upon project creation.
 
