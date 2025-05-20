@@ -101,6 +101,15 @@ are intended to be simple implementations.  A dynamic projecting naming script t
 condition, or returns the same name for multiple repositories will cause scans to be created in incorrect projects.  If
 a dynamic project naming script is failing with high frequency, consider simplifying the implementation.
 
+Intermittent failures of the dynamic naming script may cause projects with the default name to appear when the dynamic
+naming script fails to execute properly.  Scripts that use the SCM API, for example, may occasionally see an error
+respond when attempting to use the SCM's API.  The dynamic naming script should be resilient to temporary issues
+accessing the SCM API.  Keep in mind that coding around system failures due to an instable system can only go so
+far before the remote system's instability problems must be remediated to ensure reliability.
+
+If the dynamic script failures due to SCM instability are impacting the use of the dynamic naming feature, the
+only recourse will be to simplify the implementation such that contact with the SCM's APIs are not required.
+
 
 \section{Authoring Dynamic Project Naming Scripts}
 
@@ -150,81 +159,26 @@ Another option is to use the Python built-in \texttt{logging} module.  Logging o
 observed along with any other logging output produced by \cxoneflowns.  Using the logging output, it is possible to track
 execution logic and view the data stored in any variables.
 
-\subsection{Example Code}
+\subsection{Example Dynamic Naming Script Code}
 
-\subsubsection{Simple Module Example}
+The example naming scripts in this section can be used as a starting point for creating your own
+dynamic naming scripts.
 
-The listing below for the \texttt{bbdc\_naming} module creates a project name from
-the event context in the format of \texttt{<project key>\_<repository name>}:
+\pagebreak
+\subsubsection{BitBucket Data Center Example}
+\input{project-naming/bbdc_naming.tex}
 
-\begin{code}{Simple Dynamic Project Naming Module}{[bbdc\_naming.py]}{}
-from api_utils.auth_factories import EventContext
-from scm_services import BasicSCMService
-import logging
+\pagebreak
+\subsubsection{Azure DevOps Example}
+\input{project-naming/adoe_naming.tex}
 
-async def event_project_name_factory(context : EventContext, scm_service : BasicSCMService) -> str:
-  # Get an instance of the logger
-  log = logging.getLogger(__name__)
+\pagebreak
+\subsubsection{GitHub Example}
+\input{project-naming/ghe_naming.tex}
 
-  # Output the event context to the debug log
-  log.debug(context)
-
-
-  # Look for the repository element that is included in push/pull-request events
-  if 'repository' in context.message.keys():
-    slug = context.message['repository']['slug']
-
-    # Check for the project element that has the project key
-    if 'project' in context.message['repository'].keys():
-      key = context.message['repository']['project']['key']
-      return f"{key}_{slug}"
-
-  # Failure causes the default project name to be used
-  return None
-\end{code}
-
-\subsubsection{Complex Module Example}
-
-The dynamic project naming script in the code listing for the \texttt{adoe\_naming}
-module is shown below.  This is used to create a project with the naming convention:\\\\
-\texttt{<first 6 or less chars of collection>\_<project name>\_<repo name>}\\
-
-In this example, an authenticated API call is made to retrieve the collection name
-for the collection id provided in the event context.
-
-\begin{code}{Complex Dynamic Project Naming Module}{[adoe\_naming.py]}{}
-from api_utils.auth_factories import EventContext
-from scm_services import BasicSCMService
-
-def normalize_collection_name(col_name):
-    if len(col_name) < 6:
-      return col_name
-    else:
-      return col_name[0:6]
-
-async def event_project_name_factory(context : EventContext, scm_service : BasicSCMService) -> str:
-  if 'resource' in context.message.keys():
-    # Webhook event
-    repo_name = context.message['resource']['repository']['name']
-    project_name = context.message['resource']['repository']['project']['name']
-    collection_id = context.message['resourceContainers']['collection']['id']
-
-    # Perform a GET using the scm_service object.
-    collection_lookup_resp = await scm_service.exec("GET", f"/_apis/projectcollections/{collection_id}", event_context=context)
-
-    if not collection_lookup_resp.ok:
-      return None
-
-    collection_name = collection_lookup_resp.json()['name']
-  else:
-    # Kickoff event
-    collection_name = context.message['collection_name']
-    repo_name = context.message['repo_name']
-    project_name = context.message['project_name']
-
-  return f"{normalize_collection_name(collection_name)}_{project_name}_{repo_name}"
-\end{code}
-
+\pagebreak
+\subsubsection{Gitlab Example}
+\input{project-naming/gl_naming.tex}
 
 
 
