@@ -1,4 +1,4 @@
-import zipfile, tempfile, logging
+import zipfile, tempfile, logging, asyncio
 from pathlib import Path, PurePath
 from time import perf_counter_ns
 from _version import __version__
@@ -96,6 +96,12 @@ class OrchestratorBase:
     async def _get_clone_worker(self, scm_service : SCMService, clone_url : str, failures : int) -> CloneWorker:
         return await scm_service.cloner.clone(clone_url)
     
+
+    @staticmethod
+    def __zip_write_delegate(zip_entries : Dict, zipfile : zipfile.ZipFile):
+        for entry_key in zip_entries.keys():
+            zipfile.write(entry_key, zip_entries[entry_key])
+    
     async def __exec_immediate_scan(self, cxone_service : CxOneService, scm_service : SCMService, 
         clone_url : str, source_hash : str, source_branch : str, 
         project_config : ProjectRepoConfig, tags : dict, 
@@ -127,10 +133,9 @@ class OrchestratorBase:
                         with zipfile.ZipFile(zip_file, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as upload_payload:
                             zip_entries = OrchestratorBase.__get_path_dict(code_path)
 
-                            OrchestratorBase.log().debug(f"[{clone_url}][{source_branch}][{source_hash}] zipped {len(zip_entries)} files for scan.")
+                            OrchestratorBase.log().debug(f"[{clone_url}][{source_branch}][{source_hash}] zipping {len(zip_entries)} files for scan.")
 
-                            for entry_key in zip_entries.keys():
-                                upload_payload.write(entry_key, zip_entries[entry_key])
+                            await asyncio.to_thread(OrchestratorBase.__zip_write_delegate, zip_entries, upload_payload)
                             
                             OrchestratorBase.log().info(f"{clone_url} zipped in {perf_counter_ns() - check}ns")
 
