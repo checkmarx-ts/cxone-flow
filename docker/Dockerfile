@@ -62,4 +62,6 @@ COPY docker/nginx /opt/cxone/nginx
 
 RUN rm -rf /opt/cxone/docker
 
+HEALTHCHECK --start-period=2m CMD (rabbitmqctl await_startup && curl -f http://localhost:8000/ping) || exit 1
+
 ENTRYPOINT ["/opt/cxone/entrypoint.sh"]
