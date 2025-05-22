@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-update-ca-certificates
+sudo update-ca-certificates
 export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 for f in $(ls /opt/cxone/nginx);
@@ -10,13 +10,13 @@ do
 done
 
 echo Starting RabbitMQ...
-rabbitmq-server -detached
+sudo rabbitmq-server -detached
 
 LOOP=1
 echo Waiting for RabbitMQ to start...
 while [ $LOOP -eq 1 ]
 do
-    rabbitmqctl await_startup 2> /dev/null && LOOP=0 || : 
+    sudo rabbitmqctl await_startup 2> /dev/null && LOOP=0 || : 
     sleep 1
 done
 
@@ -26,9 +26,7 @@ python3 rabbit_config.py
 echo Spawning workflow agents...
 python3 workflow_agent.py | tee -a /var/log/cxoneflow/workflow.log 2>&1 &
 
-
-
 echo Launching Nginx...
-nginx
+sudo nginx
 
 gunicorn --bind=127.0.0.1:5000 --name=CxOneFlow wsgi:app

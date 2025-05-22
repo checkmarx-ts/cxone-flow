@@ -1,0 +1,4 @@
+cxoneflow ALL=(root) NOPASSWD: /usr/sbin/rabbitmqctl await_startup
+cxoneflow ALL=(root) NOPASSWD: /usr/sbin/rabbitmq-server -detached
+cxoneflow ALL=(root) NOPASSWD: /usr/sbin/update-ca-certificates
+cxoneflow ALL=(root) NOPASSWD: /usr/sbin/nginx
