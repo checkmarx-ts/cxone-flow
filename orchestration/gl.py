@@ -36,6 +36,7 @@ class GitlabOrchestrator(OrchestratorBase):
     __push_before_hash_query = parse("$.before")
     __push_ref_query = parse("$.ref")
     __push_ref_protected_query = parse("$.ref_protected")
+    __push_default_branch_query = parse("$.project.default_branch")
 
     __pr_draft_query = parse("$.object_attributes.draft")
     __pr_link_query = parse("$.object_attributes.url")
@@ -165,6 +166,10 @@ class GitlabOrchestrator(OrchestratorBase):
         self.__protected_branches = []
         if GitlabOrchestrator.__push_ref_protected_query.find(self.event_context.message).pop().value:
             self.__protected_branches.append(OrchestratorBase.normalize_branch_name(self.__target_branch))
+
+        found_default = GitlabOrchestrator.__push_default_branch_query.find(self.event_context.message)
+        if len(found_default) > 0:
+            self.__protected_branches.append(OrchestratorBase.normalize_branch_name(found_default.pop().value))
 
         return await OrchestratorBase._execute_push_scan_workflow(self, services, additional_content, scan_tags)
 

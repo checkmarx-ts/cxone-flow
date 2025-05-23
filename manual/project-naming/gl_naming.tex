@@ -22,7 +22,7 @@ async def event_project_name_factory(context: EventContext, scm_service: BasicSC
         project_name = context.message["project"]["name"]
 
         # Get the full proper name of the repository from the project configuration.
-        resp = await scm_service.exec("GET", f"/projects/{context.message['project_id']}")
+        resp = await scm_service.exec("GET", f"/projects/{context.message['project']['id']}")
         if resp.ok:
             full_name = resp.json()["name_with_namespace"]
 
