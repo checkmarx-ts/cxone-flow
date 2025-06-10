@@ -138,7 +138,7 @@ class AzureDevOpsEnterpriseOrchestrator(OrchestratorBase):
             policies = self.__policy_scope_query.find(json_on_ok(resp))
 
             branches = branches + [AzureDevOpsEnterpriseOrchestrator.normalize_branch_name(p.value['refName']) 
-                                   for p in policies if p.value['repositoryId'] == self.__repo_id]
+                                   for p in policies if 'refName' in p.value.keys() and p.value['repositoryId'] == self.__repo_id]
 
             if 'x-ms-continuationtoken' in resp.headers.keys():
                 query['continuationToken'] = resp.headers['x-ms-continuationtoken']
