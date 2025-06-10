@@ -390,14 +390,16 @@ class CxOneFlowConfig(CommonConfig):
         update_flag = False
 
         if config_dict is not None:
-            assignments = CxOneFlowConfig._get_value_for_key_or_fail(f"{config_path}/group-assigments", "group-assigments", config_dict)
+            assignments = CxOneFlowConfig._get_value_for_key_or_default("group-assigments", config_dict, 
+                    CxOneFlowConfig._get_value_for_key_or_fail(f"{config_path}", "group-assignments", config_dict))
+
             update_flag = CxOneFlowConfig._get_value_for_key_or_default("update-groups", config_dict, False)
             assign_index = 0
             for assign in assignments:
                 grouping.add_assignment_rule(CxOneFlowConfig._get_value_for_key_or_fail(
-                                            f"{config_path}/group-assigments[{assign_index}]", "repo-match", assign),
+                                            f"{config_path}/group-assignments[{assign_index}]", "repo-match", assign),
                                             CxOneFlowConfig._get_value_for_key_or_fail(
-                                            f"{config_path}/group-assigments[{assign_index}]", "groups", assign))
+                                            f"{config_path}/group-assignments[{assign_index}]", "groups", assign))
                 assign_index += 1
 
         return grouping, update_flag
