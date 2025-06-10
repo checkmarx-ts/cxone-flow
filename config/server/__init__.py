@@ -391,7 +391,10 @@ class CxOneFlowConfig(CommonConfig):
 
         if config_dict is not None:
             assignments = CxOneFlowConfig._get_value_for_key_or_default("group-assigments", config_dict, 
-                    CxOneFlowConfig._get_value_for_key_or_fail(f"{config_path}", "group-assignments", config_dict))
+                    CxOneFlowConfig._get_value_for_key_or_default("group-assignments", config_dict, None))
+            
+            if assignments is None:
+                raise ConfigurationException.missing_key_path(f"{config_path}/group-assignments")
 
             update_flag = CxOneFlowConfig._get_value_for_key_or_default("update-groups", config_dict, False)
             assign_index = 0
