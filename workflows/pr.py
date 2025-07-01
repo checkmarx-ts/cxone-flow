@@ -256,12 +256,28 @@ class PullRequestFeedback(PullRequestDecoration):
 
     def __add_sca_details(self, display_url, project_id, scanid):
         title_added = False
+
+        severity_rank = {
+            "Low": 1,
+            "Medium": 2,
+            "High": 3,
+            "Critical": 4
+        }
+
         for result in PullRequestFeedback.__sca_results_query.find(self.__enhanced_report):
             x = result.value
-
             
             for category in x['packageCategory']:
-                for cat_result in category['categoryResults']:
+
+                # sorts the category results by severity rank
+                # this is to ensure that the most severe issues are displayed first
+                sorted_cat_results = sorted(
+                    category.get('categoryResults', []),
+                    key=lambda cr: severity_rank.get(cr['severity'], 0),
+                    reverse=True
+                )
+
+                for cat_result in sorted_cat_results:
                     if not (PullRequestFeedback.__test_in_enum(ResultStates, cat_result['state'], self.__excluded_states) or 
                         PullRequestFeedback.__test_in_enum(ResultSeverity, cat_result['severity'], self.__excluded_severities)):
 
