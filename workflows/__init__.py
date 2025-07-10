@@ -1,5 +1,5 @@
 from enum import Enum
-from aenum import MultiValueEnum
+from aenum import MultiValueEnum, AutoNumberEnum
 
 class __base_enum(Enum):
     def __str__(self):
@@ -46,11 +46,15 @@ class ResultStates(GoofyEnum):
 
 
 class ResultSeverity(GoofyEnum):
-    CRITICAL = "Critical"
-    HIGH = "High"
-    MEDIUM = "Medium"
-    LOW = "Low"
-    INFO = "Info", "Information"
+    CRITICAL = "Critical", 0
+    HIGH = "High", 1
+    MEDIUM = "Medium", 2
+    LOW = "Low", 3
+    INFO = "Info", "Information", "", 4
+
+    @property
+    def rank(self):
+        return self.values[-1:][0]
 
 
 

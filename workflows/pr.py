@@ -4,10 +4,76 @@ from jsonpath_ng.ext import parser
 from workflows.messaging import PRDetails
 from typing import Callable, List, Type, Dict
 from . import ResultSeverity, ResultStates
+from sortedcontainers import SortedList
 import re, urllib
 
 
+class SortedDetailRows:
+    class DetailRow:
+        def __init__(self, severity : ResultSeverity, output_order : List[str], **kwargs):
+            self.__severity = severity
+            self.__output_order = output_order
+            self.__field_data = kwargs
+
+        @property
+        def severity(self) -> ResultSeverity:
+            return self.__severity
+
+        @property
+        def severity_rank_key(self) -> str:
+            return f"{self.__severity.rank:03}"
+        
+        def __getitem__(self, key) -> str:
+            return self.__field_data.get(key, "")
+        
+        def __str__(self):
+            return f"| {' | '.join([self.__field_data[field] for field in self.__output_order])} |"
+        
+    def __init__(self, header_order : List[str], key_lambda : Callable[[DetailRow], str]):
+        self.__details = SortedList(key = key_lambda)
+        self.__header_order = header_order
+
+    def add_row(self, severity : ResultSeverity, **kwargs):
+        self.__details.add(SortedDetailRows.DetailRow(severity, self.__header_order, **kwargs))
+
+    def __str__(self):
+        return "\n".join([str(x) for x in self.__details])
+
+
 class PullRequestDecoration:
+
+    class SastDetailRows(SortedDetailRows):
+        def __init__(self):
+            super().__init__(["severity_image_link","issue", "source_permalink", "viewer_link"], lambda x: x.severity_rank_key + x['issue'])
+
+    class ScaDetailRows(SortedDetailRows):
+
+        @staticmethod
+        def normalized_version(version : str) -> str:
+            try:
+                elements = version.split('.')
+                
+                if len(elements) == 0:
+                    return version
+                
+                padded_elements = [f"{int(x):03}" for x in elements]
+                return ".".join(padded_elements)
+            except ValueError:
+                return version
+
+        def __init__(self):
+            super().__init__(["severity_image_link","cve", "package", "viewer_link"], 
+                             lambda x: x.severity_rank_key + x['package_name'] + x['package_version'] + x['cve'])
+
+
+    class IacDetailRows(SortedDetailRows):
+        def __init__(self):
+            super().__init__(["severity_image_link", "technology", "source_permalink", "query", "viewer_link"], lambda x: x.severity_rank_key + x['technology'])
+
+    class ResolvedDetailRows(SortedDetailRows):
+        def __init__(self):
+            super().__init__(["severity_image_link", "name", "viewer_link"], lambda x: x.severity_rank_key + x['name'])
+
     __comment = "[//]:#"
 
     __identifier = __comment + "cxoneflow"
@@ -34,9 +100,9 @@ class PullRequestDecoration:
         "high" : "high.png",
         "medium" : "medium.png",
         "low" : "low.png",
-        "information" : "low.png",
-        "info" : "low.png",
-        "informational" : "low.png"
+        "information" : "info.png",
+        "info" : "info.png",
+        "informational" : "info.png"
     }
 
     @staticmethod
@@ -58,6 +124,11 @@ class PullRequestDecoration:
             PullRequestDecoration.__details_begin : [],
             PullRequestDecoration.__details_end : None,
         }
+
+        self.__sast_detail_rows = PullRequestDecoration.SastDetailRows()
+        self.__sca_detail_rows = PullRequestDecoration.ScaDetailRows()
+        self.__iac_detail_rows = PullRequestDecoration.IacDetailRows()
+        self.__resolved_detail_rows = PullRequestDecoration.ResolvedDetailRows()
 
     @property
     def server_base_url(self) -> str:
@@ -101,28 +172,44 @@ class PullRequestDecoration:
     def add_to_annotation(self, line : str):
         self.__elements[PullRequestDecoration.__annotation_begin].append(line)
 
-    def add_sast_detail(self, severity : str, issue : str, source_permalink : str, link : str):
-        self.__elements[PullRequestDecoration.__details_begin].append(f"| {severity} | {issue} | {source_permalink} | {link} |")
+    def add_sast_detail(self, severity : ResultSeverity, severity_image_link : str, issue : str, source_permalink : str, viewer_link : str):
+        self.__sast_detail_rows.add_row(ResultSeverity(severity), 
+                                        severity_image_link=severity_image_link,
+                                        issue=issue,
+                                        source_permalink=source_permalink,
+                                        viewer_link=viewer_link)
 
     def start_sast_detail_section(self):
         self.__elements[PullRequestDecoration.__details_begin].append("\n")
         self.__elements[PullRequestDecoration.__details_begin].append("# SAST Results")
-        self.__elements[PullRequestDecoration.__details_begin].append("\n")
         self.__elements[PullRequestDecoration.__details_begin].append("| Severity | Issue | Source | Checkmarx Insight |")
         self.__elements[PullRequestDecoration.__details_begin].append("| :-: | - | - | - |")
+        self.__elements[PullRequestDecoration.__details_begin].append(self.__sast_detail_rows)
 
-    def add_sca_detail(self, severity : str, package_name : str, package_version : str, link : str):
-        self.__elements[PullRequestDecoration.__details_begin].append(f"| {severity} | {package_name} | {package_version} | {link} |")
+    def add_sca_detail(self, severity : ResultSeverity, severity_image_link : str, cve : str, package_name : str, package_version : str, viewer_link : str):
+        self.__sca_detail_rows.add_row(ResultSeverity(severity), 
+                                        severity_image_link=severity_image_link,
+                                        cve=cve,
+                                        package=f"{package_name}:{package_version}",
+                                        viewer_link=viewer_link,
+                                        package_name=package_name,
+                                        package_version=PullRequestDecoration.ScaDetailRows.normalized_version(package_version))
 
     def start_sca_detail_section(self):
         self.__elements[PullRequestDecoration.__details_begin].append("\n")
         self.__elements[PullRequestDecoration.__details_begin].append("# SCA Results")
         self.__elements[PullRequestDecoration.__details_begin].append("\n")
-        self.__elements[PullRequestDecoration.__details_begin].append("| Severity | Package Name | Package Version | Checkmarx Insight |")
+        self.__elements[PullRequestDecoration.__details_begin].append("| Severity | CVE | Package | Checkmarx Insight |")
         self.__elements[PullRequestDecoration.__details_begin].append("| :-: | - | - | - |")
+        self.__elements[PullRequestDecoration.__details_begin].append(self.__sca_detail_rows)
 
-    def add_iac_detail(self, severity : str, technology : str, source_permalink : str, query : str, link : str):
-        self.__elements[PullRequestDecoration.__details_begin].append(f"| {severity} | {technology} | {source_permalink} | {query} | {link} |")
+    def add_iac_detail(self, severity : ResultSeverity, severity_image_link : str, technology : str, source_permalink : str, query : str, viewer_link : str):
+        self.__iac_detail_rows.add_row(ResultSeverity(severity), 
+                                        severity_image_link=severity_image_link,
+                                        technology=technology,
+                                        source_permalink=source_permalink,
+                                        query=query,
+                                        viewer_link=viewer_link)
 
     def start_iac_detail_section(self):
         self.__elements[PullRequestDecoration.__details_begin].append("\n")
@@ -130,16 +217,21 @@ class PullRequestDecoration:
         self.__elements[PullRequestDecoration.__details_begin].append("\n")
         self.__elements[PullRequestDecoration.__details_begin].append("| Severity | Technology | Source | Query | Checkmarx Insight |")
         self.__elements[PullRequestDecoration.__details_begin].append("| :-: | - | - | - | - |")
+        self.__elements[PullRequestDecoration.__details_begin].append(self.__iac_detail_rows)
 
-    def add_resolved_detail(self, severity : str, name : str, link : str):
-        self.__elements[PullRequestDecoration.__details_begin].append(f"| {severity} | {name} | {link} |")
+    def add_resolved_detail(self, severity : ResultSeverity, severity_image_link : str, name : str, viewer_link : str):
+        self.__resolved_detail_rows.add_row(ResultSeverity(severity), 
+                                        severity_image_link=severity_image_link,
+                                        name=name,
+                                        viewer_link=viewer_link)
 
     def start_resolved_detail_section(self):
         self.__elements[PullRequestDecoration.__details_begin].append("\n")
-        self.__elements[PullRequestDecoration.__details_begin].append("# Resolved Issues")
+        self.__elements[PullRequestDecoration.__details_begin].append("# Resolved SAST Results")
         self.__elements[PullRequestDecoration.__details_begin].append("\n")
         self.__elements[PullRequestDecoration.__details_begin].append("| Severity | Name | Checkmarx Insight |")
         self.__elements[PullRequestDecoration.__details_begin].append("| :-: | - | - |")
+        self.__elements[PullRequestDecoration.__details_begin].append(self.__resolved_detail_rows)
 
 
     def start_summary_section(self, included_severities : List[ResultSeverity]):
@@ -149,7 +241,7 @@ class PullRequestDecoration:
         self.__elements[PullRequestDecoration.__summary_begin].append("# Summary of Vulnerabilities")
         self.__elements[PullRequestDecoration.__summary_begin].append("\n")
         self.__elements[PullRequestDecoration.__summary_begin].append(f"| Engine | {sev_header} |")
-        self.__elements[PullRequestDecoration.__summary_begin].append(f"{"|--".join("" for x in included_severities)}|--|--|")
+        self.__elements[PullRequestDecoration.__summary_begin].append(f"|--{"| :-: " * len(included_severities)}|")
         
 
     def add_summary_entry(self, engine: str, counts_by_sev : Dict[ResultSeverity, str], included_severities : List[ResultSeverity]):
@@ -165,7 +257,7 @@ class PullRequestDecoration:
             content.append("\n")
             if self.__elements[k] is not None:
                 for item in self.__elements[k]:
-                    content.append(item)
+                    content.append(str(item))
         
         return "\n".join(content)
 
@@ -214,11 +306,11 @@ class PullRequestFeedback(PullRequestDecoration):
         self.__add_annotation_section(display_url, project_id, scanid, pr_details)
         self.__add_summary_section()
         self.__add_sast_details(pr_details)
+        self.__add_resolved_details(project_id)
         self.__add_sca_details(display_url, project_id, scanid)
         self.__add_iac_details(pr_details)
-        self.__add_resolved_details()
 
-    def __add_resolved_details(self):
+    def __add_resolved_details(self, project_id : str):
         title_added = False
         for resolved in PullRequestFeedback.__resolved_results_query.find(self.__enhanced_report):
             for vuln in resolved.value['resolvedVulnerabilities']:
@@ -230,9 +322,26 @@ class PullRequestFeedback(PullRequestDecoration):
                             self.start_resolved_detail_section()
                             title_added = True
 
-                        self.add_resolved_detail(PullRequestDecoration.severity_indicator(self.server_base_url, result['severity']),
+                        # vulnerabilityLink has the scanid and projectid in the wrong order, so it needs to be fixed.
+                        # It links to the previous scanid, so the URL needs to be parsed out and have the path fixed.
+
+                        # Don't change the link if the link has been fixed in the report.
+                        fixed_link = result['vulnerabilityLink']
+
+                        parsed_url =  urllib.parse.urlparse(result['vulnerabilityLink'])
+                        path_components = parsed_url.path.split("/")
+                        if path_components[-1:].pop() == project_id:
+                            path_components.pop()
+                            path_components.insert(len(path_components) - 1, project_id)
+                            fixed_link = urllib.parse.urlunparse((parsed_url.scheme, parsed_url.netloc, "/".join(path_components), 
+                                                                  parsed_url.params, parsed_url.query, parsed_url.fragment))
+
+                        
+
+                        self.add_resolved_detail(ResultSeverity(result['severity']), 
+                                                PullRequestDecoration.severity_indicator(self.server_base_url, result['severity']),
                                                 vuln['vulnerabilityName'], 
-                                                PullRequestDecoration.link(result['vulnerabilityLink'], "View"))
+                                                PullRequestDecoration.link(fixed_link, "View"))
 
     def __add_iac_details(self, pr_details):
         title_added = False
@@ -248,8 +357,8 @@ class PullRequestFeedback(PullRequestDecoration):
                             self.start_iac_detail_section()
                             title_added = True
 
-                        self.add_iac_detail(PullRequestDecoration.severity_indicator(self.server_base_url, result['severity']), x['name'],
-                                            f"`{result['fileName']}`{PullRequestDecoration.link(self.__permalink(pr_details.organization, 
+                        self.add_iac_detail(ResultSeverity(result['severity']), PullRequestDecoration.severity_indicator(self.server_base_url, result['severity']), 
+                                            x['name'], f"`{result['fileName']}`{PullRequestDecoration.link(self.__permalink(pr_details.organization, 
                                         pr_details.repo_project, pr_details.repo_slug, pr_details.source_branch, 
                                         result['fileName'], 1), "view")}", query['queryName'], 
                                             PullRequestDecoration.link(result['resultViewerLink'], "Risk Details"))
@@ -269,8 +378,8 @@ class PullRequestFeedback(PullRequestDecoration):
                             self.start_sca_detail_section()
                             title_added = True
 
-                        self.add_sca_detail(PullRequestDecoration.severity_indicator(self.server_base_url, cat_result['severity']),
-                                            x['packageName'], x['packageVersion'], 
+                        self.add_sca_detail(ResultSeverity(cat_result['severity']), PullRequestDecoration.severity_indicator(self.server_base_url, cat_result['severity']),
+                                            cat_result['cve'], x['packageName'], x['packageVersion'], 
                                             PullRequestDecoration.sca_result_link(display_url, project_id, scanid, "Risk Details", 
                                                                                 cat_result['cve'], x['packageId']))
 
@@ -289,7 +398,8 @@ class PullRequestFeedback(PullRequestDecoration):
                         self.start_sast_detail_section()
                         title_added = True
 
-                    self.add_sast_detail(PullRequestDecoration.severity_indicator(self.server_base_url, vuln['severity']), describe_link, 
+                    self.add_sast_detail(ResultSeverity(vuln['severity']), 
+                                    PullRequestDecoration.severity_indicator(self.server_base_url, vuln['severity']), describe_link, 
                                     f"`{vuln['sourceFileName']}`;{PullRequestDecoration.link(self.__permalink(pr_details.organization, 
                                         pr_details.repo_project, pr_details.repo_slug, pr_details.source_branch, 
                                         vuln['sourceFileName'], vuln['sourceLine']), 
@@ -318,16 +428,7 @@ class PullRequestFeedback(PullRequestDecoration):
     @staticmethod
     def __init_result_count_map() -> Dict[ResultSeverity, str]:
         # pylint: disable=E1133
-        return {k:"N/R" for k in ResultSeverity}
-
-    def __add_engine_summary(self, engine : str, severitiesBreakdown : List[Dict[str, any]], included_severities : List[ResultSeverity]):
-        counts = PullRequestFeedback.__init_result_count_map()
-
-        for entry in severitiesBreakdown:
-            counts[ResultSeverity(entry.value['level'])] = str(entry.value['value'])
-
-        self.add_summary_entry(engine, counts, included_severities)
-
+        return {k:"-" for k in ResultSeverity}
 
     def __get_result_count_map(self, query_gen : Callable[[str], str]) -> Dict[ResultSeverity, str]:
         counts = PullRequestFeedback.__init_result_count_map()
