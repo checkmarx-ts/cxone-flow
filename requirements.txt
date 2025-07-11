@@ -4,7 +4,7 @@ pyyaml==6.0.2
 password-strength==0.0.3.post2
 jsonpath-ng==1.7.0
 Gunicorn==23.0.0
-requests==2.32.3
+requests==2.32.4
 aio-pika==9.5.4
 dataclasses-json==0.6.7
 markdown==3.7
@@ -12,5 +12,5 @@ aenum==3.1.15
 PyJWT==2.10.1
 cryptography==44.0.1
 aiofiles==24.1.0
-https://github.com/checkmarx-ts/cxone-async-api/releases/download/1.0.5/cxone_api-1.0.5-py3-none-any.whl
+https://github.com/checkmarx-ts/cxone-async-api/releases/download/1.0.7/cxone_api-1.0.7-py3-none-any.whl
 sortedcontainers==2.4.0

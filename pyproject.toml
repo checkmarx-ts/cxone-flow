@@ -6,11 +6,11 @@ build-backend = "setuptools.build_meta"
 name = "cxoneflow_kickoff_api"
 dynamic = ["version"]
 dependencies = [
-    "requests==2.32.3",
+    "requests==2.32.4",
     "PyJWT==2.10.1",
     "dataclasses-json==0.6.7",
     "cryptography==44.0.1",
-    "cxone-api@https://github.com/checkmarx-ts/cxone-async-api/releases/download/1.0.5/cxone_api-1.0.5-py3-none-any.whl"
+    "cxone-api@https://github.com/checkmarx-ts/cxone-async-api/releases/download/1.0.7/cxone_api-1.0.7-py3-none-any.whl"
 ]
 description = "CxOneFlow Kickoff API"
 requires-python = ">=3.9"
