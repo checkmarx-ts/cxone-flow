@@ -9,6 +9,9 @@ from api_utils.auth_factories import EventContext
 class CloneAuthException(BaseException):
     pass
 
+class CloneException(BaseException):
+    pass
+
 class CloneWorker:
 
     __stderr_auth_fail = re.compile(".*Invalid username or password.*")
@@ -23,7 +26,11 @@ class CloneWorker:
     async def loc(self) -> str:
         try:
             completed = await self.__clone_thread
-            self.__log.debug(f"Clone task: return code [{completed.returncode}] stdout: [{completed.stdout}] stderr: [{completed.stderr}]")
+            self.__log.debug(f"Clone operation returned [{completed}]")
+            
+            if not completed:
+                raise CloneException()
+            
             return self.__clone_out_tempdir
         except subprocess.CalledProcessError as ex:
             if CloneWorker.__stderr_auth_fail.match(ex.stderr.decode('UTF-8').replace("\n", "")) and \
@@ -50,7 +57,10 @@ class Cloner:
     __ssh_protocols = ['ssh']
 
     def __init__(self, ssl_no_verify : bool):
-        self.__additional_env = {"GIT_SSL_NO_VERIFY" : str(ssl_no_verify).lower()}
+        self.__additional_env = {
+            "GIT_SSL_NO_VERIFY" : str(ssl_no_verify).lower(),
+            "GIT_TERMINAL_PROMPT" : "0",
+            "GIT_ASKPASS" : "false"}
 
     @property
     def __running_env(self):
@@ -75,11 +85,11 @@ class Cloner:
 
         if not in_header:
             retval = BasicAuthWithCredsInUrl(username, SecretRegistry.register(password), ssl_no_verify)
-            retval.__clone_cmd_stub = ["git", "clone", "--recurse-submodules"]
+            retval.__git_cmd_stub = ["git"]
         else:
             retval = Cloner(ssl_no_verify)
             encoded_creds = SecretRegistry.register(base64.b64encode(f"{username}:{password}".encode('UTF8')).decode('UTF8'))
-            retval.__clone_cmd_stub = ["git", "clone", "--recurse-submodules", "-c", f"http.extraHeader=Authorization: Basic {encoded_creds}"]
+            retval.__git_cmd_stub = ["git", "-c", f"http.extraHeader=Authorization: Basic {encoded_creds}"]
 
         retval.__protocol_matcher = Cloner.__https_matcher
         retval.__supported_protocols = Cloner.__http_protocols
@@ -95,7 +105,7 @@ class Cloner:
         retval.__protocol_matcher = Cloner.__https_matcher
         retval.__supported_protocols = Cloner.__http_protocols
         retval.__port = None
-        retval.__clone_cmd_stub = ["git", "clone", "--recurse-submodules", "-c", f"http.extraHeader=Authorization: Bearer {token}"]
+        retval.__git_cmd_stub = ["git", "-c", f"http.extraHeader=Authorization: Bearer {token}"]
 
         return retval
 
@@ -113,7 +123,7 @@ class Cloner:
                 retval.__keyfile = dest.file.name
 
         retval.__additional_env['GIT_SSH_COMMAND'] = f"ssh -i '{shlex.quote(retval.__keyfile)}' -oIdentitiesOnly=yes -oStrictHostKeyChecking=accept-new -oHostKeyAlgorithms=+ssh-rsa -oPubkeyAcceptedAlgorithms=+ssh-rsa"
-        retval.__clone_cmd_stub = ["git", "clone", "--recurse-submodules"]
+        retval.__git_cmd_stub = ["git"]
 
         return retval
     
@@ -125,7 +135,7 @@ class Cloner:
         retval.__protocol_matcher = Cloner.__https_matcher
         retval.__supported_protocols = Cloner.__http_protocols
         retval.__port = None
-        retval.__clone_cmd_stub = ["git", "clone", "--recurse-submodules"]
+        retval.__git_cmd_stub = ["git"]
 
         return retval
    
@@ -146,18 +156,41 @@ class Cloner:
     def destination_port(self):
         return self.__port
     
-    async def _get_clone_cmd_stub(self, event_context : Dict=None, api_url : str=None, force_reauth : bool=False) -> List:
-        return self.__clone_cmd_stub
-    
+
+    @staticmethod
+    def do_clone(run_env : Dict, git_cmd_stub : List[str], clone_url : str, clone_output_loc : str) -> bool:
+
+        def run(cmd, cwd=None):
+            Cloner.log().debug(f"Executing: {cmd}")
+            result = subprocess.run(cmd, capture_output=True, env=run_env, check=True, cwd=cwd)
+            Cloner.log().debug(f"git task for [{cmd}]: return code [{result.returncode}] stdout: [{result.stdout}] stderr: [{result.stderr}]")
+            return result
+
+
+        clone_result = run(git_cmd_stub + ["clone", clone_url, clone_output_loc])
+
+        if clone_result.returncode == 0:
+            try:
+                gm_path = Path(clone_output_loc) / Path(".gitmodules")
+                if os.path.exists(gm_path) and os.path.isfile(gm_path):
+                    Cloner.log().debug(f"{clone_url}: submodules detected.")
+                    run(git_cmd_stub + ["submodule", "init"], clone_output_loc)
+                    run(git_cmd_stub + ["submodule", "update"], clone_output_loc)
+            except subprocess.CalledProcessError:
+                Cloner.log().warning(f"Sub-modules were not initialized properly for repo {clone_url}, scan will not include all git submodules.")
+
+        return True
+
+
     async def clone(self, clone_url, event_context : EventContext=None, force_reauth : bool=False, temp_root : str=None, make_temp : bool=True) -> CloneWorker:
         Cloner.log().debug(f"Clone Execution for: {clone_url}")
 
         fixed_clone_url = await self._fix_clone_url(clone_url, event_context, force_reauth)
         temp_dir_object = tempfile.TemporaryDirectory(delete=False, prefix=temp_root) if make_temp else None
         clone_output_loc = temp_dir_object.name if make_temp else temp_root
-        cmd = await self._get_clone_cmd_stub(event_context, force_reauth) + [fixed_clone_url, clone_output_loc]
-        Cloner.log().debug(cmd)
-        thread = asyncio.to_thread(subprocess.run, cmd, capture_output=True, env=self.__running_env, check=True)
+        
+        thread = asyncio.to_thread(Cloner.do_clone, run_env=dict(self.__running_env), git_cmd_stub=list(self.__git_cmd_stub), 
+                                   clone_url=fixed_clone_url, clone_output_loc=clone_output_loc)
         
         return CloneWorker(thread, temp_dir_object, clone_output_loc)
 
