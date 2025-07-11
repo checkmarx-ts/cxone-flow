@@ -54,7 +54,7 @@ class ResultSeverity(GoofyEnum):
 
     @property
     def rank(self):
-        return self.values[-1:][0]
+        return self.values[-1:][0] # pylint: disable=E1101
 
 
 
