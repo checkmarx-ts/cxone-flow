@@ -31,10 +31,7 @@ class RedactingStreamHandler(logging.StreamHandler):
         for secret in SecretRegistry.get_match_iter(msg):
             for m in [k for k in secret.groupdict().keys() if k in ['secret','any']]:
                 msg = msg[0:secret.start(m)] + ('*' * (secret.end(m) - secret.start(m))) + msg[secret.end(m):]
-
-            # for begin,end in secret.regs:
-            #     msg = msg[0:begin] + ('*' * (end - begin)) + msg[end:]
-        
+    
         return msg
 
 

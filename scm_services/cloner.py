@@ -163,7 +163,7 @@ class Cloner:
         def run(cmd, cwd=None):
             Cloner.log().debug(f"Executing: {cmd}")
             result = subprocess.run(cmd, capture_output=True, env=run_env, check=True, cwd=cwd)
-            Cloner.log().debug(f"git task for [{cmd}]: return code [{result.returncode}] stdout: [{result.stdout}] stderr: [{result.stderr}]")
+            Cloner.log().debug(f"git task return code [{result.returncode}] stdout: [{result.stdout}] stderr: [{result.stderr}]")
             return result
 
 
