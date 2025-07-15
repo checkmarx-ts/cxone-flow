@@ -1,0 +1,55 @@
+---
+# This YAML file demonstrates a CxOneFlow distributed resolver agent
+# configuration for all commonly used configuration options.  Delete
+# the parts that do not apply to your specific requirements.
+
+# The secret root path has files containing secret values that are loaded
+# on startup.
+secret-root-path: /path/to/your/secrets
+
+
+##############################
+##### Common Definitions #####
+##############################
+
+# Common definitions can be repeatedly referenced using
+# YAML anchor syntax.
+
+# Required: The AMQP endpoint where messages from the CxOneFlow
+# server will be received.
+amqp_common: &all-amqp
+  amqp:
+    amqp-url: amqps://rabbitmq.corp.com:5671
+
+
+common-config: &common
+  public-key: resolver-pub.pem
+
+  # The 'resolver-work-path' option should be set to a directory
+  # owned by 'root:resolver' with permissions 770.
+  resolver-work-path: /path/to/your/work_directory
+  <<: *all-amqp
+
+
+#######################################
+##### Serviced Tag Configurations #####
+#######################################
+
+# This is the element where this agents serviced tags are
+# configured. Please consult the CxOneFlow documentation
+# for details:
+#
+# https://github.com/checkmarx-ts/cxone-flow
+serviced-tags:
+  my-environment-1:
+    <<: *common
+    # Optional: If using run-with-container, execution is performed in
+    # a container with the provided tag.  If not provided, execution
+    # is performed as a sub-process to the agent process.
+    run-with-container:
+      # Download the supply chain toolkit build environment here:
+      # https://github.com/checkmarx-ts/cx-supply-chain-toolkit
+      supply-chain-toolkit-path: /path/to/build-environment
+      container-image-tag: gradle:8-jdk17-alpine
+  my-environment-2:
+    <<: *common
