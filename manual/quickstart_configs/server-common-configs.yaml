@@ -99,7 +99,7 @@ common_scan_cfg: &common-scan-cfg
 
 # Optional: This example assigns groups to projects with repositories that
 # match regular expressions.
-common-group-assignements: &common-grouping
+common-group-assignments: &common-grouping
   project-groups:
     update-groups: true
     group-assigments:

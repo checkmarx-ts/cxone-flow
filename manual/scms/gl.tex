@@ -20,18 +20,23 @@ payloads originating from any Gitlab instance type.
 
 \section{\cxoneflowtext\space YAML Configuration for GitLab}
 
-Below is a listing of a minimal Gitlab YAML configuration.  The elements to note in this
-configuration:
+The example YAML in this section can be downloaded from the \cxoneflow release artifacts. Referring to Figure
+\ref{fig:gl-yaml}, note the
+service definitions labeled \texttt{Gitlab-enterprise-all-repos} and \texttt{Gitlab-cloud-all-repos}.
+Elements of note in these definitions:
 
 \begin{itemize}
     \item The \texttt{base-url} is the root URL for the Gitlab instance.  This URL is also used
     when forming display links such as links to code in PR comments.
     \item The \texttt{api-url-suffix} is the path extension appended to \texttt{base-url} for API requests.
-    \item The \texttt{repo-match} regular expression matches the service definition with events emitted by any repository
-    in the Gitlab instance.
 \end{itemize}
 
-\input{operation/gl_minimal_example.tex}
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/gl-yaml.png}
+    \caption{Gitlab YAML Service Definitions}
+    \label{fig:gl-yaml}
+\end{figure}
+
 
 \section{Deploying Webhook Configurations in Gitlab}
 

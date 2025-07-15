@@ -26,12 +26,17 @@ groups are manually assigned to a project, those groups are not removed.
 
 \section{Configuration}
 
-The example YAML below shows a minimal configuration for group assignments
-with an Azure DevOps service definition.  The sub-elements of the \texttt{project-groups}
+The example YAML file found with the \cxoneflow release artifacts is shown in Figure
+\ref{fig:group-yaml}. The sub-elements of the \texttt{project-groups}
 element configure the logic used to select zero or more groups to assign to a
-\cxone project.
+\cxone project.  The grouping configuration can be used in a service definition for any
+supported SCM type.
 
-\include{operation/project_groups_minimal_example.tex}
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/group-yaml.png}
+    \caption{Group Assignment YAML Definitions}
+    \label{fig:group-yaml}
+\end{figure}
 
 
 \subsection{The \texttt{project-groups.update-groups} YAML Element}
@@ -52,6 +57,9 @@ The \texttt{repo-match} configuration element is a regular expression applied to
 regular expression matches, the groups defined in the sibling \texttt{groups} element are assigned
 to the project.  If the clone URL matches the \texttt{repo-match} of more than one entry in the
 \texttt{group-assignments} list, the project is assigned to the groups in the set of all matching groups.
+
+If the clone URL matches none of the \texttt{repo-match} entries, no groups are automatically assigned
+to the project.
 
 \subsubsection{groups}
 

@@ -246,31 +246,39 @@ GitHub Enterprise and \textbf{Webhooks} in GitHub Cloud.  Webhook integration ca
 
 \section{\cxoneflowtext\space YAML Configuration for GitHub}\label{sec:gh-yaml-config}
 
-This section is intended to show some of the GitHub-specific requirements for successful configuration.  The differences
+This section is intended to explain the GitHub-specific requirements for successful configuration.  The differences
 between GitHub Enterprise and GitHub Cloud are minimal; generally the differences are related to how API and display URLs
-work.
+work.  This section will reference the example YAML files that can be downloaded from the \cxoneflow release artifacts.
 
 \subsection{GitHub Enterprise}
 
-Below is a listing of a minimal GitHub Enterprise YAML configuration.  The elements to note in this
-configuration:
+Referring to Figure \ref{fig:gh-ent-yaml}, the example YAML file has GitHub Enterprise
+service definitions labeled \texttt{GitHub-enterprise-github-app} and \texttt{GitHub-enterprise-webhooks}
+that can be referenced for this section.  Elements of note in these definitions:
 
 \begin{itemize}
     \item The \texttt{base-url} is the root URL for the GitHub Enterprise instance.  This URL is also used
     when forming display links such as links to code in PR comments.
     \item The \texttt{api-url-suffix} is the path extension appended to \texttt{base-url} for API requests.
-    \item Since this service definition is for a GitHub App, the \texttt{app-private-key} points to the secret
+    \item The service definition \texttt{GitHub-enterprise-github-app} is used for a GitHub App, thus the \texttt{app-private-key} points to the secret
     containing the generated private key.
-    \item Since the GitHub App permissions should be allowed to read repository contents, there is no need
-    to provide a \texttt{clone-auth} configuration.
+    \item The service definition \texttt{GitHub-enterprise-webhooks} is a simple webhook integration, thus the \texttt{api-auth.token} element 
+    points to the secret containing a generated PAT.
 \end{itemize}
 
-\input{operation/ghe_app_minimal_example.tex}
+
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/gh-ent-yaml.png}
+    \caption{GitHub Enterprise YAML Service Definitions}
+    \label{fig:gh-ent-yaml}
+\end{figure}
+
 
 \subsection{GitHub Cloud}
 
-Below is a listing of a minimal GitHub Cloud YAML configuration.  The elements to note in this
-configuration:
+Referring to Figure \ref{fig:gh-cloud-yaml}, the example YAML file has GitHub Cloud service definitions labeled
+\texttt{GitHub-cloud-github-app} and \texttt{GitHub-cloud-webhooks} that can be referenced for this section.
+Elements of note in these definitions:
 
 \begin{itemize}
     \item The \texttt{base-url} is the root URL for the GitHub Cloud API.
@@ -278,13 +286,19 @@ configuration:
     when forming display links such as links to code in PR comments since the API URL does not
     provide interactive content.
     \item There is no \texttt{api-url-suffix} since the \texttt{base-url} is the root for API requests.
-    \item Since this service definition is for a GitHub App, the \texttt{app-private-key} points to the secret
+    \item The service definition \texttt{GitHub-cloud-github-app} is for a GitHub App, thus the \texttt{app-private-key} points to the secret
     containing the generated private key.
-    \item Since the GitHub App permissions should be allowed to read repository contents, there is no need
-    to provide a \texttt{clone-auth} configuration.
+    \item The service definition \texttt{GitHub-cloud-webhooks} is a simple webhook integration, thus the \texttt{api-auth.token} element 
+    points to the secret containing a generated PAT.
 \end{itemize}
 
-\input{operation/ghc_app_minimal_example.tex}
+
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/gh-cloud-yaml.png}
+    \caption{GitHub Cloud YAML Service Definitions}
+    \label{fig:gh-cloud-yaml}
+\end{figure}
+
 
 \section{Protected Branches}
 

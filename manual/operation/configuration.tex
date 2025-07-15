@@ -99,22 +99,17 @@ container and adjust the path via the \texttt{CONFIG\_YAML\_PATH} environment va
 
 \subsection{YAML Configuration Examples}
 
-\subsubsection{Basic YAML Configurations}
+Starter YAML example files are now included as a downloadable archive found with the \cxoneflow GitHub
+release artifacts.  The configuration files can be customized to fit your runtime requirements or used
+as a reference to create new service definitions.
 
-\input{operation/yaml_minimal_example.tex}
-
-\newpage
-\input{operation/yaml_full_example.tex}
-
-\subsubsection{Complex YAML Configurations using YAML Anchors}
-
-For complex configurations, it is possible to use 
+The configuration file is organized into lists of service definitions that apply to each supported
+SCM type.  A supported SCM may have one or more service definitions to support variations of
+orchestrating scan workflows.  Many service definitions will have repeated elements (such as
+the \cxone connection definition); to avoid duplicating elements, 
 \extlink{https://docs.docker.com/compose/compose-file/10-fragments/}{YAML Anchors}
-to avoid repeating some section definitions.  When using YAML anchors, it may be useful
-to use a \extlink{https://onlineyamltools.com/convert-yaml-to-json}{YAML-to-JSON} conversion tool that shows the JSON generated from the YAML
-definition
+can be used to avoid repetitive elements across service definitions.  
 
-\input{operation/yaml_anchors_example.tex}
 
 \subsection{YAML Configuration Elements}\label{sec:yaml-config}
 
