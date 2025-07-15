@@ -64,7 +64,7 @@ jobs:
             . .venv/bin/activate
             pylint --disable=all --enable=E,F --disable=E1121 --score=false cxoneflow_kickoff_api
 
-  execute-pylint-on-server:
+  execute-linters-on-server:
       runs-on: ubuntu-latest
       strategy:
         max-parallel: 3
@@ -83,7 +83,7 @@ jobs:
             pip install virtualenv
             virtualenv .venv
             . .venv/bin/activate
-            pip install pylint
+            pip install pylint yamllint
             pip install -r requirements.txt
 
         - name: Pylint
@@ -91,6 +91,13 @@ jobs:
           run: |
             . .venv/bin/activate
             pylint --disable=all --enable=E,F --score=false --ignore=cxoneflow_kickoff_api --ignore=.venv .
+
+
+        - name: YAML Lint Documentation Examples
+          shell: bash
+          run: |
+            . .venv/bin/activate
+            yamllint manual
 
   build-deb-amd64:
     runs-on: ubuntu-latest
