@@ -1,0 +1,318 @@
+---
+# This YAML file demonstrates a CxOneFlow server configuration for all
+# commonly used configuration options for all support SCM types.  Delete
+# the parts that do not apply to your specific requirements.
+
+# The CxOneFlow manual has a detailed list and explanation of all
+# supported configuration options.
+
+# The secret root path has files containing secret values that are loaded
+# on startup.
+secret-root-path: /path/to/your/secrets
+
+# The URL of your CxOneFlow endpoint
+server-base-url: https://cxoneflow.corp.com
+
+# Optional: path to any custom Python scripts referenced in the
+# service configurations.
+script-path: /path/to/your/scripts
+
+##############################
+##### Common Definitions #####
+##############################
+
+# Common definitions can be repeatedly referenced using
+# YAML anchor syntax.
+
+# Optional: if you have an external AMQP endpoint, a single configuration
+# can be referenced using YAML anchors.
+amqp_common: &all-amqp
+  amqp:
+    amqp-url: amqps://rabbitmq.corp.com:5671
+
+# All service definitions will need a CheckmarxOne connection
+# configuration.  This example uses a YAML anchor to reference
+# a single connection.
+cxone_all: &cxone
+  cxone:
+    tenant: my-tenant
+    oauth:
+      client-id: cxone-client-id
+      client-secret: cxone-client-secret
+    iam-endpoint: US
+    api-endpoint: US
+
+# Optional: Kickoff scans are used by CxOneFlow Audit:
+# https://github.com/checkmarx-ts/cxone-flow-audit
+kickoff_setup: &kickoff
+  kickoff:
+    ssh-public-key: id_ed25519.pub
+    max-concurrent-scans: 5
+
+# Scan configs will likely be common across all service definitions.
+# This example uses YAML anchors to set a common configuration.
+common_scan_cfg: &common-scan-cfg
+
+  # Optional: Configure the use of distributed resolver agents.
+  resolver:
+    <<: *all-amqp
+    private-key: resolver-private-key.pem
+    allowed-agent-tags:
+      - my-environment-1
+      - my-environment-2
+      - my-environment-3
+
+  # Optional: Set default scan configuration options.
+  scan-config:
+    default-project-tags:
+      my-tag-key: my-tag-value
+
+    default-scan-engines:
+      # Optional: default engines can be selected for each scan.  Default
+      # configs per engine can also be configured following the API
+      # option specification:
+      #
+      # https://checkmarx.stoplight.io/docs/checkmarx-one-api-reference-guide/branches/main/i3mwd8u3zyoox-run-a-scan
+      #
+      # WARNING: Setting these values overrides global/project engine settings
+      # on ALL scans unless "allow override" is de-selected.  It is better to
+      # define most scan engine defaults in Checkmarx One.
+      sca:
+        exploitablePath: true
+      sast:
+        languageMode: multi
+      kics:
+      containers:
+      apisec:
+      microengines:
+        # Note: These are actually capitalized boolean strings, not
+        # boolean values.
+        scorecard: "False"
+        2ms: "True"
+
+  # Optional: Configure the parameters for supported feedback
+  # methods.
+  feedback:
+    <<: *all-amqp
+    pull-request:
+      enabled: true
+
+# Optional: This example assigns groups to projects with repositories that
+# match regular expressions.
+common-group-assignments: &common-grouping
+  project-groups:
+    update-groups: true
+    group-assigments:
+      - repo-match: .*prod
+        groups:
+          - mycorp/mygroup/production
+      - repo-match: .*dev
+        groups:
+          - mycorp/mygroup/development
+
+###################################
+##### SCM Service Definitions #####
+###################################
+
+## BitBucket Data Center
+bbdc:
+  - service-name: BBDC-all-repos
+    repo-match: ^http(s)?:(\/){2}bitbucket.corp.com.*
+    <<: *common-grouping
+    <<: *cxone
+    <<: *common-scan-cfg
+    <<: *kickoff
+
+    # Optional: Custom project naming module assumes the Python
+    # code file is located at the path "/path/to/your/scripts"
+    # (taken from the "script-path" option above)
+    project-naming:
+      module: bbdc
+      update-name: true
+
+    # Required: connection to the SCM for clone and API access
+    connection:
+      base-url: https://bitbucket.corp.com/
+      shared-secret: scm-shared-secret
+      api-auth:
+        token: bbdc-token
+
+## Gitlab
+gl:
+  - service-name: Gitlab-enterprise-all-repos
+    repo-match: ^http(s)?:(\/){2}gitlab.corp.com.*
+    <<: *common-grouping
+    <<: *cxone
+    <<: *common-scan-cfg
+    <<: *kickoff
+
+    # Optional: Custom project naming module assumes the Python
+    # code file is located at the path "/path/to/your/scripts"
+    # (taken from the "script-path" option above)
+    project-naming:
+      module: gl
+      update-name: true
+
+    connection:
+      base-url: https://gitlab.corp.com
+      api-url-suffix: api/v4
+      shared-secret: scm-shared-secret
+      api-auth:
+        token: gitlab-pat
+
+  - service-name: Gitlab-cloud-all-repos
+    repo-match: ^http(s)?:(\/){2}gitlab.com.*
+    <<: *common-grouping
+    <<: *cxone
+    <<: *common-scan-cfg
+    <<: *kickoff
+
+    # Optional: Custom project naming module assumes the Python
+    # code file is located at the path "/path/to/your/scripts"
+    # (taken from the "script-path" option above)
+    project-naming:
+      module: gl
+      update-name: true
+
+    # Required: connection to the SCM for clone and API access
+    connection:
+      base-url: https://gitlab.com
+      api-url-suffix: api/v4
+      shared-secret: scm-shared-secret
+      api-auth:
+        token: gitlab-cloud-pat
+
+## Github
+gh:
+  - service-name: GitHub-enterprise-github-app
+    repo-match: ^http(s)?:(\/){2}github.corp.com.*
+    <<: *common-grouping
+    <<: *cxone
+    <<: *common-scan-cfg
+    <<: *kickoff
+
+    # Optional: Custom project naming module assumes the Python
+    # code file is located at the path "/path/to/your/scripts"
+    # (taken from the "script-path" option above)
+    project-naming:
+      module: gh
+      update-name: true
+
+    # Required: connection to the SCM for clone and API access
+    connection:
+      base-url: https://github.corp.com
+      api-url-suffix: api/v3
+      shared-secret: scm-shared-secret
+      api-auth:
+        app-private-key: github-ent-appkey
+
+  - service-name: GitHub-enterprise-webhooks
+    repo-match: ^http(s)?:(\/){2}github.corp.com.*
+    <<: *common-grouping
+    <<: *cxone
+    <<: *common-scan-cfg
+    <<: *kickoff
+
+    # Optional: Custom project naming module assumes the Python
+    # code file is located at the path "/path/to/your/scripts"
+    # (taken from the "script-path" option above)
+    project-naming:
+      module: gh
+      update-name: true
+
+    # Required: connection to the SCM for clone and API access
+    connection:
+      base-url: https://github.corp.com
+      api-url-suffix: api/v3
+      shared-secret: scm-shared-secret
+      api-auth:
+        token: gh-ent-pat
+
+  - service-name: GitHub-cloud-github-app
+    repo-match: ^http(s)?:(\/){2}github.com.*
+    <<: *common-grouping
+    <<: *cxone
+    <<: *common-scan-cfg
+    <<: *kickoff
+
+    # Optional: Custom project naming module assumes the Python
+    # code file is located at the path "/path/to/your/scripts"
+    # (taken from the "script-path" option above)
+    project-naming:
+      module: gh
+      update-name: true
+
+    # Required: connection to the SCM for clone and API access
+    connection:
+      base-url: https://api.github.com
+      base-display-url: https://www.github.com
+      shared-secret: scm-shared-secret
+      api-auth:
+        app-private-key: github-cloud-appkey
+
+  - service-name: GitHub-cloud-webhooks
+    repo-match: ^http(s)?:(\/){2}github.com.*
+    <<: *common-grouping
+    <<: *cxone
+    <<: *common-scan-cfg
+    <<: *kickoff
+
+    # Optional: Custom project naming module assumes the Python
+    # code file is located at the path "/path/to/your/scripts"
+    # (taken from the "script-path" option above)
+    project-naming:
+      module: gh
+      update-name: true
+
+    # Required: connection to the SCM for clone and API access
+    connection:
+      base-url: https://api.github.com
+      base-display-url: https://www.github.com
+      shared-secret: scm-shared-secret
+      api-auth:
+        token: gh-cloud-pat
+
+## Azure DevOps
+
+adoe:
+  - service-name: ADO-enterprise
+    repo-match: ^https://(.+@)?ado.corp.com.*
+    <<: *common-grouping
+    <<: *cxone
+    <<: *common-scan-cfg
+    <<: *kickoff
+
+    # Optional: Custom project naming module assumes the Python
+    # code file is located at the path "/path/to/your/scripts"
+    # (taken from the "script-path" option above)
+    project-naming:
+      module: adoe
+      update-name: true
+
+    # Required: connection to the SCM for clone and API access
+    connection:
+      base-url: https://ado.corp.com
+      shared-secret: scm-shared-secret
+      api-auth:
+        token: adoe-ent-token
+
+  - service-name: ADO-cloud
+    repo-match: ^https://(.+@)?dev.azure.com.*
+    <<: *common-grouping
+    <<: *cxone
+    <<: *common-scan-cfg
+    <<: *kickoff
+
+    # Optional: Custom project naming module assumes the Python
+    # code file is located at the path "/path/to/your/scripts"
+    # (taken from the "script-path" option above)
+    project-naming:
+      module: adoe
+      update-name: true
+
+    # Required: connection to the SCM for clone and API access
+    connection:
+      base-url: https://dev.azure.com
+      shared-secret: scm-shared-secret
+      api-auth:
+        token: adoe-cloud-token
