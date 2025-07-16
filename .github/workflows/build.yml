@@ -93,7 +93,7 @@ jobs:
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
           name: config-examples-tarball-${{ github.run_number }}
-          path: *.tgz
+          path: config-examples.tgz
       
       - name: Create zip
         run: |
@@ -106,7 +106,7 @@ jobs:
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
           name: config-examples-zip-${{ github.run_number }}
-          path: *.zip
+          path: config-examples.zip
 
   compile-manual:
     runs-on: ubuntu-latest
@@ -241,7 +241,7 @@ jobs:
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: ./*.pdf, ./*.deb, ./*.whl, *.tgz, *.zip
+          artifacts: ./*.pdf, ./*.deb, ./*.whl, ./*.tgz, ./*.zip
           bodyFile: release.md
           name: ${{ inputs.tag }}
           prerelease: ${{ inputs.prerelease }}
