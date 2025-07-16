@@ -1,23 +1,23 @@
 on: 
-    workflow_call:
-      inputs:
-        tag:
-          description: 'The version tag to use for stamping build artifacts and naming generated archives'
-          required: true
-          type: string
-        whl_tag:
-          description: 'The version tag to use for stamping Python whl build artifacts'
-          required: true
-          type: string
-        prerelease:
-          description: 'Set to true if published build is a prerelease'
-          type: boolean
-          required: true
-      secrets:
-        PACKAGE_USER:
-          required: true
-        PACKAGE_PAT:
-          required: true
+  workflow_call:
+    inputs:
+      tag:
+        description: 'The version tag to use for stamping build artifacts and naming generated archives'
+        required: true
+        type: string
+      whl_tag:
+        description: 'The version tag to use for stamping Python whl build artifacts'
+        required: true
+        type: string
+      prerelease:
+        description: 'Set to true if published build is a prerelease'
+        type: boolean
+        required: true
+    secrets:
+      PACKAGE_USER:
+        required: true
+      PACKAGE_PAT:
+        required: true
 env:
   DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/cxone/cxone-flow
                 
@@ -76,6 +76,37 @@ jobs:
         with:
           name: whl-${{ github.run_number }}
           path: dist/*.whl
+
+
+  compile-yaml-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Code @ tag ${{ inputs.tag }}
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+
+      - name: Create tarball
+        run: tar -C manual -czf config-examples.tgz quickstart_configs
+
+      - name: Upload YAML example tarball
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
+        with:
+          name: config-examples-tarball-${{ github.run_number }}
+          path: *.tgz
+      
+      - name: Create zip
+        run: |
+          pushd manual
+          zip -r ../config-examples.zip quickstart_configs
+          popd
+        
+
+      - name: Upload YAML example zip
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
+        with:
+          name: config-examples-zip-${{ github.run_number }}
+          path: *.zip
 
   compile-manual:
     runs-on: ubuntu-latest
@@ -193,13 +224,24 @@ jobs:
         with:
           name: deb-amd64-${{ github.run_number }}
 
+      - name: Download examples-tarball
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: config-examples-tarball-${{ github.run_number }}
+
+      - name: Download examples-zip
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: config-examples-zip-${{ github.run_number }}
+
+
       - name: Create GitHub Release
         id: create_release
         uses: ncipollo/release-action@6c75be85e571768fa31b40abf38de58ba0397db5
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: ./*.pdf, ./*.deb, ./*.whl
+          artifacts: ./*.pdf, ./*.deb, ./*.whl, *.tgz, *.zip
           bodyFile: release.md
           name: ${{ inputs.tag }}
           prerelease: ${{ inputs.prerelease }}
@@ -218,4 +260,5 @@ jobs:
             manual-${{ github.run_number }}
             deb-amd64-${{ github.run_number }}
             whl-${{ github.run_number }}
-        
+            config-examples-tarball-${{ github.run_number }}        
+            config-examples-zip-${{ github.run_number }}        

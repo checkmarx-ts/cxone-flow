@@ -5,6 +5,9 @@
 !.github/**/*.yml
 !agent_packages/**/*.yaml
 !manual/**/*.yaml
+*.zip
+*.tgz
+
 
 # Dynamic scripts
 scripts
