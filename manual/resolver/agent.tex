@@ -285,22 +285,15 @@ The distributed resolver agent's YAML configuration is deployed after the agent 
 Many of the elements share format with the \intlink{sec:yaml-config}{server's configuration elements}. 
 
 
-Below is an example of a distributed agent YAML configuration.  This example demonstrates:
+Figure \ref{fig:resolver-agent-config-yaml} shows an example of the serviced tag configurations for 
+a distributed agent YAML configuration.  The example YAML can be downloaded from the \cxoneflow YAML
+example release artifacts.
 
-\begin{itemize}
-  \item Secrets are stored in \texttt{/var/secrets}
-  \item A common configuration block used by each tag is placed in each tag's configuration using YAML Anchors.
-  \item \scaresolver execution uses a work path of \texttt{/var/resolver}.
-  \item Shell execution of \scaresolver uses an instance installed at\\\texttt{/opt/resolver/ScaResolver}.
-  \item Options for \scaresolver are defined in the \texttt{resolver-opts} element.
-  \item All agent tags use the same AMQP configuration via YAML Anchor tags.
-  \item The agent tag \texttt{general} is configured to execute \scaresolver as a shell execution.
-  \item The agent tag \texttt{java-gradle} executes \scaresolver using a container image \texttt{gradle:8-jdk17-alpine} that
-    is then extended by the agent using the \toolkit installed at \texttt{/opt/supply-chain-build-env}.
-\end{itemize}
-
-\input{resolver/yaml/example.tex}
-
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/resolver-agent-config-yaml.png}
+    \caption{Distributed Resolver Agent Configuration YAML}
+    \label{fig:resolver-agent-config-yaml}
+\end{figure}
 
 \pagebreak
 

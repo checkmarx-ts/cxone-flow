@@ -62,16 +62,27 @@ openssl genrsa 4096 |tee rsa-priv.pem | openssl rsa -pubout > rsa-pub.pem
 The private key file may be stored as a secret referenced in the configuration YAML element \intlink{sec:yaml-resolver-private-key}{resolver->private-key}.
 
 \subsubsection{Resolver YAML Configuration}\label{sec:resolver-yaml-config}
-The following YAML examples show a configuration for resolver agents with a list of allowed tags.
+Figure \ref{fig:resolver-config-yaml} shows the common YAML configuration for resolver agents with a list of allowed tags.
+This YAML configuration is provided in the configuration example artifacts that can be downloaded from the \cxoneflow release
+artifacts.
+
 Some of the things to note in these examples:
 
 \begin{itemize}
   \item The AMQP URL is stored as a secret since it contains credentials.
   \item The AMQP connection is common in both the \texttt{feedback} and \texttt{resolver} configuration.
   This configuration allows the feedback workflows and resolver workflows to use the same external message queue.
+  \item The resolver configuration is often easily maintained as a common configuration that is applied to 
+  all service definitions for all SCM types.  
 \end{itemize}
 
-\input{resolver/server-yaml-examples.tex}
+
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/resolver-config-yaml.png}
+    \caption{Resolver Common Configuration for Server YAML}
+    \label{fig:resolver-config-yaml}
+\end{figure}
+
 
 \subsection{Message Queue Configuration}
 
