@@ -7,5 +7,5 @@ class ResolverAgentException(Exception):
         return ResolverAgentException(f"Signature validation failed for message delivered to {tag}")
 
     @staticmethod
-    def cloner_type_exception(cloner_type : str):
-        return ResolverAgentException(f"Pickled cloner is of type {cloner_type}, can not proceed.")
+    def type_mismatch_exception(expected_type, service_type : str):
+        return ResolverAgentException(f"Expected pickled type {expected_type} but found type {service_type}, can not proceed.")

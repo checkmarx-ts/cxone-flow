@@ -1,10 +1,9 @@
-from orchestration.base import OrchestratorBase
+from orchestration.base import AbstractOrchestrator
 from orchestration.naming.gl import GitlabProjectNaming
 from api_utils.auth_factories import EventContext
 from jsonpath_ng import parse
 from services import CxOneFlowServices
 from scm_services import SCMService
-from workflows.utils import AdditionalScanContentWriter
 from typing import Dict, List
 from cxone_api.high.scans import ScanInspector
 from cxone_api.util import json_on_ok
@@ -12,7 +11,7 @@ import urllib, asyncio, fnmatch
 
 
 
-class GitlabOrchestrator(OrchestratorBase):
+class GitlabOrchestrator(AbstractOrchestrator):
 
     __no_hash = "0000000000000000000000000000000000000000"
 
@@ -51,7 +50,7 @@ class GitlabOrchestrator(OrchestratorBase):
     __api_protected_branch_query = parse("$[*].name")
 
     def __init__(self, event_context : EventContext):
-        OrchestratorBase.__init__(self, event_context)
+        AbstractOrchestrator.__init__(self, event_context)
 
         self.__isdiagnostic = False
 
@@ -154,10 +153,9 @@ class GitlabOrchestrator(OrchestratorBase):
         self.__repo_organization = "/".join(self.__repo_project_key.split("/")[:-1])
 
     
-    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None, 
-                                          scan_tags : Dict[str, str]=None):
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None):
 
-        self.__source_branch = self.__target_branch = OrchestratorBase.normalize_branch_name(
+        self.__source_branch = self.__target_branch = AbstractOrchestrator.normalize_branch_name(
             GitlabOrchestrator.__push_ref_query.find(self.event_context.message).pop().value)
         self.__source_hash = self.__target_hash = GitlabOrchestrator.__push_after_hash_query.find(self.event_context.message).pop().value
 
@@ -165,13 +163,13 @@ class GitlabOrchestrator(OrchestratorBase):
 
         self.__protected_branches = []
         if GitlabOrchestrator.__push_ref_protected_query.find(self.event_context.message).pop().value:
-            self.__protected_branches.append(OrchestratorBase.normalize_branch_name(self.__target_branch))
+            self.__protected_branches.append(AbstractOrchestrator.normalize_branch_name(self.__target_branch))
 
         found_default = GitlabOrchestrator.__push_default_branch_query.find(self.event_context.message)
         if len(found_default) > 0:
-            self.__protected_branches.append(OrchestratorBase.normalize_branch_name(found_default.pop().value))
+            self.__protected_branches.append(AbstractOrchestrator.normalize_branch_name(found_default.pop().value))
 
-        return await OrchestratorBase._execute_push_scan_workflow(self, services, additional_content, scan_tags)
+        return await AbstractOrchestrator._execute_push_scan_workflow(self, services, scan_tags)
 
     async def execute(self, services : CxOneFlowServices):
         if self.__event not in GitlabOrchestrator.__workflow_map.keys():
@@ -179,9 +177,9 @@ class GitlabOrchestrator(OrchestratorBase):
             return 
         return await GitlabOrchestrator.__workflow_map[self.__event](self, services)
 
-    async def execute_deferred(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter], scan_tags : Dict[str, str]=None):
+    async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
         self.deferred_scan = True
-        return await GitlabOrchestrator.__workflow_map[self.__event](self, services, additional_content, scan_tags)
+        return await GitlabOrchestrator.__workflow_map[self.__event](self, services, scan_id)
 
     async def _get_protected_branches(self, scm_service : SCMService) -> list:
         return self.__protected_branches
@@ -194,16 +192,15 @@ class GitlabOrchestrator(OrchestratorBase):
 
 
     def __populate_common_pr_data(self):
-        self.__source_branch = OrchestratorBase.normalize_branch_name(GitlabOrchestrator.__pr_source_branch_query.find(self.event_context.message).pop().value)
-        self.__target_branch = OrchestratorBase.normalize_branch_name(GitlabOrchestrator.__pr_target_branch_query.find(self.event_context.message).pop().value)
+        self.__source_branch = AbstractOrchestrator.normalize_branch_name(GitlabOrchestrator.__pr_source_branch_query.find(self.event_context.message).pop().value)
+        self.__target_branch = AbstractOrchestrator.normalize_branch_name(GitlabOrchestrator.__pr_target_branch_query.find(self.event_context.message).pop().value)
         self.__source_hash = GitlabOrchestrator.__pr_commit_hash_query.find(self.event_context.message).pop().value
         self.__target_hash = None
         self.__pr_id = str(GitlabOrchestrator.__pr_id_query.find(self.event_context.message).pop().value)
         self.__pr_state = GitlabOrchestrator.__pr_state_query.find(self.event_context.message).pop().value
         self.__pr_status = GitlabOrchestrator.__pr_status_query.find(self.event_context.message).pop().value
 
-    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None, 
-                                        scan_tags : Dict[str, str]=None) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None) -> ScanInspector:
         if await self.__is_pr_draft():
             GitlabOrchestrator.log().info(f"Skipping draft PR {GitlabOrchestrator.__pr_link_query.find(self.event_context.message).pop().value}")
             return
@@ -218,7 +215,7 @@ class GitlabOrchestrator(OrchestratorBase):
 
         if len(existing_scans) > 0:
             # This is a scan tag update, not a scan.
-            return await OrchestratorBase._execute_pr_tag_update_workflow(self, services)
+            return await AbstractOrchestrator._execute_pr_tag_update_workflow(self, services)
         elif self.__pr_state in GitlabOrchestrator.__pr_closed_states:
             pass
         else:
@@ -234,25 +231,25 @@ class GitlabOrchestrator(OrchestratorBase):
                 found_default = GitlabOrchestrator.__api_default_branch_query.find(json_on_ok(default_branch_resp))
 
                 if len(found_default) > 0:
-                    self.__protected_branches.append(OrchestratorBase.normalize_branch_name(found_default.pop().value))
+                    self.__protected_branches.append(AbstractOrchestrator.normalize_branch_name(found_default.pop().value))
                 
                 for pbranch in GitlabOrchestrator.__api_protected_branch_query.find(json_on_ok(protected_branch_resp)):
-                    branch_value = OrchestratorBase.normalize_branch_name(pbranch.value)
+                    branch_value = AbstractOrchestrator.normalize_branch_name(pbranch.value)
 
                     # This can be a wildcard, so add it to the list of protected branches
                     # then add the target/source branches if they match
                     self.__protected_branches.append(branch_value)
 
                     if fnmatch.fnmatch(self.__target_branch, branch_value):
-                        self.__protected_branches.append(OrchestratorBase.normalize_branch_name(self.__target_branch))
+                        self.__protected_branches.append(AbstractOrchestrator.normalize_branch_name(self.__target_branch))
 
                     if fnmatch.fnmatch(self.__source_branch, branch_value):
-                        self.__protected_branches.append(OrchestratorBase.normalize_branch_name(self.__source_branch))
+                        self.__protected_branches.append(AbstractOrchestrator.normalize_branch_name(self.__source_branch))
             
             # dedupe
             self.__protected_branches = list(set(self.__protected_branches))
 
-            return await OrchestratorBase._execute_pr_scan_workflow(self, services, additional_content, scan_tags)
+            return await AbstractOrchestrator._execute_pr_scan_workflow(self, services, scan_tags)
 
     __workflow_map = {
         f"push:{__push_actual_label}" : _execute_push_scan_workflow,

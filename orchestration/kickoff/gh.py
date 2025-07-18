@@ -26,7 +26,4 @@ class GithubKickoffOrchestrator(KickoffOrchestrator):
     return GithubProjectNaming.create_project_name(
        self.kickoff_msg.repo_organization_name, self.kickoff_msg.repo_name)
   
-  async def _get_clone_worker(self, scm_service : SCMService, clone_url : str, failures : int) -> CloneWorker:
-    return await scm_service.cloner.clone(clone_url, self.event_context, failures > 0)
-
 

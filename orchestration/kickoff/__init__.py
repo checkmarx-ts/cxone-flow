@@ -1,4 +1,4 @@
-from orchestration import OrchestratorBase
+from orchestration import AbstractOrchestrator
 import cxoneflow_kickoff_api as ko
 from kickoff_services import KickoffService
 from typing import Union, Dict, List
@@ -10,7 +10,7 @@ import logging, re
 
 
 
-class KickoffOrchestrator(OrchestratorBase):
+class KickoffOrchestrator(AbstractOrchestrator):
   class KickoffScanExistsException(BaseException):...
   class TooManyRunningScansExeception(BaseException):...
 
@@ -94,10 +94,10 @@ class KickoffOrchestrator(OrchestratorBase):
     if len(completed) >= 1:
        raise KickoffOrchestrator.KickoffScanExistsException()
 
-    inspector, action = await self._execute_push_scan_workflow(services, scan_tags = services.kickoff.scan_tag_dict)
+    inspector, action = await self._execute_push_scan_workflow(services, services.kickoff.scan_tag_dict)
 
     self.__started_scan = ko.ExecutingScan(project_name, inspector.project_id, inspector.scan_id, target_branch)
 
-    return action == OrchestratorBase.ScanAction.EXECUTING
+    return action == AbstractOrchestrator.ScanAction.EXECUTING
 
 

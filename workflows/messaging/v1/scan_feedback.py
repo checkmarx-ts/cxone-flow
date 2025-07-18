@@ -3,6 +3,5 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class ScanFeedbackMessage(ScanMessage):
-    schema: str = "v1"
+class ScanFeedbackMessage(ScanMessage):...
 

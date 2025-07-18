@@ -1,11 +1,10 @@
 from api_utils import verify_signature
-from .base import OrchestratorBase
+from .base import AbstractOrchestrator
 from .kickoff import KickoffOrchestrator
 import logging
 from config import RouteNotFoundException
 from config.server import CxOneFlowConfig
 from typing import List, Dict, Tuple, Union
-from workflows.utils import AdditionalScanContentWriter
 from cxoneflow_kickoff_api import KickoffResponseMsg
 
 
@@ -18,7 +17,7 @@ class OrchestrationDispatch:
     
     
     @staticmethod
-    async def execute(orchestrator : OrchestratorBase):
+    async def execute(orchestrator : AbstractOrchestrator):
 
         if orchestrator.is_diagnostic:
             return 204
@@ -40,14 +39,13 @@ class OrchestrationDispatch:
             OrchestrationDispatch.log().warning(f"Event [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
 
     @staticmethod
-    async def execute_deferred_scan(orchestrator : OrchestratorBase, additional_scan_contant : List[AdditionalScanContentWriter],
-                                    additional_scan_tags : Dict[str, str]):
+    async def dispatch_delegated_scan_workflow(orchestrator : AbstractOrchestrator, scan_id : str):
         try:
             OrchestrationDispatch.log().debug(f"Service lookup: {orchestrator.route_urls}")
             services = CxOneFlowConfig.retrieve_services_by_route(orchestrator.route_urls, orchestrator.config_key)
             OrchestrationDispatch.log().debug(f"Service lookup success: {orchestrator.route_urls}")
 
-            return await orchestrator.execute_deferred(services, additional_scan_contant, additional_scan_tags)
+            return await orchestrator.handle_delegated_scan(services, scan_id)
         except RouteNotFoundException as ex:
             OrchestrationDispatch.log().warning(f"Deferred scan for [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
 

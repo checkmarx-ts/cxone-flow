@@ -5,30 +5,53 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Current File",
+            "name": "Python: Resolver Agent",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "resolver_agent.py",
+            "console": "integratedTerminal",
+            "env": {
+                "LOG_LEVEL": "DEBUG",
+                "CONFIG_YAML_PATH" : "config.agent.yaml"
+            },
+        },
+        {
+            "name": "Python: Workflow Agents",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "workflow_agent.py",
+            "console": "integratedTerminal",
+            "env": {
+                "LOG_LEVEL": "DEBUG"
+            },
+        },
+        {
+            "name": "Python: Current File",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "env" : {
-                "LOG_LEVEL" : "DEBUG"
+            "env": {
+                "LOG_LEVEL": "DEBUG"
             }
         },
         {
-            "name": "Python Debugger: Flask",
+            "name": "Python: Flask",
             "type": "debugpy",
             "request": "launch",
             "module": "flask",
             "env": {
                 "FLASK_APP": "wsgi.py",
                 "FLASK_DEBUG": "1",
-                "LOG_LEVEL" : "DEBUG",
-                "ENABLE_DUMP" : "1"
+                "LOG_LEVEL": "DEBUG",
+                "ENABLE_DUMP": "1"
             },
             "args": [
                 "run",
-                "-h", "0.0.0.0",
-                "-p", "8000",
+                "-h",
+                "0.0.0.0",
+                "-p",
+                "8000",
                 "--no-debugger",
                 "--no-reload"
             ],

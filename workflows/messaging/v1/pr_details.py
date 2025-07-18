@@ -12,4 +12,3 @@ class PRDetails(BaseMessage):
     source_branch : str
     target_branch : str
     event_context : EventContext
-    schema : str = "v1"

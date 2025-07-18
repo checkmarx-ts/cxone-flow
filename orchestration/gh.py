@@ -1,4 +1,4 @@
-from orchestration.base import OrchestratorBase
+from orchestration.base import AbstractOrchestrator
 from api_utils import signature
 from api_utils.pagers import async_api_page_generator
 from api_utils.auth_factories import EventContext
@@ -9,10 +9,9 @@ from requests import Response
 from cxone_api.high.scans import ScanInspector
 from services import CxOneFlowServices
 from typing import List, Dict
-from workflows.utils import AdditionalScanContentWriter
 from orchestration.naming.gh import GithubProjectNaming
 
-class GithubOrchestrator(OrchestratorBase):
+class GithubOrchestrator(AbstractOrchestrator):
 
     __api_page_max = 100
 
@@ -138,7 +137,7 @@ class GithubOrchestrator(OrchestratorBase):
         }
 
     def __init__(self, event_context : EventContext):
-        OrchestratorBase.__init__(self, event_context)
+        AbstractOrchestrator.__init__(self, event_context)
 
         self.__isdiagnostic = False
 
@@ -172,13 +171,12 @@ class GithubOrchestrator(OrchestratorBase):
         else:
             return await GithubOrchestrator.__workflow_map[self.__dispatch_event](self, services)
 
-    async def execute_deferred(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter], 
-                               scan_tags : Dict[str, str]):
+    async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
         self.deferred_scan = True
-        return await GithubOrchestrator.__workflow_map[self.__dispatch_event](self, services, additional_content, scan_tags)
-
-    async def _get_clone_worker(self, scm_service : SCMService, clone_url : str, failures : int) -> CloneWorker:
-        return await scm_service.cloner.clone(clone_url, self.event_context, failures > 0)
+        if self.__dispatch_event not in GithubOrchestrator.__delegate_scan_handler_map.keys():
+            GithubOrchestrator.log().error(f"Unhandled delegated scan event type: {self.__dispatch_event}")
+        else:
+            return await GithubOrchestrator.__delegate_scan_handler_map[self.__dispatch_event](self, services, scan_id)
 
     async def _get_target_branch_and_hash(self) -> tuple:
         return self.__target_branch, self.__target_hash
@@ -202,17 +200,21 @@ class GithubOrchestrator(OrchestratorBase):
 
         return hash == payload_hash
 
-
-    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None, 
-                                          scan_tags : Dict[str, str]=None):
-        self.__target_branch = self.__source_branch = OrchestratorBase.normalize_branch_name(
+    def __init_state_on_push(self):
+        self.__target_branch = self.__source_branch = AbstractOrchestrator.normalize_branch_name(
             GithubOrchestrator.__push_target_branch_query.find(self.event_context.message)[0].value)
         self.__target_hash = self.__source_hash = GithubOrchestrator.__push_target_hash_query.find(self.event_context.message)[0].value
 
         self.__project_key = GithubOrchestrator.__push_project_key_query.find(self.event_context.message)[0].value
         self.__org = GithubOrchestrator.__push_org_key_query.find(self.event_context.message)[0].value
-       
-        return await OrchestratorBase._execute_push_scan_workflow(self, services, additional_content, scan_tags)
+
+    async def _execute_delegated_push_scan_workflow(self, services : CxOneFlowServices, scan_id : str): 
+        self.__init_state_on_push()
+        return await AbstractOrchestrator._execute_delegated_push_scan_workflow(self, services, scan_id)
+
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None):
+        self.__init_state_on_push()
+        return await AbstractOrchestrator._execute_push_scan_workflow(self, services, scan_tags)
 
 
     def __get_pr_assignees(self):
@@ -255,19 +257,18 @@ class GithubOrchestrator(OrchestratorBase):
             self.__pr_status = "NO_REVIEWERS"
 
 
-    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, additional_content : List[AdditionalScanContentWriter]=None, 
-                                        scan_tags : Dict[str, str]=None) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None) -> ScanInspector:
         self.__populate_common_pr_data()
 
         if self.__is_draft:
             GithubOrchestrator.log().info(f"Skipping draft PR {self.__pr_id}: {self.__pr_html_url}")
             return
         
-        return await OrchestratorBase._execute_pr_scan_workflow(self, services, additional_content, scan_tags)
+        return await AbstractOrchestrator._execute_pr_scan_workflow(self, services, scan_tags)
 
     async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices, *args):
         self.__populate_common_pr_data()
-        return await OrchestratorBase._execute_pr_tag_update_workflow(self, services)
+        return await AbstractOrchestrator._execute_pr_tag_update_workflow(self, services)
 
     @property
     def _pr_id(self) -> str:
@@ -350,6 +351,21 @@ class GithubOrchestrator(OrchestratorBase):
         "pull_request:review_requested" : _execute_pr_tag_update_workflow,
         "pull_request:closed" : _execute_pr_tag_update_workflow,
         "pull_request:converted_to_draft" : _execute_pr_tag_update_workflow
+        
+    }
+
+    __delegate_scan_handler_map = {
+        "push" : _execute_delegated_push_scan_workflow,
+        # "pull_request:opened" : _execute_pr_scan_workflow,
+        # "pull_request:synchronize" : _execute_pr_scan_workflow,
+        # "pull_request:ready_for_review" : _execute_pr_scan_workflow,
+        # "pull_request:reopened" : _execute_pr_scan_workflow,
+        # "pull_request:assigned" : _execute_pr_tag_update_workflow,
+        # "pull_request:unassigned" : _execute_pr_tag_update_workflow,
+        # "pull_request:review_request_removed" : _execute_pr_tag_update_workflow,
+        # "pull_request:review_requested" : _execute_pr_tag_update_workflow,
+        # "pull_request:closed" : _execute_pr_tag_update_workflow,
+        # "pull_request:converted_to_draft" : _execute_pr_tag_update_workflow
         
     }
 

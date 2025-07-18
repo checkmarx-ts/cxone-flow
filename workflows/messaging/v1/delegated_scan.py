@@ -9,13 +9,15 @@ from _version import __version__
 class DelegatedScanDetails(BaseMessage):
     clone_url : str
     commit_hash : str
+    scan_branch : str
+    scan_tags : dict
     file_filters : str
-    project_name : str
-    pickled_cloner : bytearray
+    project_id : str
+    pickled_scm_service : bytearray
+    pickled_cxone_service : bytearray
     event_context : EventContext
     orchestrator : str
     cxoneflow_version : str = __version__
-    schema: str = "v1"
 
 @dataclass(frozen=True)
 class DelegatedScanMessageBase(ScanHeader):
@@ -25,11 +27,9 @@ class DelegatedScanMessageBase(ScanHeader):
 @dataclass(frozen=True)
 class DelegatedScanMessage(DelegatedScanMessageBase):
     capture_logs : bool
-    schema: str = "v1"
 
 @dataclass(frozen=True)
 class DelegatedScanResultMessage(DelegatedScanMessageBase):
-    resolver_results : Optional[bytearray]
-    container_results : Optional[bytearray]
-    exit_code: Optional[int]
+    resolver_exit_code : int
+    scan_id : Optional[str]
     logs : Optional[bytearray]

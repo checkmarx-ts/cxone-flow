@@ -5,9 +5,11 @@ from typing import List
 from collections import namedtuple
 import asyncio, re, logging
 
+
+Route = namedtuple("Route", ['regex', 'groups'])
+
 class GroupingService:
 
-  Route = namedtuple("Route", ['regex', 'groups'])
   
   __MAX_RESOLUTION_ERRORS = 3
 
@@ -23,7 +25,7 @@ class GroupingService:
     self.__path_res_errors = {}
 
   def add_assignment_rule(self, clone_url_regex : str, group_paths : List[str]) -> None:
-    self.__routes.append(GroupingService.Route(re.compile(clone_url_regex), [x.lstrip("/") for x in group_paths]))
+    self.__routes.append(Route(re.compile(clone_url_regex), [x.lstrip("/") for x in group_paths]))
 
   async def __increment_error(self, group_path : str):
     if group_path in self.__path_res_errors.keys():

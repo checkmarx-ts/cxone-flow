@@ -1,8 +1,9 @@
 from .base_service import BaseWorkflowService
 from . import ScanStates, ExecTypes, ResolverOps, ScanWorkflow
 from .resolver_workflow_base import AbstractResolverWorkflow
-from scm_services.cloner import Cloner
-from typing import List, Tuple
+from scm_services import SCMService
+from cxone_service import CxOneService
+from typing import List, Tuple, Dict
 from .exceptions import WorkflowException
 from .messaging import (
     DelegatedScanMessage,
@@ -122,7 +123,7 @@ class ResolverScanService(BaseWorkflowService):
 
     def capture_logs(self, logs: bytearray) -> None:
         if self.__workflow.capture_logs and logs is not None:
-            self.log().info(f"Captured resolver logs: [{logs.decode()}]")
+            ResolverScanService.log().info(f"Captured resolver logs: [{logs.decode()}]")
 
     async def handle_resolver_scan_timeout(
         self, msg: aio_pika.abc.AbstractIncomingMessage
@@ -140,7 +141,7 @@ class ResolverScanService(BaseWorkflowService):
 
             if resub_count > 0:
                 # Requeue the message
-                self.log().warning(f"Requeue [{msg_identifier}]")
+                ResolverScanService.log().warning(f"Requeue [{msg_identifier}]")
                 await self.__workflow.resolver_scan_resubmit(
                     await self.mq_client(),
                     msg.routing_key,
@@ -149,7 +150,7 @@ class ResolverScanService(BaseWorkflowService):
                     resub_count,
                 )
             else:
-                self.log().warning(
+                ResolverScanService.log().warning(
                     f"Delegated scan for [{msg_identifier}] timed out, returning as failure."
                     + f" This may indicate agents are not listening for messages delivered for {msg.routing_key}."
                 )
@@ -173,16 +174,19 @@ class ResolverScanService(BaseWorkflowService):
                     ResolverScanService.EXCHANGE_RESOLVER_SCAN,
                 )
         else:
-            self.log().debug(f"[{msg_identifier}] was not an expired message, gracefully rejecting.")
+            ResolverScanService.log().debug(f"[{msg_identifier}] was not an expired message, gracefully rejecting.")
 
 
     async def request_resolver_scan(
         self,
         scanner_tag: str,
         project_config: ProjectRepoConfig,
-        cloner: Cloner,
+        scm_service: SCMService,
+        cxone_service : CxOneService,
         clone_url: str,
         commit_hash: str,
+        scan_branch : str,
+        scan_tags : Dict[str, str],
         scan_workflow: ScanWorkflow,
         event_context: EventContext,
         orchestrator: str,
@@ -201,9 +205,12 @@ class ResolverScanService(BaseWorkflowService):
         details_msg = DelegatedScanDetails(
             clone_url=clone_url,
             commit_hash=commit_hash,
+            scan_branch=scan_branch,
+            scan_tags=scan_tags,
             file_filters=filters,
-            project_name=project_config.name,
-            pickled_cloner=pickle.dumps(cloner, protocol=pickle.HIGHEST_PROTOCOL),
+            project_id=project_config.id,
+            pickled_scm_service=pickle.dumps(scm_service, protocol=pickle.HIGHEST_PROTOCOL),
+            pickled_cxone_service=pickle.dumps(cxone_service, protocol=pickle.HIGHEST_PROTOCOL),
             event_context=event_context,
             orchestrator=orchestrator,
         )
