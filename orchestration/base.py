@@ -157,7 +157,7 @@ class AbstractOrchestrator:
     
     async def __orchestrate_scan(self, services : CxOneFlowServices, scan_tags : dict, 
         workflow : ScanWorkflow) -> Tuple[ScanInspector, ScanAction]:
-        protected_branches = await self._get_protected_branches(services.scm)
+        protected_branches = set(await self._get_protected_branches(services.scm))
 
         target_branch, target_hash = await self._get_target_branch_and_hash()
         source_branch, source_hash = await self._get_source_branch_and_hash()
@@ -167,6 +167,8 @@ class AbstractOrchestrator:
             raise OrchestrationException("Clone URL could not be determined.")
 
         if target_branch in protected_branches:
+            AbstractOrchestrator.log().info(f"Scan workflow executing for {clone_url}:{source_hash}:{source_branch} -> {target_branch}")
+
             project_config = await services.cxone.load_project_config(await self.get_default_cxone_project_name(),
                 await services.naming.get_project_name(await self.get_default_cxone_project_name(), self.event_context), 
                 clone_url)
