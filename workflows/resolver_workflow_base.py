@@ -19,16 +19,16 @@ class AbstractResolverWorkflow(AbstractAsyncWorkflow):
     def validate_signature(self, signature : bytearray, payload : bytearray) -> bool:
         raise NotImplementedError("validate_signature")
     
-    async def deliver_resolver_results(self, mq_client : aio_pika.abc.AbstractRobustConnection, 
+    async def deliver_delegated_scan_outcome(self, mq_client : aio_pika.abc.AbstractRobustConnection, 
                                        route_key : str, msg : DelegatedScanResultMessage, exchange : str) -> bool:
-        raise NotImplementedError("deliver_resolver_results")
+        raise NotImplementedError("deliver_delegated_scan_outcome")
 
-    async def resolver_scan_kickoff(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, msg : DelegatedScanMessage, exchange : str) -> bool:
-        raise NotImplementedError("resolver_scan_kickoff")
+    async def delegated_scan_kickoff(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, msg : DelegatedScanMessage, exchange : str) -> bool:
+        raise NotImplementedError("delegated_scan_kickoff")
 
-    async def resolver_scan_resubmit(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, msg : DelegatedScanMessage, exchange : str,
+    async def delegated_scan_resubmit(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, msg : DelegatedScanMessage, exchange : str,
                                      retries : int) -> bool:
-        raise NotImplementedError("resolver_scan_resubmit")
+        raise NotImplementedError("delegated_scan_resubmit")
 
-    async def get_resolver_scan_resubmit_count(self, mq_client : aio_pika.abc.AbstractRobustConnection, msg : aio_pika.abc.AbstractIncomingMessage, headers : Dict) -> int:
-        raise NotImplementedError("get_resolver_scan_resubmit_count")
+    async def get_delegated_scan_resubmit_count(self, mq_client : aio_pika.abc.AbstractRobustConnection, msg : aio_pika.abc.AbstractIncomingMessage, headers : Dict) -> int:
+        raise NotImplementedError("get_delegated_scan_resubmit_count")

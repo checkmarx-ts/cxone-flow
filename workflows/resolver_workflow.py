@@ -74,23 +74,23 @@ class ResolverScanningWorkflow(AbstractResolverWorkflow):
             return False
         return True
     
-    async def deliver_resolver_results(self, mq_client : aio_pika.abc.AbstractRobustConnection, 
+    async def deliver_delegated_scan_outcome(self, mq_client : aio_pika.abc.AbstractRobustConnection, 
                                        route_key : str, msg : DelegatedScanResultMessage, exchange : str) -> bool:
-        return await self._publish(mq_client, route_key, self.__msg_factory(msg), f"Resolver Scan Results {route_key}", exchange)
+        return await self._publish(mq_client, route_key, self.__msg_factory(msg), f"Delegated Scan Id {route_key}", exchange)
     
-    async def resolver_scan_kickoff(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, 
+    async def delegated_scan_kickoff(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, 
                                     msg : DelegatedScanMessage, exchange : str) -> bool:
         if self.__no_kickoff:
             raise WorkflowException("This instance can't delegate a resolver scan.")
 
-        return await self.resolver_scan_resubmit(mq_client, route_key, msg, exchange, self.__scan_retries)
+        return await self.delegated_scan_resubmit(mq_client, route_key, msg, exchange, self.__scan_retries)
 
-    async def resolver_scan_resubmit(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, msg : DelegatedScanMessage, exchange : str,
+    async def delegated_scan_resubmit(self, mq_client : aio_pika.abc.AbstractRobustConnection, route_key : str, msg : DelegatedScanMessage, exchange : str,
                                      retries : int) -> bool:
         return await self._publish(mq_client, route_key, self.__DelegatedScanMessage_factory(msg, max(retries, 0)), 
-                                   f"Resolver Scan Workflow {route_key}", exchange)
+                                   f"Delegated Scan Workflow {route_key}", exchange)
         
-    async def get_resolver_scan_resubmit_count(self, mq_client : aio_pika.abc.AbstractRobustConnection, msg : DelegatedScanMessage, headers : Dict) -> bool:
+    async def get_delegated_scan_resubmit_count(self, mq_client : aio_pika.abc.AbstractRobustConnection, msg : DelegatedScanMessage, headers : Dict) -> bool:
         if not ResolverScanningWorkflow.__retry_header_key in headers.keys():
             raise WorkflowException("Timeout message has no retry count header.")
         else:

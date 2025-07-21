@@ -56,7 +56,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
             logs=logs,
         )
 
-        await workflow.deliver_resolver_results(
+        await workflow.deliver_delegated_scan_outcome(
             await self.mq_client(),
             self.route_key,
             result_msg,
@@ -157,7 +157,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
                             resolver_exit_code = return_code
                         )
 
-                        await workflow.deliver_resolver_results(
+                        await workflow.deliver_delegated_scan_outcome(
                             await self.mq_client(),
                             self.route_key,
                             result_msg,

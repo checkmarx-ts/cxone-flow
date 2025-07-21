@@ -135,14 +135,14 @@ class ResolverScanService(BaseWorkflowService):
             'reason' in msg.headers['x-death'][0].keys() and \
             msg.headers['x-death'][0]['reason'] == 'expired':
 
-            resub_count = await self.__workflow.get_resolver_scan_resubmit_count(
+            resub_count = await self.__workflow.get_delegated_scan_resubmit_count(
                 await self.mq_client(), requeue_msg, msg.headers
             )
 
             if resub_count > 0:
                 # Requeue the message
                 ResolverScanService.log().warning(f"Requeue [{msg_identifier}]")
-                await self.__workflow.resolver_scan_resubmit(
+                await self.__workflow.delegated_scan_resubmit(
                     await self.mq_client(),
                     msg.routing_key,
                     requeue_msg,
@@ -156,7 +156,7 @@ class ResolverScanService(BaseWorkflowService):
                 )
 
                 # Queue results message with failure
-                await self.__workflow.deliver_resolver_results(
+                await self.__workflow.deliver_delegated_scan_outcome(
                     await self.mq_client(),
                     ResolverScanService.ROUTEKEY_RESOLVER_RESULT_STUB,
                     DelegatedScanResultMessage.factory(
@@ -224,7 +224,7 @@ class ResolverScanService(BaseWorkflowService):
             details_signature=self.__workflow.get_signature(details_msg),
         )
 
-        return await self.__workflow.resolver_scan_kickoff(
+        return await self.__workflow.delegated_scan_kickoff(
             await self.mq_client(),
             self.make_topic_for_tag(scanner_tag),
             msg,
