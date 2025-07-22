@@ -83,15 +83,21 @@ class BitBucketDataCenterOrchestrator(AbstractOrchestrator):
         
         return await dispatch_map[self.__event](self, services, scan_tags)
 
+    async def __delegated_dispatcher(self, dispatch_map : dict, services : CxOneFlowServices, scan_id : str):
+        if self.__event not in dispatch_map.keys():
+            BitBucketDataCenterOrchestrator.log().error(f"Unhandled event type: {self.__event}")
+            return 
+        return await dispatch_map[self.__event](self, services, scan_id)
+
     async def execute(self, services : CxOneFlowServices):
         return await self.__workflow_dispatcher(BitBucketDataCenterOrchestrator.__workflow_map, services)
 
     async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
         self.deferred_scan = True
-        return await self.__workflow_dispatcher(BitBucketDataCenterOrchestrator.__workflow_map, services, scan_id)
+        return await self.__delegated_dispatcher(BitBucketDataCenterOrchestrator.__delegate_scan_handler_map, services, scan_id)
 
-    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
 
+    def __populate_common_push_data(self):
         self.__source_branch = self.__target_branch = None
         self.__source_hash = self.__target_hash = None
 
@@ -107,8 +113,14 @@ class BitBucketDataCenterOrchestrator(AbstractOrchestrator):
         self.__repo_project_name = BitBucketDataCenterOrchestrator.__push_repo_project_name_query.find(self.event_context.message)[0].value
         self.__repo_slug = BitBucketDataCenterOrchestrator.__push_repo_slug_query.find(self.event_context.message)[0].value
         self.__repo_name = BitBucketDataCenterOrchestrator.__push_repo_name_query.find(self.event_context.message)[0].value
-        
-        return await AbstractOrchestrator._execute_push_scan_workflow(self, services, scan_id)
+
+    async def _execute_delegated_push_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
+        self.__populate_common_push_data()
+        return await AbstractOrchestrator._execute_delegated_push_scan_workflow(self, services, scan_id)
+
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]):
+        self.__populate_common_push_data()
+        return await AbstractOrchestrator._execute_push_scan_workflow(self, services, scan_tags)
 
     async def __is_pr_draft(self) -> bool:
         return bool(BitBucketDataCenterOrchestrator.__pr_draft_query.find(self.event_context.message)[0].value)
@@ -137,6 +149,10 @@ class BitBucketDataCenterOrchestrator(AbstractOrchestrator):
         else:
             self.__pr_status = "/".join(statuses)
 
+    async def _execute_delegated_pr_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
+        self.__populate_common_pr_data()
+        return await AbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
+
     async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None) -> ScanInspector:
         if await self.__is_pr_draft():
             BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
@@ -144,7 +160,7 @@ class BitBucketDataCenterOrchestrator(AbstractOrchestrator):
         self.__populate_common_pr_data()
         return await AbstractOrchestrator._execute_pr_scan_workflow(self, services, scan_tags)
 
-    async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices, *args):
+    async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices):
         if await self.__is_pr_draft():
             BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
             return
@@ -224,6 +240,15 @@ class BitBucketDataCenterOrchestrator(AbstractOrchestrator):
         "pr:declined" : _execute_pr_tag_update_workflow,
         "pr:deleted" : _execute_pr_tag_update_workflow,
         "pr:reviewer:unapproved" : _execute_pr_tag_update_workflow,
+        "pr:reviewer:updated" : _execute_pr_tag_update_workflow,
         "pr:reviewer:approved" : _execute_pr_tag_update_workflow,
         "pr:reviewer:needs_work" : _execute_pr_tag_update_workflow,
+    }
+
+
+    __delegate_scan_handler_map = {
+        "repo:refs_changed" : _execute_delegated_push_scan_workflow,
+        "pr:opened" : _execute_delegated_pr_scan_workflow,
+        "pr:modified" : _execute_delegated_pr_scan_workflow,
+        "pr:from_ref_updated" : _execute_delegated_pr_scan_workflow,
     }

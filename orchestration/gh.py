@@ -258,7 +258,6 @@ class GithubOrchestrator(AbstractOrchestrator):
 
     async def _execute_delegated_pr_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
         self.__populate_common_pr_data()
-
         return await AbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
 
     async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None) -> ScanInspector:
@@ -270,7 +269,7 @@ class GithubOrchestrator(AbstractOrchestrator):
         
         return await AbstractOrchestrator._execute_pr_scan_workflow(self, services, scan_tags)
 
-    async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices, *args):
+    async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices):
         self.__populate_common_pr_data()
         return await AbstractOrchestrator._execute_pr_tag_update_workflow(self, services)
 

@@ -195,7 +195,10 @@ class AbstractOrchestrator:
             AbstractOrchestrator.log().info(f"{clone_url}:{source_hash}:{source_branch} is not related to any protected branch: {protected_branches}")
             return None, AbstractOrchestrator.ScanAction.SKIPPED
 
-    async def _execute_delegated_push_scan_workflow(self, services : CxOneFlowServices, scan_id : str) -> Tuple[ScanInspector, ScanAction]: 
+    async def _execute_delegated_push_scan_workflow(self, services : CxOneFlowServices, scan_id : str) -> Tuple[ScanInspector, ScanAction]:
+        
+        # Placeholder for eventual delivery of a Sarif feed.
+
         AbstractOrchestrator.log().debug(f"_execute_delegated_push_scan_workflow")
         inspector =  await services.cxone.load_scan_inspector(scan_id)
         status = AbstractOrchestrator.ScanAction.COMPLETE
