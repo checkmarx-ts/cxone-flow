@@ -256,6 +256,10 @@ class GithubOrchestrator(AbstractOrchestrator):
         else:
             self.__pr_status = "NO_REVIEWERS"
 
+    async def _execute_delegated_pr_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
+        self.__populate_common_pr_data()
+
+        return await AbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
 
     async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None) -> ScanInspector:
         self.__populate_common_pr_data()
@@ -351,22 +355,14 @@ class GithubOrchestrator(AbstractOrchestrator):
         "pull_request:review_requested" : _execute_pr_tag_update_workflow,
         "pull_request:closed" : _execute_pr_tag_update_workflow,
         "pull_request:converted_to_draft" : _execute_pr_tag_update_workflow
-        
     }
 
     __delegate_scan_handler_map = {
         "push" : _execute_delegated_push_scan_workflow,
-        # "pull_request:opened" : _execute_pr_scan_workflow,
-        # "pull_request:synchronize" : _execute_pr_scan_workflow,
-        # "pull_request:ready_for_review" : _execute_pr_scan_workflow,
-        # "pull_request:reopened" : _execute_pr_scan_workflow,
-        # "pull_request:assigned" : _execute_pr_tag_update_workflow,
-        # "pull_request:unassigned" : _execute_pr_tag_update_workflow,
-        # "pull_request:review_request_removed" : _execute_pr_tag_update_workflow,
-        # "pull_request:review_requested" : _execute_pr_tag_update_workflow,
-        # "pull_request:closed" : _execute_pr_tag_update_workflow,
-        # "pull_request:converted_to_draft" : _execute_pr_tag_update_workflow
-        
+        "pull_request:opened" : _execute_delegated_pr_scan_workflow,
+        "pull_request:synchronize" : _execute_delegated_pr_scan_workflow,
+        "pull_request:ready_for_review" : _execute_delegated_pr_scan_workflow,
+        "pull_request:reopened" : _execute_delegated_pr_scan_workflow
     }
 
     __route_url_parser_dispatch_map = {
