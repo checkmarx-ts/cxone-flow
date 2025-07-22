@@ -85,7 +85,7 @@ class BitBucketDataCenterOrchestrator(AbstractOrchestrator):
 
     async def __delegated_dispatcher(self, dispatch_map : dict, services : CxOneFlowServices, scan_id : str):
         if self.__event not in dispatch_map.keys():
-            BitBucketDataCenterOrchestrator.log().error(f"Unhandled event type: {self.__event}")
+            BitBucketDataCenterOrchestrator.log().error(f"Unhandled delegated scan event type: {self.__event}")
             return 
         return await dispatch_map[self.__event](self, services, scan_id)
 

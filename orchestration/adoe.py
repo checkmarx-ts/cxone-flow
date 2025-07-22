@@ -79,13 +79,19 @@ class AzureDevOpsEnterpriseOrchestrator(AbstractOrchestrator):
         }
 
     async def execute(self, services : CxOneFlowServices):
-        await self.__common_execution_steps(services)
-        return await AzureDevOpsEnterpriseOrchestrator.__workflow_map[self.__event](self, services)
+        if self.__event not in AzureDevOpsEnterpriseOrchestrator.__workflow_map.keys():
+            AzureDevOpsEnterpriseOrchestrator.log().error(f"Unhandled scan event type: {self.__event}")
+        else:
+            await self.__common_execution_steps(services)
+            return await AzureDevOpsEnterpriseOrchestrator.__workflow_map[self.__event](self, services)
 
     async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
-        self.deferred_scan = True
-        await self.__common_execution_steps(services)
-        return await AzureDevOpsEnterpriseOrchestrator.__workflow_map[self.__event](self, services, scan_id)
+        if self.__event not in AzureDevOpsEnterpriseOrchestrator.__delegate_scan_handler_map.keys():
+            AzureDevOpsEnterpriseOrchestrator.log().error(f"Unhandled delegated scan event type: {self.__event}")
+        else:
+            self.deferred_scan = True
+            await self.__common_execution_steps(services)
+            return await AzureDevOpsEnterpriseOrchestrator.__delegate_scan_handler_map[self.__event](self, services, scan_id)
 
     @property
     def is_diagnostic(self):
@@ -192,19 +198,20 @@ class AzureDevOpsEnterpriseOrchestrator(AbstractOrchestrator):
     async def __is_pr_draft(self) -> bool:
         return bool(AzureDevOpsEnterpriseOrchestrator.__pr_draft_query.find(self.event_context.message)[0].value)
 
-
-    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None):
+    def __populate_common_push_data(self):
         self.__source_branch = self.__target_branch = AbstractOrchestrator.normalize_branch_name(
             [x.value for x in list(self.__push_target_branch_query.find(self.event_context.message))][0])
         self.__source_hash = self.__target_hash = [x.value for x in list(self.__push_target_hash_query.find(self.event_context.message))][0]
 
+    async def _execute_delegated_push_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
+        self.__populate_common_push_data()
+        return await AbstractOrchestrator._execute_delegated_push_scan_workflow(self, services, scan_id)
+
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None):
+        self.__populate_common_push_data()
         return await AbstractOrchestrator._execute_push_scan_workflow(self, services, scan_tags)
 
-    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None) -> ScanInspector:
-        if await self.__is_pr_draft():
-            AzureDevOpsEnterpriseOrchestrator.log().info(f"Skipping draft PR {AzureDevOpsEnterpriseOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
-            return
-
+    def __populate_common_pr_data(self):
         self.__source_branch = AbstractOrchestrator.normalize_branch_name([x.value for x in list(self.__pr_frombranch_query.find(self.event_context.message))][0])
         self.__target_branch = AbstractOrchestrator.normalize_branch_name([x.value for x in list(self.__pr_tobranch_query.find(self.event_context.message))][0])
         self.__source_hash = [x.value for x in list(self.__pr_fromhash_query.find(self.event_context.message))][0]
@@ -220,6 +227,17 @@ class AzureDevOpsEnterpriseOrchestrator(AbstractOrchestrator):
             self.__pr_status = "/".join(statuses)
 
         self.__pr_state = AzureDevOpsEnterpriseOrchestrator.__pr_state_query.find(self.event_context.message)[0].value
+
+    async def _execute_delegated_pr_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
+        self.__populate_common_pr_data()
+        return await AbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
+
+    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None) -> ScanInspector:
+        if await self.__is_pr_draft():
+            AzureDevOpsEnterpriseOrchestrator.log().info(f"Skipping draft PR {AzureDevOpsEnterpriseOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
+            return
+
+        self.__populate_common_pr_data()
 
         existing_scans = await services.cxone.find_pr_scans(await services.naming.get_project_name
                                                             (await self.get_default_cxone_project_name(), self.event_context), 
@@ -271,4 +289,10 @@ class AzureDevOpsEnterpriseOrchestrator(AbstractOrchestrator):
         "git.push" : _execute_push_scan_workflow,
         "git.pullrequest.created" : _execute_pr_scan_workflow,
         "git.pullrequest.updated" : _execute_pr_scan_workflow
+    }
+
+    __delegate_scan_handler_map = {
+        "git.push" : _execute_delegated_push_scan_workflow,
+        "git.pullrequest.created" : _execute_delegated_pr_scan_workflow,
+        "git.pullrequest.updated" : _execute_delegated_pr_scan_workflow
     }
