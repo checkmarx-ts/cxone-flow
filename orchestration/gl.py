@@ -152,9 +152,7 @@ class GitlabOrchestrator(AbstractOrchestrator):
         self.__repo_name = self.__repo_project_key.split("/")[-1:].pop()
         self.__repo_organization = "/".join(self.__repo_project_key.split("/")[:-1])
 
-    
-    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None):
-
+    def __populate_common_push_event_data(self):
         self.__source_branch = self.__target_branch = AbstractOrchestrator.normalize_branch_name(
             GitlabOrchestrator.__push_ref_query.find(self.event_context.message).pop().value)
         self.__source_hash = self.__target_hash = GitlabOrchestrator.__push_after_hash_query.find(self.event_context.message).pop().value
@@ -169,6 +167,12 @@ class GitlabOrchestrator(AbstractOrchestrator):
         if len(found_default) > 0:
             self.__protected_branches.append(AbstractOrchestrator.normalize_branch_name(found_default.pop().value))
 
+    async def _execute_delegated_push_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
+        self.__populate_common_push_event_data()
+        return await AbstractOrchestrator._execute_delegated_push_scan_workflow(self, services, scan_id)
+    
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None):
+        self.__populate_common_push_event_data()
         return await AbstractOrchestrator._execute_push_scan_workflow(self, services, scan_tags)
 
     async def execute(self, services : CxOneFlowServices):
@@ -179,7 +183,10 @@ class GitlabOrchestrator(AbstractOrchestrator):
 
     async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
         self.deferred_scan = True
-        return await GitlabOrchestrator.__workflow_map[self.__event](self, services, scan_id)
+        if self.__event not in GitlabOrchestrator.__delegate_scan_handler_map.keys():
+            GitlabOrchestrator.log().error(f"Unhandled delegated scan event type: {self.__event}")
+        else:
+            return await GitlabOrchestrator.__delegate_scan_handler_map[self.__event](self, services, scan_id)
 
     async def _get_protected_branches(self, scm_service : SCMService) -> list:
         return self.__protected_branches
@@ -192,6 +199,7 @@ class GitlabOrchestrator(AbstractOrchestrator):
 
 
     def __populate_common_pr_data(self):
+        self.__populate_common_event_data()
         self.__source_branch = AbstractOrchestrator.normalize_branch_name(GitlabOrchestrator.__pr_source_branch_query.find(self.event_context.message).pop().value)
         self.__target_branch = AbstractOrchestrator.normalize_branch_name(GitlabOrchestrator.__pr_target_branch_query.find(self.event_context.message).pop().value)
         self.__source_hash = GitlabOrchestrator.__pr_commit_hash_query.find(self.event_context.message).pop().value
@@ -200,12 +208,16 @@ class GitlabOrchestrator(AbstractOrchestrator):
         self.__pr_state = GitlabOrchestrator.__pr_state_query.find(self.event_context.message).pop().value
         self.__pr_status = GitlabOrchestrator.__pr_status_query.find(self.event_context.message).pop().value
 
+    async def _execute_delegated_pr_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
+        self.__populate_common_pr_data()
+        return await AbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
+
+
     async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None) -> ScanInspector:
         if await self.__is_pr_draft():
             GitlabOrchestrator.log().info(f"Skipping draft PR {GitlabOrchestrator.__pr_link_query.find(self.event_context.message).pop().value}")
             return
 
-        self.__populate_common_event_data()
         self.__populate_common_pr_data()
 
         project_id = GitlabOrchestrator.__event_project_id_query.find(self.event_context.message).pop().value
@@ -216,13 +228,12 @@ class GitlabOrchestrator(AbstractOrchestrator):
         if len(existing_scans) > 0:
             # This is a scan tag update, not a scan.
             return await AbstractOrchestrator._execute_pr_tag_update_workflow(self, services)
-        elif self.__pr_state in GitlabOrchestrator.__pr_closed_states:
-            pass
         else:
             self.__protected_branches = []
 
             if self.__pr_state in GitlabOrchestrator.__pr_closed_states:
                 self.log().warning(f"PR {self.__pr_id} is closed, ignoring.")
+                return
             else:
                 default_branch_resp, protected_branch_resp = await asyncio.gather(
                     services.scm.exec("GET", f"/projects/{project_id}"),
@@ -255,4 +266,10 @@ class GitlabOrchestrator(AbstractOrchestrator):
         f"push:{__push_actual_label}" : _execute_push_scan_workflow,
         f"push:{__push_create_label}" : _execute_push_scan_workflow,
         "merge_request" : _execute_pr_scan_workflow
+    }
+
+    __delegate_scan_handler_map = {
+        f"push:{__push_actual_label}" : _execute_delegated_push_scan_workflow,
+        f"push:{__push_create_label}" : _execute_delegated_push_scan_workflow,
+        "merge_request" : _execute_delegated_pr_scan_workflow
     }
