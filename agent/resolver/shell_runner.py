@@ -1,10 +1,10 @@
-from .resolver_runner import ResolverRunner, ExecutionContext
-from .resolver_opts import ResolverOpts
+from agent.resolver.resolver_runner import ResolverRunner, ResolverExecutionContext
+from agent.resolver.resolver_opts import ResolverOpts
 from typing import List
 from pathlib import Path
 import os, subprocess
 
-class ShellExecutionContext(ExecutionContext):
+class ResolverShellExecutionContext(ResolverExecutionContext):
     __resolver_name = "ScaResolver"
 
     def __init__(self, workpath: str, opts: ResolverOpts, resolver_path: str, runas_user : str):
@@ -25,8 +25,8 @@ class ShellExecutionContext(ExecutionContext):
             and os.path.isfile(self.__resolver_path)
         ):
             cmd = [self.__resolver_path]
-        elif os.path.exists(ShellExecutionContext.__resolver_name):
-            cmd = [ShellExecutionContext.__resolver_name]
+        elif os.path.exists(ResolverShellExecutionContext.__resolver_name):
+            cmd = [ResolverShellExecutionContext.__resolver_name]
         
         exec_cmd = runas + cmd
 
@@ -36,10 +36,10 @@ class ShellExecutionContext(ExecutionContext):
     
     async def __recurse_chmod(self, path : Path) -> None:
         # This will chmod the files recursively to ExecutionContext._reqd_permissions
-        os.chmod(path, ExecutionContext._reqd_permissions)
+        os.chmod(path, ResolverExecutionContext._reqd_permissions)
 
         for elem in path.iterdir():
-            os.chmod(elem, ExecutionContext._reqd_permissions)
+            os.chmod(elem, ResolverExecutionContext._reqd_permissions)
 
             if elem.is_dir():
                 await self.__recurse_chmod(elem)
@@ -54,7 +54,7 @@ class ShellExecutionContext(ExecutionContext):
         
         return await super().execute_resolver(project_name, exclusions)
 
-class ShellRunner(ResolverRunner):
+class ResolverShellRunner(ResolverRunner):
 
     def __init__(self, workpath: str, opts: ResolverOpts, resolver_path: str, runas_user : str):
         super().__init__(workpath, opts)
@@ -62,4 +62,4 @@ class ShellRunner(ResolverRunner):
         self.__runas = runas_user
 
     async def executor(self):
-        return ShellExecutionContext(self.work_path, self.resolver_opts, self.__resolver_path, self.__runas)
+        return ResolverShellExecutionContext(self.work_path, self.resolver_opts, self.__resolver_path, self.__runas)

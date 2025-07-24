@@ -1,11 +1,10 @@
-from .resolver_runner import ResolverRunner, ExecutionContext
-from .resolver_opts import ResolverOpts
-from .exceptions import ResolverAgentException
+from agent.resolver.resolver_runner import ResolverRunner, ResolverExecutionContext
+from agent.resolver.resolver_opts import ResolverOpts
+from agent.resolver.exceptions import ResolverAgentException
 from typing import List
-import os, subprocess
-from threading import Lock
+import os
 
-class ToolkitExecutionContext(ExecutionContext):
+class ResolverToolkitExecutionContext(ResolverExecutionContext):
   __docker_cmd = ["docker", "run", "-t", "--rm"]
 
   def __init__(self, workpath : str, opts : ResolverOpts, container_tag : str):
@@ -25,14 +24,14 @@ class ToolkitExecutionContext(ExecutionContext):
       return "/sandbox/output/" +  self.container_result_directory + "/" + self.container_result_filename
 
   def _get_resolver_exec_cmd(self) -> List[str]:
-    return ToolkitExecutionContext.__docker_cmd + [
+    return ResolverToolkitExecutionContext.__docker_cmd + [
       "-v", f"{self.clone_path}:/sandbox/input:ro",
       "-v", f"{self.work_root.name}:/sandbox/output",
       self.__run_container_tag
     ]
 
 
-class ToolkitRunner(ResolverRunner):
+class ResolverToolkitRunner(ResolverRunner):
 
   def __init__(self, workpath : str, opts : ResolverOpts, toolkit_path : str, container_tag : str, inherit_uid : bool, inherit_gid : bool):
     super().__init__(workpath, opts)
@@ -41,8 +40,8 @@ class ToolkitRunner(ResolverRunner):
     self.__uid = inherit_uid
     self.__gid = inherit_gid
 
-    ToolkitRunner.__check_cmd_on_path_or_fail("docker")
-    ToolkitRunner.__check_cmd_on_path_or_fail("bash")
+    ResolverToolkitRunner.__check_cmd_on_path_or_fail("docker")
+    ResolverToolkitRunner.__check_cmd_on_path_or_fail("bash")
 
     self.__run_container_tag = self.__get_build_container_tag()
 
@@ -71,6 +70,6 @@ class ToolkitRunner(ResolverRunner):
 
 
   async def executor(self):
-      return ToolkitExecutionContext(self.work_path, self.resolver_opts, self.__run_container_tag)
+      return ResolverToolkitExecutionContext(self.work_path, self.resolver_opts, self.__run_container_tag)
 
 

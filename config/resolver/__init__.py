@@ -1,8 +1,9 @@
 from .. import ConfigurationException, RouteNotFoundException, CommonConfig
 from agent.resolver import ResolverOpts, ResolverRunnerAgent
 from agent.resolver.resolver_runner import ResolverRunner
-from agent.resolver.shell_runner import ShellRunner
-from agent.resolver.toolkit_runner import ToolkitRunner
+from agent.resolver.shell_runner import ResolverShellRunner
+from agent.resolver.toolkit_runner import ResolverToolkitRunner
+from agent.resolver.noresolver_runner import NoResolverRunner
 from typing import List
 
 
@@ -24,13 +25,16 @@ class ResolverConfig(CommonConfig):
         opts = ResolverConfig.__resolver_opts_factory(CommonConfig._get_value_for_key_or_default("resolver-opts", config_dict, None))
         work_path = CommonConfig._get_value_for_key_or_default("resolver-work-path", config_dict, "/tmp/resolver")
         container_runner_cfg = CommonConfig._get_value_for_key_or_default("run-with-container", config_dict, None)
+        disable_resolver = CommonConfig._get_value_for_key_or_default("disable-resolver", config_dict, False)
 
-        if container_runner_cfg is None:
-            return ShellRunner(work_path, opts, 
+        if disable_resolver:
+            return NoResolverRunner()
+        elif container_runner_cfg is None:
+            return ResolverShellRunner(work_path, opts, 
                                CommonConfig._get_value_for_key_or_fail(config_path, "resolver-path", config_dict), 
                                CommonConfig._get_value_for_key_or_default("resolver-run-as", config_dict, None))
         else:
-            return ToolkitRunner(work_path, opts,
+            return ResolverToolkitRunner(work_path, opts,
                                  CommonConfig._get_value_for_key_or_fail(f"{config_path}/run-with-container", "supply-chain-toolkit-path", container_runner_cfg),
                                  CommonConfig._get_value_for_key_or_fail(f"{config_path}/run-with-container", "container-image-tag", container_runner_cfg),
                                  CommonConfig._get_value_for_key_or_default("use-running-uid", container_runner_cfg, True),

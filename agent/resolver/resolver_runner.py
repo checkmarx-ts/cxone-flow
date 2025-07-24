@@ -3,14 +3,15 @@ from .resolver_opts import ResolverOpts
 import subprocess, logging, asyncio, tempfile, os, stat
 from .exceptions import ResolverAgentException
 
-
-class ExecutionContext:
-
-    _reqd_permissions = stat.S_IRUSR + stat.S_IWUSR + stat.S_IXUSR + stat.S_IRGRP + stat.S_IWGRP + stat.S_IXGRP
-
-    def __init__(self, workpath: str, opts: ResolverOpts):
-        self.__workpath = workpath.rstrip("/") + "/"
-        self.__opts = opts
+class AbstractExecutionContext:
+    def __init__(self, workpath: str):
+        
+        if workpath is not None:
+            self.__workpath = workpath.rstrip("/") + "/"
+        else:
+            self.__workpath = None
+            
+        self.__work_root = None
 
     @classmethod
     def log(clazz):
@@ -38,6 +39,31 @@ class ExecutionContext:
     @property
     def execution_clone_path(self) -> str:
         return self.clone_path
+
+    @property
+    def can_execute(self):
+        raise NotImplementedError("can_execute")
+
+    async def __aenter__(self):
+        self.__work_root = tempfile.TemporaryDirectory(
+            delete=False, prefix=self.__workpath
+        )
+
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.log().debug(f"Cleanup: {self.__work_root}")
+        self.__work_root.cleanup()
+        self.__work_root = None
+
+
+class ResolverExecutionContext(AbstractExecutionContext):
+
+    _reqd_permissions = stat.S_IRUSR + stat.S_IWUSR + stat.S_IXUSR + stat.S_IRGRP + stat.S_IWGRP + stat.S_IXGRP
+
+    def __init__(self, workpath: str, opts: ResolverOpts):
+        super().__init__(workpath)
+        self.__opts = opts
 
     @property
     def resolver_result_directory(self):
@@ -130,37 +156,32 @@ class ExecutionContext:
         return resolver_exec_result
 
     async def __aenter__(self):
-        self.__work_root = tempfile.TemporaryDirectory(
-            delete=False, prefix=self.__workpath
-        )
-        os.chmod(self.__work_root.name, ExecutionContext._reqd_permissions)
+        await super().__aenter__()
+
+        os.chmod(self.work_root.name, ResolverExecutionContext._reqd_permissions)
 
         os.mkdir(self.clone_path)
-        os.chmod(self.clone_path, ExecutionContext._reqd_permissions)
+        os.chmod(self.clone_path, ResolverExecutionContext._reqd_permissions)
 
         os.mkdir(self._resolver_loc)
-        os.chmod(self._resolver_loc, ExecutionContext._reqd_permissions)
+        os.chmod(self._resolver_loc, ResolverExecutionContext._reqd_permissions)
 
         os.mkdir(self._container_loc)
-        os.chmod(self._container_loc, ExecutionContext._reqd_permissions)
+        os.chmod(self._container_loc, ResolverExecutionContext._reqd_permissions)
 
         return self
 
-    async def __aexit__(self, exc_type, exc, tb):
-        self.log().debug(f"Cleanup: {self.__work_root}")
-        self.__work_root.cleanup()
-        self.__work_root = None
-
-
-class ResolverRunner:
+class AbstractRunner:
 
     @classmethod
     def log(clazz):
         return logging.getLogger(clazz.__name__)
 
-    def __init__(self, workpath: str, opts: ResolverOpts):
-        self.__workpath = workpath.rstrip("/") + "/"
-        self.__opts = opts
+    def __init__(self, workpath: str):
+        if workpath is not None:
+            self.__workpath = workpath.rstrip("/") + "/"
+        else:
+            self.__workpath = None
 
     @property
     def home(self):
@@ -169,10 +190,6 @@ class ResolverRunner:
     @property
     def work_path(self) -> str:
         return self.__workpath
-
-    @property
-    def resolver_opts(self) -> ResolverOpts:
-        return self.__opts
 
     @staticmethod
     async def execute_cmd_async(
@@ -197,3 +214,14 @@ class ResolverRunner:
 
     async def executor(self):
         raise NotImplementedError("executor")
+
+
+class ResolverRunner(AbstractRunner):
+    def __init__(self, workpath: str, opts: ResolverOpts):
+        super().__init__(workpath)
+        self.__opts = opts
+
+    @property
+    def resolver_opts(self) -> ResolverOpts:
+        return self.__opts
+

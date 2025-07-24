@@ -30,9 +30,9 @@ class ResolverResultsAgent(BaseWorkflowService):
                 # Execute just like an event message was received.
                 if result_msg.state == ScanStates.FAILURE:
                     if result_msg.get("scan_id") is not None:
-                        ResolverResultsAgent.log().warning(f"Deferred scan correlation_id {result_msg.correlation_id} indicated a soft failure with exit code {result_msg.resolver_exit_code}, scanning anyway.")
+                        ResolverResultsAgent.log().warning(f"Delegated scan correlation_id {result_msg.correlation_id} indicated a soft failure with exit code {result_msg.resolver_exit_code}, scanning anyway.")
                     else:
-                        ResolverResultsAgent.log().error(f"Deferred scan correlation_id {result_msg.correlation_id} indicated a hard failure with exit code {result_msg.resolver_exit_code}, no scan executed.")
+                        ResolverResultsAgent.log().error(f"Delegated scan correlation_id {result_msg.correlation_id} indicated a hard failure with exit code {result_msg.resolver_exit_code}, no scan executed.")
                 
                 self.__services.resolver.capture_logs(result_msg.logs)
                 

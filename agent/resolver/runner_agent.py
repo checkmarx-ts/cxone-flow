@@ -12,7 +12,7 @@ from orchestration import AbstractOrchestrator
 from typing import Tuple
 from .exceptions import ResolverAgentException
 import aio_pika, pickle, shutil, subprocess
-from .resolver_runner import ResolverRunner, ExecutionContext
+from .resolver_runner import ResolverRunner, ResolverExecutionContext
 from pathlib import Path
 from _version import __version__
 
@@ -23,13 +23,13 @@ class ResolverRunnerAgent(BaseWorkflowService):
         self,
         tag: str,
         public_key: bytearray,
-        runner: ResolverRunner,
+        resolver_runner: ResolverRunner,
         amqp_args: Tuple,
     ):
         super().__init__(*amqp_args)
         self.__tag = tag
         self.__public_key = public_key
-        self.__runner = runner
+        self.__resolver_runner = resolver_runner
 
     @property
     def tag(self) -> str:
@@ -63,7 +63,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
             ResolverScanService.EXCHANGE_RESOLVER_SCAN,
         )
 
-    def __msg_should_process(self, msg : DelegatedScanMessage, runner : ExecutionContext) -> bool:
+    def __msg_should_process(self, msg : DelegatedScanMessage, runner : ResolverExecutionContext) -> bool:
             if not runner.can_execute:
                 ResolverRunnerAgent.log().error(
                     "The runner instance indicates it can't run."
@@ -76,7 +76,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
     async def __call__(self, msg: aio_pika.abc.AbstractIncomingMessage):
         scan_msg = await self._safe_deserialize_body(msg, DelegatedScanMessage)
         try:
-            async with await self.__runner.executor() as runner:
+            async with await self.__resolver_runner.executor() as runner:
 
                 ResolverRunnerAgent.log().debug("Message received")
 
@@ -107,7 +107,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
                     project_config = await cxone_service.load_project_config_by_id(scan_msg.details.project_id)
 
 
-                    ResolverRunnerAgent.log().info(f"Starting resolution: Project: [{project_config.name}]" + 
+                    ResolverRunnerAgent.log().info(f"Agent processing: Project: [{project_config.name}]" + 
                                                     f" From: [{scan_msg.moniker}] Workflow: [{str(scan_msg.workflow)}]" + 
                                                     f" Clone: [{scan_msg.details.clone_url}@{scan_msg.details.commit_hash}] CorId: [{scan_msg.correlation_id}]")
 
