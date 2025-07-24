@@ -212,9 +212,9 @@ class GithubOrchestrator(AbstractOrchestrator):
         self.__init_state_on_push()
         return await AbstractOrchestrator._execute_delegated_push_scan_workflow(self, services, scan_id)
 
-    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None):
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices):
         self.__init_state_on_push()
-        return await AbstractOrchestrator._execute_push_scan_workflow(self, services, scan_tags)
+        return await AbstractOrchestrator._execute_push_scan_workflow(self, services)
 
 
     def __get_pr_assignees(self):
@@ -260,14 +260,14 @@ class GithubOrchestrator(AbstractOrchestrator):
         self.__populate_common_pr_data()
         return await AbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
 
-    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
         self.__populate_common_pr_data()
 
         if self.__is_draft:
             GithubOrchestrator.log().info(f"Skipping draft PR {self.__pr_id}: {self.__pr_html_url}")
             return
         
-        return await AbstractOrchestrator._execute_pr_scan_workflow(self, services, scan_tags)
+        return await AbstractOrchestrator._execute_pr_scan_workflow(self, services)
 
     async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices):
         self.__populate_common_pr_data()

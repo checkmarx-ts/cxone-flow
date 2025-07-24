@@ -75,14 +75,6 @@ class BitBucketDataCenterOrchestrator(AbstractOrchestrator):
 
         return hash == payload_hash
 
-
-    async def __workflow_dispatcher(self, dispatch_map : dict, services : CxOneFlowServices, scan_tags : Dict[str, str]=None):
-        if self.__event not in dispatch_map.keys():
-            BitBucketDataCenterOrchestrator.log().error(f"Unhandled event type: {self.__event}")
-            return 
-        
-        return await dispatch_map[self.__event](self, services, scan_tags)
-
     async def __delegated_dispatcher(self, dispatch_map : dict, services : CxOneFlowServices, scan_id : str):
         if self.__event not in dispatch_map.keys():
             BitBucketDataCenterOrchestrator.log().error(f"Unhandled delegated scan event type: {self.__event}")
@@ -90,7 +82,11 @@ class BitBucketDataCenterOrchestrator(AbstractOrchestrator):
         return await dispatch_map[self.__event](self, services, scan_id)
 
     async def execute(self, services : CxOneFlowServices):
-        return await self.__workflow_dispatcher(BitBucketDataCenterOrchestrator.__workflow_map, services)
+        if self.__event not in BitBucketDataCenterOrchestrator.__workflow_map.keys():
+            BitBucketDataCenterOrchestrator.log().error(f"Unhandled event type: {self.__event}")
+            return 
+        else:
+            return await BitBucketDataCenterOrchestrator.__workflow_map[self.__event](self, services)
 
     async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
         self.deferred_scan = True
@@ -118,9 +114,9 @@ class BitBucketDataCenterOrchestrator(AbstractOrchestrator):
         self.__populate_common_push_data()
         return await AbstractOrchestrator._execute_delegated_push_scan_workflow(self, services, scan_id)
 
-    async def _execute_push_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]):
+    async def _execute_push_scan_workflow(self, services : CxOneFlowServices):
         self.__populate_common_push_data()
-        return await AbstractOrchestrator._execute_push_scan_workflow(self, services, scan_tags)
+        return await AbstractOrchestrator._execute_push_scan_workflow(self, services)
 
     async def __is_pr_draft(self) -> bool:
         return bool(BitBucketDataCenterOrchestrator.__pr_draft_query.find(self.event_context.message)[0].value)
@@ -153,12 +149,12 @@ class BitBucketDataCenterOrchestrator(AbstractOrchestrator):
         self.__populate_common_pr_data()
         return await AbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
 
-    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None) -> ScanInspector:
+    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
         if await self.__is_pr_draft():
             BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
             return
         self.__populate_common_pr_data()
-        return await AbstractOrchestrator._execute_pr_scan_workflow(self, services, scan_tags)
+        return await AbstractOrchestrator._execute_pr_scan_workflow(self, services)
 
     async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices):
         if await self.__is_pr_draft():
