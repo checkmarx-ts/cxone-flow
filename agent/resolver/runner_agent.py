@@ -123,9 +123,6 @@ class ResolverRunnerAgent(BaseWorkflowService):
                             cloned_repo_loc, scan_msg.details.commit_hash
                         )
 
-                        # TODO: New workflow will apply here.  Resolver may not actually be called.
-
-
                         resolver_exec_result = await runner.execute_resolver(project_config.name, scan_msg.details.file_filters)
 
                         resolver_res_path = Path(runner.result_resolver_out_file_path)

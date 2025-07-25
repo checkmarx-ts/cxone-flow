@@ -10,7 +10,7 @@ class AbstractExecutionContext:
             self.__workpath = workpath.rstrip("/") + "/"
         else:
             self.__workpath = None
-            
+
         self.__work_root = None
 
     @classmethod
@@ -23,6 +23,10 @@ class AbstractExecutionContext:
             raise ResolverAgentException("Not executing in 'with' scope.")
 
         return self.__work_root
+    
+    @work_root.setter
+    def work_root(self, value):
+        self.__work_root = value
 
     @property
     def home(self):
@@ -48,7 +52,6 @@ class AbstractExecutionContext:
         self.__work_root = tempfile.TemporaryDirectory(
             delete=False, prefix=self.__workpath
         )
-
         return self
 
     async def __aexit__(self, exc_type, exc, tb):

@@ -4,6 +4,7 @@ from agent.resolver.resolver_runner import ResolverRunner
 from agent.resolver.shell_runner import ResolverShellRunner
 from agent.resolver.toolkit_runner import ResolverToolkitRunner
 from agent.resolver.noresolver_runner import NoResolverRunner
+from agent.resolver.two_stage_runner import ResolverTwoStageRunner
 from typing import List
 
 
@@ -27,19 +28,32 @@ class ResolverConfig(CommonConfig):
         container_runner_cfg = CommonConfig._get_value_for_key_or_default("run-with-container", config_dict, None)
         disable_resolver = CommonConfig._get_value_for_key_or_default("disable-resolver", config_dict, False)
 
+        resolver_runner = None
+
         if disable_resolver:
-            return NoResolverRunner()
+            resolver_runner = NoResolverRunner()
         elif container_runner_cfg is None:
-            return ResolverShellRunner(work_path, opts, 
+            resolver_runner = ResolverShellRunner(work_path, opts, 
                                CommonConfig._get_value_for_key_or_fail(config_path, "resolver-path", config_dict), 
                                CommonConfig._get_value_for_key_or_default("resolver-run-as", config_dict, None))
         else:
-            return ResolverToolkitRunner(work_path, opts,
+            resolver_runner = ResolverToolkitRunner(work_path, opts,
                                  CommonConfig._get_value_for_key_or_fail(f"{config_path}/run-with-container", "supply-chain-toolkit-path", container_runner_cfg),
                                  CommonConfig._get_value_for_key_or_fail(f"{config_path}/run-with-container", "container-image-tag", container_runner_cfg),
                                  CommonConfig._get_value_for_key_or_default("use-running-uid", container_runner_cfg, True),
                                  CommonConfig._get_value_for_key_or_default("use-running-gid", container_runner_cfg, True),
                                  )
+    
+        prescan_dict = CommonConfig._get_value_for_key_or_default("pre-scan", config_dict, None)
+
+        if prescan_dict is None:
+            return resolver_runner
+        else:
+            return ResolverTwoStageRunner(work_path, opts, resolver_runner, 
+                        CommonConfig._get_value_for_key_or_default("resolver-before-script", prescan_dict, False),
+                        CommonConfig._get_value_for_key_or_fail(f"{config_path}/pre-scan", "container-image-tag", prescan_dict),
+                        CommonConfig._get_value_for_key_or_default("shell", prescan_dict, "/bin/sh"),
+                        CommonConfig._get_value_for_key_or_fail(f"{config_path}/pre-scan", "script", prescan_dict))
 
     @staticmethod
     def __agent_factory(config_path : str, agent_tag : str, config_dict : dict) -> ResolverRunnerAgent:

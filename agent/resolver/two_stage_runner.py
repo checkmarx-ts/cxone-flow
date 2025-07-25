@@ -1,0 +1,112 @@
+from agent.resolver.resolver_runner import ResolverRunner, ResolverExecutionContext, AbstractRunner
+from agent.resolver.resolver_opts import ResolverOpts
+from agent.resolver.exceptions import ResolverAgentException
+import subprocess, os
+
+class ResolverTwoStageExecutionContext(ResolverExecutionContext):
+    __docker_cmd = ["docker", "run", "-t", "--rm"]
+
+    def __init__(
+        self, workpath: str, opts: ResolverOpts, resolver_runner: ResolverRunner, 
+        resolver_before : bool, container_tag : str, shell : str, script : str):
+        super().__init__(workpath, opts)
+        self.__resolver = resolver_runner
+        self.__resolver_executor = None
+        self.__resolver_before = resolver_before
+        self.__container_tag = container_tag
+        self.__shell = shell
+        self.__script = script
+
+    @property
+    def can_execute(self):
+        return self.__resolver_executor is not None and self.__resolver_executor.can_execute
+
+    async def execute_resolver(
+        self, project_name: str, exclusions: str
+    ) -> subprocess.CompletedProcess:
+        
+        try:
+          resolver_result = None
+          
+          if self.__resolver_before:
+              resolver_result = await self.__resolver_executor.execute_resolver(project_name, exclusions)
+
+          exec_command = ResolverTwoStageExecutionContext.__docker_cmd + \
+            ["-u", f"{os.getuid()}:{os.getgid()}",
+            "-v", f"{self.clone_path}:/code", "-w", "/code",
+            "--entrypoint", self.__shell,
+            self.__container_tag,
+            "-c", self.__script]
+          
+          shell_result = await AbstractRunner.execute_cmd_async(exec_command, {"HOME" : "/code"})
+
+          if not self.__resolver_before:
+              resolver_result = await self.__resolver_executor.execute_resolver(project_name, exclusions)
+
+          result_log = b""
+
+          if resolver_result.returncode != 0:
+              return resolver_result
+          elif resolver_result.stdout is not None:
+              result_log = resolver_result.stdout
+
+          if shell_result.returncode != 0:
+              return shell_result
+          elif shell_result.stdout is not None:
+            result_log += shell_result.stdout
+
+          if resolver_result is not None:
+              ResolverTwoStageExecutionContext.log().info(f"Resolver execution result code: {resolver_result.returncode}")
+              
+              if resolver_result.stdout is not None:
+                ResolverTwoStageExecutionContext.log().debug(resolver_result.stdout)
+          
+          if shell_result is not None:
+              ResolverTwoStageExecutionContext.log().info(f"Shell execution result code: {shell_result.returncode}")
+              
+              if shell_result.stdout is not None:
+                ResolverTwoStageExecutionContext.log().debug(shell_result.stdout)
+              
+          return subprocess.CompletedProcess(None, 0, stdout=result_log)
+        except BaseException as ex:
+          ResolverTwoStageExecutionContext.log().error(ex)
+
+    async def __aenter__(self):
+        if self.__resolver_executor is not None:
+            raise ResolverAgentException(
+                "Resolver executor is already initialized, it should not be."
+            )
+
+        await super().__aenter__()
+        self.__resolver_executor = await self.__resolver.executor()
+        self.__resolver_executor.work_root = self.work_root
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.__resolver_executor = None
+        await super().__aexit__(exc_type, exc, tb)
+        return self
+
+
+class ResolverTwoStageRunner(ResolverRunner):
+    def __init__(
+        self,
+        workpath: str,
+        opts: ResolverOpts,
+        resolver_runner: ResolverRunner,
+        run_resolver_before: bool,
+        container_tag: str,
+        shell: str,
+        script: str,
+    ):
+        super().__init__(workpath, opts)
+        self.__resolver = resolver_runner
+        self.__resolver_before = run_resolver_before
+        self.__container_tag = container_tag
+        self.__shell = shell
+        self.__script = script
+
+    async def executor(self):
+        return ResolverTwoStageExecutionContext(
+            self.work_path, self.resolver_opts, self.__resolver, self.__resolver_before, self.__container_tag,
+            self.__shell, self.__script)
