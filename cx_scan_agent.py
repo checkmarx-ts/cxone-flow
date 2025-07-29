@@ -9,11 +9,11 @@ from _version import __version__
 
 cof_logging.bootstrap()
 
-__log = logging.getLogger("ResolverRunnerAgent")
+__log = logging.getLogger("CxScanAgentAgent")
 
 
 async def spawn_agents():
-    __log.info(f"Resolver Agent {__version__} Startup")
+    __log.info(f"Checkmarx Scan Agent {__version__} Startup")
     async with asyncio.TaskGroup() as g:
         for agent in ResolverConfig.agent_handlers():
             g.create_task(
