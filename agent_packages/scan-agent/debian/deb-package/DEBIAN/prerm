@@ -6,4 +6,5 @@ if [ $? -eq 0 ];
 then
   echo Stopping the 'cxoneflow-scan-agent' service.
   systemctl stop cxoneflow-scan-agent
+  systemctl disable cxoneflow-scan-agent
 fi

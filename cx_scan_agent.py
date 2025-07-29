@@ -9,7 +9,7 @@ from _version import __version__
 
 cof_logging.bootstrap()
 
-__log = logging.getLogger("CxScanAgentAgent")
+__log = logging.getLogger("CxScanAgent")
 
 
 async def spawn_agents():
