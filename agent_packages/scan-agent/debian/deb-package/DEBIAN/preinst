@@ -4,17 +4,8 @@
 systemctl is-active --quiet cxoneflow-resolver-agent
 if [ $? -eq 0 ];
 then
+  echo "#############################################################################################"
   echo Please purge the previous install of cxoneflow-resolver-agent before installing this package.
-  exit 1
-fi
-
-if [ -d "/etc/cxoneflow-resolver-agent" ]; then
-  echo Please purge the previous install of cxoneflow-resolver-agent before installing this package.
-  exit 1
-fi
-
-
-if [ -d "/opt/cxoneflow-resolver-agent" ]; then
-  echo Please purge the previous install of cxoneflow-resolver-agent before installing this package.
+  echo "#############################################################################################"
   exit 1
 fi
