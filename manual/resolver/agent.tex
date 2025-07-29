@@ -24,8 +24,8 @@ To install an instance of the Scan Agent, the following is required:
 
 \begin{itemize}
   \item The Scan Agent installer appropriate for your target platform.
-  \item An external message queue used by \cxoneflow and the distributed resolver agent (see Section \ref{sec:external-mq} for more details).
-  \item A set of message queue credentials used by the distributed resolver agent (see Section \ref{sec:agent-mq-auth-req} for more details).
+  \item An external message queue used by \cxoneflow and the Scan Agent (see Section \ref{sec:external-mq} for more details).
+  \item A set of message queue credentials used by the Scan Agent (see Section \ref{sec:agent-mq-auth-req} for more details).
   \item A public key that is matched with a private key configured for use by the \cxoneflow server (see Section \ref{ref:server-key-pair} for more details).
   \item \scaresolver must be installed if intending to execute \scaresolver without a container.
   \item If intending to execute \scaresolver in a container:
@@ -265,12 +265,12 @@ package.
 To enable the \texttt{cx-scan-agent} user to have the required privileges, the following procedure can be followed:
 
 \begin{enumerate}
-  \item Execute the command "\texttt{visudo /etc/sudoers.d/00-resolver}".
-  \item Add the single line:\\"\texttt{resolver ALL=(cx-sca-agent-rt) NOPASSWD: SETENV: /path/to/ScaResolver}"
-  \item Save the \texttt{/etc/sudoers.d/00-resolver} file.
-  \item Configure the element \intlink{sec:agent-resolver-run-as}{resolver-run-as} in \texttt{/etc/cxoneflow-resolver-agent/config.yaml} 
+  \item Execute the command "\texttt{visudo /etc/sudoers.d/00-cx-scan-agent}".
+  \item Add the single line:\\"\texttt{cx-scan-agent ALL=(cx-scan-agent-rt) NOPASSWD: SETENV: /path/to/ScaResolver}"
+  \item Save the \texttt{/etc/sudoers.d/00-cx-scan-agent} file.
+  \item Configure the element \intlink{sec:agent-resolver-run-as}{resolver-run-as} in \texttt{/etc/cxoneflow-scan-agent/config.yaml} 
   with the user \texttt{cx-scan-agent-rt}.
-  \item Restart the \texttt{systemd} service for the distributed resolver agent.
+  \item Restart the \texttt{systemd} service for the Scan Agent.
 \end{enumerate}
 
 Any configuration for tags that use shell execution of \scaresolver will now run as the user\\\texttt{cx-scan-agent-rt}.
@@ -308,7 +308,7 @@ Many of the elements share format with the \intlink{sec:yaml-config}{server's co
 
 
 Figure \ref{fig:scan-agent-config-yaml} shows an example of the serviced tag configurations for 
-a distributed agent YAML configuration.  The example YAML can be downloaded from the \cxoneflow YAML
+a Scan Agent YAML configuration.  The example YAML can be downloaded from the \cxoneflow YAML
 example release artifacts.
 
 \begin{figure}[h]
@@ -320,7 +320,7 @@ example release artifacts.
 
 \pagebreak
 
-\subsubsection{Distributed Resolver Agent YAML Configuration Tree}\label{sec:agent-yaml-root}
+\subsubsection{Scan Agent YAML Configuration Tree}\label{sec:agent-yaml-root}
 
 \dirtree{%
     .1 <root>.
@@ -384,7 +384,7 @@ report results provided by \scaresolver when used by \cxonens.  This option may 
 compatibility with other Checkmarx products.
 
 \subsection{Limitations}
-Please note the following limitations apply when using the distributed resolver agent:
+Please note the following limitations apply when using the Scan Agent:
 
 \begin{itemize}
   \item Server-side configurations with \texttt{clone-auth} using SSH keys will fail.

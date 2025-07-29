@@ -22,10 +22,10 @@ The \cxone project tag key value used to find the resolver agent tag that should
 This is described in more detail in Section \ref{sec:scan-agents}.
 
 \subsubsection{<scm moniker>.resolver.scan-retries}\label{sec:resolver-scan-retries}
-The number of times a request for a resolver scan will be retried after the initial request if no distributed resolver agent handles the scan.
+The number of times a request for a resolver scan will be retried after the initial request if no Scan Agent handles the scan.
 Any scan request not handled by a Scan Agent before the \intlink{sec:resolver-scan-timeout-seconds}{scan-timeout-seconds} setting 
 will be evaluated for resubmission.  If the number of retries exceeds this amount, the scan will be returned in a failed state.
 
 \subsubsection{<scm moniker>.resolver.scan-timeout-seconds}\label{sec:resolver-scan-timeout-seconds}
-The number of seconds before a scan request is not selected by a distributed resolver agent before it times out.  When the scan
+The number of seconds before a scan request is not selected by a Scan Agent before it times out.  When the scan
 request times out, it may be resubmitted or aborted as a failed scan.
