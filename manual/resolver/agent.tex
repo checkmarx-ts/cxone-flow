@@ -1,10 +1,10 @@
-\section{Distributed Resolver Agent Installation and Configuration}\label{sec:resolver-agent}
+\section{Scan Agent Installation and Configuration}\label{sec:scan-agent}
 
 \subsection{Overview}
 
-The distributed resolver agent is a service intended to run in a build environment that
+The Scan Agent is a service intended to run in a build environment that
 matches the build environment generally used for the code.  The service executes
-the \scaresolver when events are handled by \cxoneflow that would invoke a scan.
+the \scaresolver and/or pre-scan scripting when events are handled by \cxoneflow that would invoke a scan.
 The \scaresolver is typically executed in the code's build pipeline as a pre-step
 for a multi-engine \cxone scan that includes an SCA scan.
 
@@ -20,10 +20,10 @@ The keys to a successful \scaresolver scan are generally:
 
 \subsection{Installation and Configuration Pre-Requisites}
 
-To install the distributed resolver agent, the following is required:
+To install an instance of the Scan Agent, the following is required:
 
 \begin{itemize}
-  \item The distributed resolver agent installer appropriate for your target platform.
+  \item The Scan Agent installer appropriate for your target platform.
   \item An external message queue used by \cxoneflow and the distributed resolver agent (see Section \ref{sec:external-mq} for more details).
   \item A set of message queue credentials used by the distributed resolver agent (see Section \ref{sec:agent-mq-auth-req} for more details).
   \item A public key that is matched with a private key configured for use by the \cxoneflow server (see Section \ref{ref:server-key-pair} for more details).
@@ -38,19 +38,19 @@ To install the distributed resolver agent, the following is required:
 
 \subsubsection{Message Queue Authorization}\label{sec:agent-mq-auth-req}
 
-Distributed resolver agents communicate with \cxoneflow using an AMQP message queue. Each distributed
-resolver agent must have a set of message queue credentials that limit how it can interact
+Scan Agents communicate with \cxoneflow using an AMQP message queue. Each Scan Agent 
+must have a set of message queue credentials that limit how it can interact
 with the message queue as appropriate for the agent's configured tags.
 
-Table \ref{tab:agent-mq-user-perms} shows the permissions needed for the distributed resolver agent
+Table \ref{tab:agent-mq-user-perms} shows the permissions needed for the Scan Agent
 to interact with the message queues.  Using a regular expression of "\texttt{\^{}cx:res:.*}" will allow
 the agent to respond to events for any tag.  It is possible to limit which tags an agent can consume
 by adding regular expressions that specify one or more tags at the end of the queue name.  For example, the
-regular expression "\texttt{\^{}cx:res:.*(general|java-gradle)\$}" will limit the distributed resolver agent
+regular expression "\texttt{\^{}cx:res:.*(general|java-gradle)\$}" will limit the Scan Agent
 to handling only tags \texttt{general} and \texttt{java-gradle}.
 
 \begin{table}[ht]
-  \caption{RabbitMQ User Permissions for the Distributed Resolver Agent}  
+  \caption{RabbitMQ User Permissions for the Scan Agents}
   \label{tab:agent-mq-user-perms}      
   \begin{tabularx}{\textwidth}{lcl}
       \toprule
@@ -66,9 +66,9 @@ to handling only tags \texttt{general} and \texttt{java-gradle}.
   \end{tabularx}
 \end{table}
 
-Table \ref{tab:agent-mq-topic-perms} shows the topic permissions that limit the distributed resolver agent
+Table \ref{tab:agent-mq-topic-perms} shows the topic permissions that limit the Scan Agent
 to submitting messages with topics for scan completion.  Using the regular expression\\"\texttt{\^{}.exec.sca-resolver.scan-complete.*}"
-allows the agent to post scan results for any agent.
+allows the agent to post scan results for any agent tag.
 
 To limit the agent to submitting messages with only the topics for tags the agent supports, the regular expression can
 be modified to include the tags.  For example, the topic regular expression
@@ -76,7 +76,7 @@ be modified to include the tags.  For example, the topic regular expression
 scan results for the tags \texttt{general} and \texttt{java-gradle}.
 
 \begin{table}[ht]
-  \caption{RabbitMQ User Topic Permissions for the Distributed Resolver Agent}  
+  \caption{RabbitMQ User Topic Permissions for the Scan Agent}  
   \label{tab:agent-mq-topic-perms}      
   \begin{tabularx}{\textwidth}{lcl}
       \toprule
@@ -90,20 +90,54 @@ scan results for the tags \texttt{general} and \texttt{java-gradle}.
   \end{tabularx}
 \end{table}
 
-\subsubsection{Distributed Resolver Agent Deployment Considerations}
+\subsubsection{Scan Agent Deployment Considerations}
 
-The \cxoneflow scan workflow that delegates resolver scans to distributed resolver agents
-assumes that one or more agents are available to handle the delegated scan request. Any number
-of distributed resolver agents that handle the same tag can be deployed.  It is suggested that
-deployment of distributed resolver agents considers that resolver scans will fail in the event
-that no distributed resolver agents are available to handle scan requests for one or more
-tags.
+The \cxoneflow scan workflow that delegates \scaresolver scan and pre-scan script execution to Scan Agents
+assumes that one or more agents are available to handle the delegated request. Any number
+of Scan Agents that handle the same tag can be deployed.  It is suggested that
+deployment of Scan Agents considers that Scan Agent workflows will fail in the event
+that no Scan Agents are available to handle scan requests for one or more tags.  If delegated requests
+fail to execute but Scan Agents are running, the time for the request to be handled may have
+expired.  This is an indication that the number of concurrent Scan Agent instances needs to be
+scaled to be able to properly handle the volume of delegated requests.
+
+\subsection{Scan Agent Pre-Scan Scripting}\label{sec:scan-agent-prescan}
+An optional pre-scan script can be defined in the \intlink{sec:agent-yaml-config}{agent YAML configuration}
+as a single- or multi-line script.  This script executes in an instance of a container with a
+tag specified in the configuration. Figure \ref{fig:pre-scan-script-config-yaml} shows an example pre-scan
+script configuration that is used to execute \texttt{terraform init} in selected subdirectories
+of a code repository.
 
 
-\subsection{Security Considerations}\label{sec:resolver-agent-security}
+\begin{figure}[h]
+    \includegraphics[scale=1]{graphics/scan-agent-pre-scan-script.png}
+    \centering
+    \caption{Scan Agent Pre-Scan Script Configuration YAML}
+    \label{fig:pre-scan-script-config-yaml}
+\end{figure}
 
-As briefly described in Section \ref{sec:dist-resolver-security-considerations}, executing
-part of a code build to extract a dependency tree can pose some risks. For example,
+When the container executes, the code from the repository is mapped to the \texttt{/code}
+directory.  The environment variable \texttt{HOME} and the working directory are also set
+to \texttt{/code}.  Changes to the content of the \texttt{/code} directory are persisted
+after the container exits; all other changes made to the container file system are discarded
+upon container exit.
+
+The intention of this feature is to allow a small amount of prepration of the code
+before it is sent to \cxone for scanning.  It is not intended as a full-featured code
+build tool.  Any tooling configuration needed to support the pre-scan execution should be
+included in the container image.
+
+Container tags can reference publicly available images or private images.  The machine
+where the Scan Agent is installed must have \texttt{docker} installed an configured
+properly.  This includes performing a \texttt{docker login} as the \texttt{cx-scan-agent} user
+account to properly cache any non-public container repository credentials.
+
+
+
+\subsection{Security Considerations}\label{sec:scan-agent-security}
+
+As briefly described in Section \ref{sec:scan-agent-security-considerations}, executing
+part of a code build to extract a dependency tree or shell commands can pose some risks. For example,
 tools like Gradle define the build definition in the programming language Groovy; this Groovy
 code executes when Gradle loads the build definition.  Other tools even execute scripts defined
 in the dependency package leading to the popular method of "typo-squatting" as a means to
@@ -111,16 +145,16 @@ perform a remote-code-execution (RCE) attack directly on unsuspecting developers
 untrusted build definition or loading a dependency containing malware into a build system is
 a risk that comes from using open-source software.
 
-Since the risk of malicious builds is always possible, the deployment of the distributed resolver agent
+Since the risk of malicious builds is always possible, the deployment of the Scan Agent
 can be configured to mitigate these risks.  The section for each platform's install makes specific
-recommendations for a secure deployment of the distributed resolver agent.  The general recommendations
+recommendations for a secure deployment of the Scan Agent.  The general recommendations
 for all platform deployments are:
 
 \begin{itemize}
-  \item \textbf{Assume that anyone with administrative access to a server with a distributed resolver agent installed
+  \item \textbf{Assume that anyone with administrative access to a server with a Scan Agent installed
     can intercept all secrets configured on the \cxoneflow server.}
   \item It is a best practice to not allow developers administrative control over the configuration and
-    execution of the distributed resolver agent.
+    execution of the Scan Agent.
   \item Utilize file permissions on the secret values used by the agent to limit which running processes
     can read the contents of the secrets
   \item Use the recommended file system permissions for each platform's deployment.
@@ -131,116 +165,115 @@ for all platform deployments are:
   \item If the agent is invoking \scaresolver as a shell execution, utilize a "run-as" configuration to
     run the resolver as a low-privilege account.
   \item Utilize the \scaresolver docker execution capability to sandbox the dependency resolution in a container.
-  \item Avoid configuring a distributed resolver agent instance to execute \scaresolver for both shell and container dependency resolution
+  \item Avoid configuring a Scan Agent instance to execute \scaresolver using both shell and container dependency resolution
     unless proper precautions have been taken to avoid privilege escalation exploits through the container file system overlay.
 \end{itemize}
 
 
-
 \subsubsection{Installing on Debian Linux}
 
-The installation on Debian Linux platforms uses the distributed resolver agent Debian installer package
+The installation on Debian Linux platforms uses the Scan Agent Debian installer package
 found with the \cxoneflow release.  The installer performs the following steps:
 
 \begin{itemize}
-  \item The agent is installed at the path \texttt{/opt/cxoneflow-resolver-agent}
-  \item The agent uses the configuration file \texttt{/etc/cxoneflow-resolver-agent/config.yaml}
-  \item A config template is installed at \texttt{/etc/cxoneflow-resolver-agent/config.template.yaml}
+  \item The agent is installed at the path \texttt{/opt/cxoneflow-scan-agent}
+  \item The agent uses the configuration file \texttt{/etc/cxoneflow-scan-agent/config.yaml}
+  \item A config template is installed at \texttt{/etc/cxoneflow-scan-agent/config.template.yaml}
   \item The agent is installed as a \texttt{systemd} service and registered to automatically run at system start.
-  \item The non-login user \texttt{resolver} is created and used to execute the \texttt{systemd} service.
-  \item The non-login user \texttt{resolver-runtime} is created for use with the optional run-as isolation
+  \item The non-login user \texttt{cx-scan-agent} is created and used to execute the \texttt{systemd} service.
+  \item The non-login user \texttt{cx-scan-agent-rt} is created for use with the optional run-as isolation
     (see \intlink{par:shell-agent-isolation}{Shell Execution Isolation} for this optional configuration).
   \item A default directory for storing secrets is created at \texttt{/var/secrets} with permissions 500.
 \end{itemize}
 
 As part of the configuration, a work directory for the resolver will be required.  When this directory
-is created, it is recommended to use the owner of \texttt{root:resolver} and permissions of 770.  This
+is created, it is recommended to use the owner of \texttt{root:cx-scan-agent} and permissions of 770.  This
 directory will primarily store temporary files used during the execution of \scaresolver.
 
-The default secrets directory \texttt{/var/secrets} is created with ownership \texttt{resolver:resolver} and
+The default secrets directory \texttt{/var/secrets} is created with ownership \texttt{cx-scan-agent:cx-scan-agent} and
 permissions 500.  For secret files placed in this directory, it is recommended to each file is owned
-by \texttt{resolver:resolver} with permissions of 400.  The permission of 400 will prevent 
+by \texttt{cx-scan-agent:cx-scan-agent} with permissions of 400.  The permission of 400 will prevent 
 build tools from reading the secrets when using the \intlink{par:shell-agent-isolation}{Shell Execution Isolation} option.
 
-\paragraph{Controlling the Distributed Resolver Agent}
-\noindent\\The distributed resolver agent runs as a \texttt{systemd} service.  This allows the run status to be controlled
-by commands such as "\texttt{systemctl start cxoneflow-resolver-agent}" and\\"\texttt{systemctl stop cxoneflow-resolver-agent}".
+\paragraph{Controlling the Scan Agent}
+\noindent\\The Scan Agent runs as a \texttt{systemd} service.  This allows the run status to be controlled
+by commands such as "\texttt{systemctl start cxoneflow-scan-agent}" and\\"\texttt{systemctl stop cxoneflow-scan-agent}".
 
-The distributed resolver agent runtime logs appear in \texttt{/var/log/syslog}.  To monitor the distributed resolver agent logs, execute the command
-\\"\texttt{tail -f /var/log/syslog | grep resolver.agent}".
+The Scan Agent runtime logs appear in \texttt{/var/log/syslog}.  To monitor the Scan Agent logs, execute the command
+\\"\texttt{tail -f /var/log/syslog | grep scan.agent}".
 
-Debug logging can be turned on for the distributed resolver agent by adding an environment variable in the \texttt{systemd}
+Debug logging can be turned on for the Scan Agent by adding an environment variable in the \texttt{systemd}
 service definition.  The following procedure will enable debug logging:
 
 \begin{enumerate}
-  \item Edit the file \texttt{/opt/cxoneflow-resolver-agent/cxoneflow-resolver-agent.service}
+  \item Edit the file \texttt{/opt/cxoneflow-scan-agent/cxoneflow-scan-agent.service}
   \item Add the line "\texttt{Environment=LOG\_LEVEL=DEBUG}" under the existing line starting with\\\texttt{Environment}.
-  \item Save the modifications to the \texttt{cxoneflow-resolver-agent.service} file.
+  \item Save the modifications to the \texttt{cxoneflow-scan-agent.service} file.
   \item Execute the command "\texttt{systemctl daemon-reload}".
-  \item Execute the command "\texttt{systemctl restart cxoneflow-resolver-agent}".
+  \item Execute the command "\texttt{systemctl restart cxoneflow-scan-agent}".
 \end{enumerate}
 
 \paragraph{Shell Execution}\label{par:agent-shell-execution}
 
 \noindent\\Shell execution of \scaresolver is configured to use an instance of \scaresolver installed on the local system.
-The execution of \scaresolverns, along with all build tools it invokes as part of the scan are executed with the \texttt{resolver}
-user.  The \texttt{resolver} user is the executing user since the process is spawned from the \texttt{systemd} service that also
-runs as the \texttt{resolver} user.
+The execution of \scaresolverns, along with all build tools it invokes as part of the scan are executed with the \texttt{cx-scan-agent}
+user.  The \texttt{cx-scan-agent} user is the executing user since the process is spawned from the \texttt{systemd} service that also
+runs as the \texttt{cx-scan-agent} user.
 
-The \texttt{resolver} user is a non-login user that should have no access to do much other than run \texttt{git}, \scaresolverns, and
-the build tools invoked as part of the dependency resolution.  The home directory for the \texttt{resolver} user is dynamically set
-to the value configured in \intlink{sec:agent-resolver-work-path}{resolver-work-path} when \scaresolver is executed.  The location
+The \texttt{cx-scan-agent} user is a non-login user that should have no access to do much other than run \texttt{git}, \scaresolverns, and
+the build tools invoked as part of the dependency resolution.  The home directory for the \texttt{cx-scan-agent} user is dynamically set
+to the value configured in \intlink{sec:scan-agent-work-path}{scan-agent-work-path} when \scaresolver is executed.  The location
 of the home directory may have implications for how the build tools run.
 
 Many build tools will have several places where they will look for configurations that are not explicitly placed in the build
 definition.  In some cases, the configuration can exist in the home directory of the user running the build tool.  It may be necessary
-to replicate build tool settings to the \intlink{sec:agent-resolver-work-path}{resolver-work-path}.  If the build tools use a global location
-for the settings, it may be necessary to adjust file/directory permissions to allow the \texttt{resolver} user to access the global
+to replicate build tool settings to the \intlink{sec:scan-agent-work-path}{scan-agent-work-path}.  If the build tools use a global location
+for the settings, it may be necessary to adjust file/directory permissions to allow the \texttt{cx-scan-agent} user to access the global
 configurations.
 
 The build tools will often use the running user's home directory to write a package cache.  When the tool is invoked,
-the running user's home directory is set to the value configured in \intlink{sec:agent-resolver-work-path}{resolver-work-path}.
+the running user's home directory is set to the value configured in \intlink{sec:scan-agent-work-path}{scan-agent-work-path}.
 It may be possible to change the locations where the tools look for configuration or write package caches by configuring the
 \intlink{sec:agent-resolver-opts}{resolver-opts} YAML element with
 \extlink{https://docs.checkmarx.com/en/34965-132888-checkmarx-sca-resolver-configuration-arguments.html\#UUID-bc93274b-c1c7-ea47-9556-3bd8900711dc_id_CheckmarxSCAResolverConfigurationArguments-CustomParameters}
 {custom parameters} passed to the build tools.
 
 If transitioning to a configuration for \intlink{par:shell-agent-isolation}{Shell Execution Isolation}, the contents of the directory
-defined in \intlink{sec:agent-resolver-work-path}{resolver-work-path} will be owned by \texttt{resolver:resolver}.  This will likely
+defined in \intlink{sec:scan-agent-work-path}{scan-agent-work-path} will be owned by \texttt{cx-scan-agent:cx-scan-agent}.  This will likely
 cause \scaresolver to fail since the change in configuration will cause the user running the tools to change to
-\texttt{resolver-runtime}.  Most of the tools will require files and directories to be owned by\\\texttt{resolver-runtime:resolver}.
-It may be necessary to purge the \intlink{sec:agent-resolver-work-path}{resolver-work-path} directory or selectively change
-the ownership of build-tool related files/directories to \texttt{resolver-runtime:resolver}.
+\texttt{cx-scan-agent-rt}.  Most of the tools will require files and directories to be owned by\\\texttt{cx-scan-agent-rt:cx-scan-agent}.
+It may be necessary to purge the \intlink{sec:scan-agent-work-path}{scan-agent-work-path} directory or selectively change
+the ownership of build-tool related files/directories to \texttt{cx-scan-agent-rt:cx-scan-agent}.
 
 
 \subparagraph{Shell Execution Isolation}\label{par:shell-agent-isolation}
 \noindent\\Using the shell execution isolation configuration is an advanced option that requires granting limited sudoer privileges
-to the \texttt{resolver} user.  The sudoer privileges required are to allow the \texttt{resolver} user to execute \scaresolver
+to the \texttt{cx-scan-agent} user.  The sudoer privileges required are to allow the \texttt{cx-scan-agent} user to execute \scaresolver
 as the user configured in \intlink{sec:agent-resolver-run-as}{resolver-run-as}.  The reason to use this option is to ensure that
 the contents of the files located in the \intlink{sec:yaml-secret-root-path}{secret-root-path} can't be read while \scaresolver
 is executing.\footnote{This assumes the recommendation of setting the permissions of each file in 
 \intlink{sec:yaml-secret-root-path}{secret-root-path} to 400 has been followed.}
 
-The installer creates a no-login user \texttt{resolver-runtime} as a default user that can be referenced in the \intlink{sec:agent-resolver-run-as}{resolver-run-as}
-configuration.  Another user can be used as long as the primary group membership is the \texttt{resolver} group.  In most configurations, 
-the \texttt{resolver-runtime} user will be sufficient.
+The installer creates a no-login user \texttt{cx-scan-agent-rt} as a default user that can be referenced in the \intlink{sec:agent-resolver-run-as}{resolver-run-as}
+configuration.  Another user can be used provided the primary group membership is the \texttt{cx-scan-agent} group.  In most configurations, 
+the \texttt{cx-scan-agent-rt} user will be sufficient.
 
 The package installer does not configure this user with sudoer privileges by default primarily since the location of the \scaresolver
 installation is unknown.  It is also best to allow a system administrator to be explicitly aware of users with sudoer privileges when installing
 package.
 
-To enable the \texttt{resolver-runtime} user to have the required privileges, the following procedure can be followed:
+To enable the \texttt{cx-scan-agent} user to have the required privileges, the following procedure can be followed:
 
 \begin{enumerate}
   \item Execute the command "\texttt{visudo /etc/sudoers.d/00-resolver}".
-  \item Add the single line:\\"\texttt{resolver ALL=(resolver-runtime) NOPASSWD: SETENV: /path/to/ScaResolver}"
+  \item Add the single line:\\"\texttt{resolver ALL=(cx-sca-agent-rt) NOPASSWD: SETENV: /path/to/ScaResolver}"
   \item Save the \texttt{/etc/sudoers.d/00-resolver} file.
   \item Configure the element \intlink{sec:agent-resolver-run-as}{resolver-run-as} in \texttt{/etc/cxoneflow-resolver-agent/config.yaml} 
-  with the user \texttt{resolver-runtime}.
+  with the user \texttt{cx-scan-agent-rt}.
   \item Restart the \texttt{systemd} service for the distributed resolver agent.
 \end{enumerate}
 
-Any configuration for tags that use shell execution of \scaresolver will now run as the user\\\texttt{resolver-runtime}.
+Any configuration for tags that use shell execution of \scaresolver will now run as the user\\\texttt{cx-scan-agent-rt}.
 
 \paragraph{Container Execution}
 \noindent\\Container execution is supported using the \toolkit build environment that will extend a container image
@@ -252,46 +285,36 @@ The container image, having all appropriate build tools and build tool configura
 tree resolution in the same way as it is done with shell execution.  This is similar to using
 \intlink{par:shell-agent-isolation}{Shell Execution Isolation} by delegating execution to the docker image.
 
-Assuming \texttt{docker} is installed, it is generally required to add the \texttt{resolver} user to the \texttt{docker}
-group using the command "\texttt{usermod -a -G docker resolver}".  This allows the \texttt{resolver} user to execute
+Assuming \texttt{docker} is installed, it is generally required to add the \texttt{cx-scan-agent} user to the \texttt{docker}
+group using the command "\texttt{usermod -a -G docker cx-scan-agent}".  This allows the \texttt{cx-scan-agent} user to execute
 commands to build and run containers.
 
 \subparagraph{Container Execution Security}
 \noindent\\The installation of \texttt{docker} is usually done such that the \texttt{docker} daemon runs with
-root privileges.  For distributed resolver agent configurations that allow 
+root privileges.  For Scan Agent configurations that allow 
 \intlink{par:agent-shell-execution}{Shell Execution} along with container execution, this capability could pose
 the risk of privilege escalation via the \texttt{docker} runtime.
 
 If not configured for \intlink{par:shell-agent-isolation}{Shell Execution Isolation}, it is possible that
-executing build tools via \scaresolver running as the \texttt{resolver} user can escalate privileges
-to read and write files with root privileges.  This is due to the \texttt{resolver} user being a member of
-the \texttt{docker} group and \scaresolver executing as \texttt{resolver}.  
-
-To avoid the potential for privilege escalation:
-
-\begin{itemize}
-  \item Use \intlink{par:shell-agent-isolation}{Shell Execution Isolation} for distributed resolver agents that are configured
-    to execute \scaresolver both as a shell execution and using container execution.
-  \item If not using \intlink{par:shell-agent-isolation}{Shell Execution Isolation}, install \texttt{docker} in the "rootless"
-    configuration.\footnote{As of the writing of this manual, this is not a tested configuration scenario.  It is unknown if rootless will work.
-    An alternative would be to avoid configurations that allow both shell and docker execution of \scaresolverns.}
-\end{itemize}
+executing build tools via \scaresolver running as the \texttt{cx-scan-agent} user can escalate privileges
+to read and write files with root privileges.  This is due to the \texttt{cx-scan-agent} user being a member of
+the \texttt{docker} group and \scaresolver executing as \texttt{cx-scan-agent}.  
 
 
+\subsection{Scan Agent YAML Configuration}\label{sec:agent-yaml-config}
 
-\subsection{Distributed Resolver Agent YAML Configuration}
-
-The distributed resolver agent's YAML configuration is deployed after the agent is installed.
+The Scan Agent's YAML configuration is deployed after the agent is installed.
 Many of the elements share format with the \intlink{sec:yaml-config}{server's configuration elements}. 
 
 
-Figure \ref{fig:resolver-agent-config-yaml} shows an example of the serviced tag configurations for 
+Figure \ref{fig:scan-agent-config-yaml} shows an example of the serviced tag configurations for 
 a distributed agent YAML configuration.  The example YAML can be downloaded from the \cxoneflow YAML
 example release artifacts.
 
 \begin{figure}[h]
-    \includegraphics[width=\textwidth]{graphics/resolver-agent-config-yaml.png}
-    \caption{Distributed Resolver Agent Configuration YAML}
+    \includegraphics[scale=1]{graphics/scan-agent-config-yaml.png}
+    \centering
+    \caption{Scan Agent Configuration YAML}
     \label{fig:resolver-agent-config-yaml}
 \end{figure}
 
@@ -309,11 +332,17 @@ example release artifacts.
     .5 \intlink{sec:yaml-generic-amqp-amqp-url}{amqp-url}\DTcomment{[Required]}.
     .5 \intlink{sec:yaml-generic-amqp-amqp-user}{amqp-user}\DTcomment{[Optional]}.
     .5 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify}\DTcomment{[Optional] Default: True}.
+    .4 \intlink{sec:agent-disable-resolver}{disable-resolver}\DTcomment{[Optional] Default: False}.
+    .4 \intlink{sec:agent-pre-scan}{pre-scan}\DTcomment{[Optional]}.
+    .5 \intlink{sec:agent-pre-scan-container-image-tag}{container-image-tag}\DTcomment{[Required]}.
+    .5 \intlink{sec:agent-pre-scan-resolver-before-script}{resolver-before-script}\DTcomment{[Optional] Default: False}.
+    .5 \intlink{sec:agent-pre-scan-script}{script}\DTcomment{[Required]}.
+    .5 \intlink{sec:agent-pre-scan-shell}{shell}\DTcomment{[Optional] Default: /bin/sh}.
     .4 \intlink{sec:agent-public-key}{public-key}\DTcomment{[Required]}.
     .4 \intlink{sec:agent-resolver-opts}{resolver-opts}\DTcomment{[Optional] Default: None}.
     .4 \intlink{sec:agent-resolver-path}{resolver-path}\DTcomment{[Required if not \texttt{run-with-container}]}.
     .4 \intlink{sec:agent-resolver-run-as}{resolver-run-as}\DTcomment{[Optional] Default: run as service user}.
-    .4 \intlink{sec:agent-resolver-work-path}{resolver-work-path}\DTcomment{[Optional] Default: /tmp/resolver}.
+    .4 \intlink{sec:scan-agent-work-path}{scan-agent-work-path}\DTcomment{[Optional] Default: /tmp/scan-agent}.
     .4 \intlink{sec:agent-run-with-container}{run-with-container}\DTcomment{[Required if not \texttt{resolver-path}]}.
     .5 \intlink{sec:agent-container-image-tag}{container-image-tag}\DTcomment{[Required]}.
     .5 \intlink{sec:agent-supply-chain-toolkit-path}{supply-chain-toolkit-path}\DTcomment{[Required]}.

@@ -1,30 +1,32 @@
-\section{Server Configuration for Distributed Resolver Agents}\label{sec:resolver-server}
+\section{Server Configuration for Scan Agents}\label{sec:scan-agent-server}
 
-Implementing the distributed resolver agents requires an AMQP message queue server that
-is used for communication between the \cxoneflow server and the distributed resolver
-agents.  Details about the message queue deployment can be found in Section \ref{sec:external-mq}.
+Implementing the Scan Agents requires an AMQP message queue server that
+is used for communication between the \cxoneflow server and the Scan
+Agents.  Details about the message queue deployment can be found in Section \ref{sec:external-mq}.
 
-The examples in this section show a configuration that uses team names as tags to establish
-build environment affinity to \scaresolver scanning.  The tags can be used to establish
-the build environment affinity in whatever way fits your organization best.
+The examples in this section show a configuration that uses environments names as tags to
+instruct the Scan Agents with that environment tag to perform pre-scan and \scaresolver
+execution.  The tags names can be used to establish the Scan Agent affinity with \cxone projects
+in whatever way fits your organization best.
 
 \subsection{\cxoneflowtext\space Endpoint Configuration}
 
-The endpoint server \intlink{sec:yaml-config}{YAML configuration} will not utilize resolver agents
-by default.  Using resolver agents requires a public/private key pair; the private key is configured
-for use on the \cxoneflow endpoint and the public key is distributed with each resolver agent.  Before
-configuring the use of distributed resolver agents, it is recommended to read about the security
-concepts in Section \ref{sec:resolver-agent-security}.
+The \cxoneflow endpoint server \intlink{sec:yaml-config}{YAML configuration} will not utilize Scan Agents
+by default.  Using Scan Agents requires a public/private key pair; the private key is configured
+for use on the \cxoneflow endpoint and the public key is installed with each Scan Agent.  Before
+configuring the use of Scan Agents, it is recommended to read about the security
+concepts in Section \ref{sec:scan-agent-security}.
 
-The \cxoneflow endpoint will send messages signed by the private key to the distributed resolver
-agents using the message queue.  The distributed resolver agents will validate the signature
-using the public key; if the signature is not valid, the resolver agents will reject the message.
+The \cxoneflow endpoint will send messages signed by the private key to the Scan
+Agents using the message queue.  The receiving Scan Agent will validate the signature
+using the public key; if the signature is not valid, the Scan Agent will reject the message
+and perform no actions.
 
-Distributed agents are identified using agent tags.  The \cxoneflow endpoint is configured by the
-administrator with a list of allowed tags to prevent arbitrary agents from appearing.  The
-server-side tag configuration is also used to set up the communication with the agents via
-the message queue.  Anyone who installs a resolver agent must configure it to respond to messages
-targeting at least one valid agent tag.
+Scan Agents are identified using agent tags.  The \cxoneflow endpoint is configured by the
+administrator with a list of allowed tags to prevent arbitrary Scan Agents from requesting
+scan activity delegation.  The server-side tag configuration is also used to set up the communication
+with Scan Agents via the message queue.  Anyone who installs a Scan Agent must configure it to respond to messages
+targeting at least one valid Scan Agent tag.
 
 
 \subsubsection{Generating a Public/Private Key Pair}\label{ref:server-key-pair}
@@ -61,8 +63,8 @@ openssl genrsa 4096 |tee rsa-priv.pem | openssl rsa -pubout > rsa-pub.pem
 
 The private key file may be stored as a secret referenced in the configuration YAML element \intlink{sec:yaml-resolver-private-key}{resolver->private-key}.
 
-\subsubsection{Resolver YAML Configuration}\label{sec:resolver-yaml-config}
-Figure \ref{fig:resolver-config-yaml} shows the common YAML configuration for resolver agents with a list of allowed tags.
+\subsubsection{Scan Agent YAML Configuration}\label{sec:scan-agent-yaml-config}
+Figure \ref{fig:scan-agent-config-yaml} shows the common YAML configuration for resolver agents with a list of allowed tags.
 This YAML configuration is provided in the configuration example artifacts that can be downloaded from the \cxoneflow release
 artifacts.
 
@@ -71,35 +73,36 @@ Some of the things to note in these examples:
 \begin{itemize}
   \item The AMQP URL is stored as a secret since it contains credentials.
   \item The AMQP connection is common in both the \texttt{feedback} and \texttt{resolver} configuration.
-  This configuration allows the feedback workflows and resolver workflows to use the same external message queue.
-  \item The resolver configuration is often easily maintained as a common configuration that is applied to 
+  This configuration allows the feedback workflows and Scan Agent workflows to use the same external message queue.
+  \item The Scan Agent configuration is often easily maintained as a common configuration that is applied to 
   all service definitions for all SCM types.  
 \end{itemize}
 
 
 \begin{figure}[h]
-    \includegraphics[width=\textwidth]{graphics/resolver-config-yaml.png}
-    \caption{Resolver Common Configuration for Server YAML}
-    \label{fig:resolver-config-yaml}
+    \includegraphics[scale=1]{graphics/scan-agent-config-yaml.png}
+    \centering
+    \caption{Scan Agent Common Configuration for Server YAML}
+    \label{fig:scan-agent-config-yaml}
 \end{figure}
 
 
 \subsection{Message Queue Configuration}
 
 The \cxoneflow endpoint will configure the AMQP Exchanges and Queues upon start.  Adding any
-allowed agent tags will require at least one \cxoneflow endpoint restart so that the
+allowed Scan Agent tags will require at least one \cxoneflow endpoint restart so that the
 appropriate message queue elements for that tag can be constructed.
 
 The message queue connection credentials for the \cxoneflow endpoint will have the 
 permissions required to enable configuring the message queue elements.  Section \ref{sec:external-mq}
 will give more details about the appropriate message queue user permissions for the \cxoneflow endpoint.
 
-Configuring a distributed resolver agent will require each agent to have credentials that allow limited
-access to the message queue.  Section \ref{sec:resolver-agent-security} has more details about the
+Configuring a Scan Agent will require each agent to have credentials that allow limited
+access to the message queue.  Section \ref{sec:scan-agent-security} has more details about the
 authorization that should be assigned to credentials used by distributed agents.
 
-The YAML examples in \intlink{sec:resolver-yaml-config}{the previous section} demonstrated the use of a single
-message queue instance for both the communication with the distributed resolver agents and feedback workflow
+The YAML examples in \intlink{sec:scan-agent-yaml-config}{the previous section} demonstrated the use of a single
+message queue instance for both the communication with the Scan Agents and feedback workflow
 orchestration.  While using a single message queue may make the \cxoneflow configuration simpler, it is not
 strictly required to use the same message queue connection for all configurations.  Each configuration can
 use a segregated message queue server if this is desired.  This segregation includes the use
@@ -108,33 +111,34 @@ of \extlink{https://www.rabbitmq.com/docs/vhosts}{virtual hosts} if supported by
 
 \subsection{Deployment Considerations}
 
-The YAML examples in \intlink{sec:resolver-yaml-config}{the previous section} demonstrated agent tags
+The YAML examples in \intlink{sec:scan-agent-yaml-config}{Scan Agent configuration section} demonstrated agent tags
 configured in a single endpoint service definition.  The allowed tags in each service endpoint are
-indicating which agent tags can perform resolver scans for an event handled by that service endpoint.
-The tags are used to communicate with agents that listen for messages directed to that agent tag and
+indicating which agent tags can execute resolver scans and pre-scan scripts for an event handled by that service endpoint.
+The tags are used to communicate with Scan Agents that listen for messages directed to that agent tag and
 have the public key associated with the private key defined in the service configuration.
 
-The important thing to note is that distributed resolver agents are not tied to a single
-\cxoneflow endpoint service definition.  The distributed resolver agents will typically have
+The important thing to note is that Scan Agents are not tied to a single
+\cxoneflow endpoint service definition.  The Scan Agents will typically have
 tooling and configuration that can be used for any code that requires that tooling.  This
-has some implications in how distributed resolver agents can be deployed:
+has some implications in how Scan Agents can be deployed:
 
 \begin{itemize}
-  \item One instance of a distributed resolver agent can handle multiple tags.
+  \item One instance of a Scan Agent can handle multiple tags.
   
-  \item More than one instance of a distributed resolver agent can be deployed to handle the same tag.
+  \item More than one instance of a Scan Agent can be deployed to handle the same tag.  This increases the number of concurrently
+  executing Scan Agents.
 
-  \item The distributed resolver agent tag/private key pair can be different in each service definition.  It is recommended to
-  use duplicate distributed resolver agent tags across \cxoneflow service definitions only when those tags all share the same public/private
+  \item The Scan Agent tag/private key pair can be different in each service definition.  It is recommended to
+  use duplicate Scan Agent tags across \cxoneflow service definitions only when those tags all share the same public/private
   key pair.
 
-  \item Not all service definitions need to support the same allowed agent tags.  If there are distributed agents
-  that should only be used by a specific service definition, it is recommended to use the allowed agent tag list
-  in combination with distributed resolver connection credentials that limit the agent's ability to receive
+  \item Not all service definitions need to support the same allowed Scan Agent tags.  If there are Scan Agents
+  that should only be used by a specific service definition, it is recommended to use the allowed Scan Agent tag list
+  in combination with Scan Agent connection credentials that limit the agent's ability to receive
   communications for specific tags.
 
   \item For complex \cxoneflow configurations that have many service definitions, it is recommended to engineer
-  deployment of distributed resolver agents to be as simple as possible.
+  deployment of Scan Agents to be as simple as possible.
     
 \end{itemize}
 

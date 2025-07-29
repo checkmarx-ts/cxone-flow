@@ -1,7 +1,11 @@
 \section{2.1.5}
 
 \begin{itemize}
-    \item Distributed resolver agents now support a pre-scan shell script execution step.
+    \item "Distributed Resolver Agents" are now known as "Scan Agents" since the scope of what they do has changed.
+    \item Scan Agents support a pre-scan shell script execution step in addition to an optional execution of SCA Resolver.
+    \item Some configuration element names have changed with the transition to the use of the term Scan Agents.  Configurations
+    are backwards compatible but will log a warning if a deprecated element name is used.  Deprecated element names will be
+    removed in the future.
 \end{itemize}
 
 \section{2.1.4}

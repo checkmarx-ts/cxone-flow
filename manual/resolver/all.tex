@@ -1,131 +1,94 @@
-\chapter{Distributed Resolver Agents}\label{sec:resolver-agents}
+\chapter{Scan Agents}\label{sec:scan-agents}
 
 \section{Overview}
 
-Executing Software Composition Analysis (SCA) scans in \cxone will gather results
-by analyzing packages found in the dependency tree for the code submitted for scan.  
-The \cxone SCA scan first obtains a dependency tree, then performs an analysis
-of the packages found in the dependency tree. The dependency
-tree is obtained by executing the same build tools normally used to develop and produce a
-distributable software package.  This execution is performed using two methods: server-side 
-dependency tree resolution and client-side dependency tree resolution with \scaresolver.
+Scan Agents are used as a method of performing some pre-scan processing of code to be submitted
+for scan.  It can be considered similar to scripting that executes prior to submitting a scan
+if executing in a CI/CD pipeline but with a much smaller scope of capabilities.  This is not
+intended to replace the use of a CI/CD pipeline, but can assist with performing some basic
+pre-scan steps for scans orchestrated by webhook events.
 
-The purpose of the distributed resolver agent configuration with \cxoneflow is to execute a
-client-side dependency tree resolution in response to a source control event.  The \cxone
-\intlink{sec:overview}{scan workflow} introduces the concept of a deferred scan which delegates
-a scan with \scaresolver to an appropriate distributed resolver agent instance.  The selection of
-the distributed resolver agent instance is performed through a tag configuration.
-
-The basic workflow used by \cxoneflow with distributed resolver agents is as follows:
-
-\begin{enumerate}
-  \item The SCM event is received by \cxoneflow.  If the event \intlink{sec:overview}{qualifies to invoke} a scan and
-    the \intlink{sec:resolver-elements}{resolver elements} in the \cxoneflow configuration exist, \cxoneflow attempts to select
-    a distributed resolver agent tag. 
-  \item The \cxone project is checked for a tag matching the configured \intlink{sec:yaml-resolver-resolver-tag-key}{resolver-tag-key}.
-    If the project has a tag with the matching key and the value matches one of the values in the \intlink{sec:yaml-resolver-allowed-agent-tags}{allowed-agent-tags}
-    configuration, that value is selected as the distributed resolver agent's tag.
-  \item If the \cxone project does not have a tag with the matching \intlink{sec:yaml-resolver-resolver-tag-key}{resolver-tag-key} and
-    \intlink{sec:yaml-resolver-default-agent-tag}{default-agent-tag} is configured, the default tag is selected as the the distributed resolver agent's tag.
-  \item If a distributed resolver agent tag is selected, a request for a resolver scan is sent to distributed resolver agents having the selected tag.  The
-    \cxone scan is deferred until the distributed resolver agent finishes a scan.
-  \item Upon notification that a distributed resolver agent has finished the resolver scan, a \cxone scan is invoked.  A tag is added to the scan
-    with the key value configured in the \intlink{sec:yaml-resolver-resolver-tag-key}{resolver-tag-key} element that indicates \textbf{success} or
-    \textbf{failure} of the distributed resolver agent scan.
-\end{enumerate}
+Performing pre-scan steps with the Scan Agent is similar to the mechanism of a CI/CD runner
+used with SCMs that support integration of CI/CD pipelines.  An agent is installed on
+a an existing runner agent or a standalone system, given a tag name that is representative
+of the tooling environment, and is configured to receive scan requests from \cxoneflow.
+The tooling environent tag is then referenced in the \cxone project configuration by
+adding a tag to one or more project settings.
 
 
-\subsection{Server-Side Dependency Tree Resolution}
+\section{Scan Agent Deployment}
 
-The dependency analysis for the code submitted to \cxone is performed
-in the server-side \cxone environment by executing the package managers that match the composition of the code
-under scan.  This generally works sufficiently when the code references only publicly-available, open-source
-packages and is compatible with the package manager tooling installed in the \cxone environment.  
-
-Not all software is composed of only publicly available packages nor does it always use package manager tooling
-that is compatible with those installed in the \cxone environment.  Incompatibilities usually manifest
-when some of the following issues are observed:
-
-\begin{itemize}
-  \item The dependency tree is incomplete when software references a private package repository.
-  \item The dependency tree is incomplete when the code under scan is incompatible with the 
-  package manager tools installed in the \cxone environment.
-\end{itemize}
-
-If the server-side dependency resolution is not producing accurate results, the general solution is to
-perform a client-side dependency tree resolution with \scaresolver. 
-
-\subsection{Client-Side Dependency Tree Resolution with \scaresolvertext}
-
-The \scaresolver is typically scripted to execute in
-a pipeline prior to the scan submission to \cxone.  This performs the dependency resolution
-in the same environment as the code builds, which will generally resolve any tooling compatibility or network connection
-problems.  
-
-Since \cxoneflow is primarily driven by asynchronous web hook events and does not invoke a pipeline
-where dependency resolution can be scripted, the distributed resolver agents can perform the dependency resolution using
-\scaresolver. The diagram in Figure \ref{fig:resolver-agent-diagram} shows a typical deployment of the resolver agent.  
-
-
-The resolver agent is deployed such that it can execute the same build tooling as is executed during the build
-in a CI/CD pipeline. The \cxoneflow server delegates \scaresolver execution to the resolver agent to perform the dependency tree
-resolution; this technique is similar to how a CI/CD pipeline delegates build script execution to a system with the correct
-build environment.  The build execution is sometimes performed on a self-hosted "runner" agent or executed using a container with a specified tag. 
-
-This execution delegation technique typically results in execution of the build tools that are appropriately
-configured for the normal build.  The typical CI/CD pipeline runner will also have the correct network connection paths
-needed to communicate to private package repositories.
+Figure \ref{fig:scan-agent-deployment-diagram} shows a deployment diagram for some typical
+Scan Agent deployment types.  The top box shows the Scan Agent process running on the same
+machine as the CI/CD runner.  This is often a better way to perform a deployment given the
+runner will typically have the correct development tooling installed and properly maintained
+over time.  The bottom box shows the Scan Agent deployed on the "Build Box" that would have
+similar properties as the CI/CD runner but may use other methods to invoke builds.
 
 
 \begin{figure}[ht]
-  \includegraphics[width=\textwidth]{graphics/cxoneflow-diagrams-Resolver Agent Diagram.png}
-  \caption{Resolver Agent Deployment Diagram}
-  \label{fig:resolver-agent-diagram}
+  \includegraphics[width=\textwidth]{graphics/cxoneflow-diagrams-Scan Agent Diagram.png}
+  \caption{Scan Agent Deployment Diagram}
+  \label{fig:scan-agent-deployment-diagram}
 \end{figure}
 
 
-\section{Distributed Resolver Security Considerations}\label{sec:dist-resolver-security-considerations}
+\subsection{Scan Agent Security Considerations}\label{sec:scan-agent-security-considerations}
 
 Performing code builds, as is typically performed in a CI/CD pipeline, often includes
 a bit of risk in that a build requires the execution of scripting.  There are often
-controls in place to prevent anyone other than trusted authors from authoring those scripts.
-As part of the scripts, there are often sensitive values exposed to the build script
-for purposes of executing the build.
+controls in place to prevent anyone other than trusted authors from authoring the build scripts.
+If those controls fail or are bypassed, the Scan Agent could be made to execute arbitrary
+script commands which could include executing attacker-controlled code.
 
-The use of distributed resolver agents involves some of the same risks as those that exist in
-CI/CD pipeline builds.  To acquire a dependency tree of a project, the build tools
-need to execute against the build definition to minimally produce the dependency
-tree that is captured for the scan.  This action in itself can cause code to execute
-as part of how the build definition is used by the tooling.  Some build tools allow
-the dependencies themselves to execute code as part of the dependency resolution.
-These dependencies, in some cases, can land malware in or exfiltrate data from the
-environment where the dependency tree is compiled.
+The use of Scan Agents involves some of the same risks as those that exist in
+CI/CD pipeline builds.  The pre-scan scripting is controlled by the
+administrator that is deploying the Scan Agent; this can help to limit the exposure
+of arbitrary shell script execution.  Schemes where the script detects and executes
+additional commands that are provided by code from the repository can create
+a remote code execution attack vector.  If the use of the pre-scan scripting is designed
+to execute commands found in the code under scan, use caution.
 
-The \cxoneflow endpoint server itself does not invoke the build tools; this action is
-delegated to the distributed resolver agents.  However, a required step of the
-distributed resolver agent is to obtain a clone of the code for scanning.  To facilitate this,
+Executing \scaresolver can also represent a remote code execution attack vector when the package manager has
+the capability for the package resolution to execute code.  A package manifest,
+usually provided by code checked into the repository, that references a malicious package may also
+open a remote code execution attack vector.  The scope of what can be accomplished by a malicious package
+executing in the build system will depend on what the malicious package is allowed to execute and what data
+it can exfiltrate from a system where it is executing.
+
+The deployment details in the following sections will provide security recommendations
+that, if followed, can minimize the impact if Scan Agents' execution
+capabilities are somehow exploited.  Scenarios where \scaresolver and the pre-scan script are executed in
+an instance of a container can limit the impact of any exploits but should not be expected
+to completely avoid all potential impacts. 
+
+The \cxoneflow endpoint server itself does not invoke any scripting or tools as part of the 
+Scan Agent workflow; this action is delegated to the Scan Agents.  However, be aware that a required step of the
+Scan Agent execution is to obtain a clone of the code for scanning.  To facilitate this,
 the \cxoneflow endpoint server does send encoded SCM credentials to authorized
-distributed resolver agents.  Section \ref{sec:resolver-agent-security} has more details
-about security considerations for the distributed resolver agent.
+Scan Agents.  Section \ref{sec:scan-agent-security} has more details
+about security considerations for Scan Agent installation.
 
-Since the purpose of the resolver scan is to detect vulnerable and malicious packages,
-it should be anticipated that malicious packages may be inadvertently referenced
-by developers.  While the deployment recommendations of the distributed resolver agents
-will help minimize exposure, the following security recommendations should be considered
-as part of deployment of \cxoneflow with distributed resolver agents:
+The purpose of the \scaresolver scan is to detect vulnerable and malicious packages. It
+should therefore be anticipated that malicious packages may be inadvertently referenced
+by developers in the package manifest.  If the step to execute \scaresolver is enabled
+and the package manifest references a malicious package, take all precautions that
+would be suitable to assess anything that may have been modified by any actions the package
+manager allowed the malicious package to execute.
 
+The following security recommendations should be considered as part of deployment of \cxoneflow with Scan Agents:
 \begin{itemize}
   \item Use SSL for all message queue connections.
   \item Use SSL connections for delivering SCM events to the \cxoneflow endpoints.
-  \item Isolate the distributed resolver agent either through installing on physically isolated machines or
-  using OS permissions to isolate the distributed resolver agent runtime.
-  \item Configure distributed resolver agents to execute build tools inside containers to isolate the build runtime from
-  the distributed resolver agent runtime.
-  \item If a scan detects a malware package, rotate all credentials used by \cxoneflow and distributed resolver agents
-  after the malware is removed from the source code.
+  \item Isolate the Scan Agent either through installing on isolated subnets or using OS permissions to
+  isolate the Scan Agent runtime.
+  \item Configure Scan Agents to execute build tools inside containers to isolate the \scaresolver and pre-scan execution from
+  the Scan Agents' runtime.
+  \item If a scan detects a malicious package, rotate all credentials used by \cxoneflow and Scan Agents
+  after the reference to the malicious package is removed from the source code.\footnote{CAUTION: Opening the code that
+  references a malicious package in an IDE may also execute the package's malicious payload!}
 \end{itemize}
 
 \input{resolver/server.tex}
 \input{resolver/agent.tex}
-
 

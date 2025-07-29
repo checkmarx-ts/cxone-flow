@@ -53,10 +53,10 @@ kickoff_setup: &kickoff
 # This example uses YAML anchors to set a common configuration.
 common_scan_cfg: &common-scan-cfg
 
-  # Optional: Configure the use of distributed resolver agents.
-  resolver:
+  # Optional: Configure the use of Scan Agents.
+  scan-agent:
     <<: *all-amqp
-    private-key: resolver-private-key.pem
+    private-key: scan-agent-private-key.pem
     allowed-agent-tags:
       - my-environment-1
       - my-environment-2

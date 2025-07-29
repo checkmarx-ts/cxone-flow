@@ -23,11 +23,11 @@ amqp_common: &all-amqp
 
 
 common-config: &common
-  public-key: resolver-pub.pem
+  public-key: scan-agent-pub.pem
 
-  # The 'resolver-work-path' option should be set to a directory
-  # owned by 'root:resolver' with permissions 770.
-  resolver-work-path: /path/to/your/work_directory
+  # The 'scan-agent-work-path' option should be set to a directory
+  # owned by 'root:scanagent' with permissions 770.
+  scan-agent-work-path: /path/to/your/work_directory
   <<: *all-amqp
 
 
@@ -43,13 +43,23 @@ common-config: &common
 serviced-tags:
   my-environment-1:
     <<: *common
-    # Optional: If using run-with-container, execution is performed in
+    # Optional: If using run-resolver-with-container, execution is performed in
     # a container with the provided tag.  If not provided, execution
     # is performed as a sub-process to the agent process.
-    run-with-container:
+    run-resolver-with-container:
       # Download the supply chain toolkit build environment here:
       # https://github.com/checkmarx-ts/cx-supply-chain-toolkit
       supply-chain-toolkit-path: /path/to/build-environment
       container-image-tag: gradle:8-jdk17-alpine
   my-environment-2:
     <<: *common
+    disable-resolver: true
+    pre-scan:
+      container-image-tag: hashicorp/terraform:1.12.2
+      script: |
+        for x in $(find . -name main.tf -print);
+        do
+          cd $(dirname $x)
+          terraform init
+        done
+
