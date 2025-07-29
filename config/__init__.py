@@ -1,6 +1,6 @@
 from _version import __version__
 from _agent import __agent__
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Dict, Any
 import os, logging, cxone_api as cx, yaml
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -150,6 +150,22 @@ class CommonConfig:
             return default
         else:
             return config_dict[key]
+
+    @staticmethod
+    def _get_value_for_key_or_default_warn_deprecated(desired_key : str, deprecated_key : str, config_path : str, config_dict : Dict, default : Any) -> Any:
+
+        key = desired_key
+
+        if config_dict is None:
+            return default
+        elif deprecated_key is not None and deprecated_key in config_dict.keys():
+            CommonConfig.log().warning(f"{config_path}: {deprecated_key} is deprecated and may not function in the future.  Use {desired_key}.")
+            key = deprecated_key
+        elif desired_key is not None and desired_key in config_dict.keys():
+            return config_dict[key]
+        
+        return default
+    
 
 
     _default_amqp_url = "amqp://localhost:5672"

@@ -447,13 +447,9 @@ class CxOneFlowConfig(CommonConfig):
 
         resolver_service = CxOneFlowConfig.__resolver_service_factory(
             cxone_client,
-            f"{config_path}/resolver",
+            f"{config_path}/scan-agent",
             service_moniker,
-            **(
-                CxOneFlowConfig._get_value_for_key_or_default(
-                    "resolver", config_dict, {}
-                )
-            ),
+            **(CxOneFlowConfig._get_value_for_key_or_default_warn_deprecated("scan-agent", "resolver", config_path, config_dict, {})),
         )
 
         scan_config_dict = CxOneFlowConfig._get_value_for_key_or_default(

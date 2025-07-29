@@ -24,25 +24,33 @@ class ResolverConfig(CommonConfig):
     @staticmethod
     def __resolver_runner_factory(config_path : str, config_dict : dict) -> ResolverRunner:
         opts = ResolverConfig.__resolver_opts_factory(CommonConfig._get_value_for_key_or_default("resolver-opts", config_dict, None))
-        work_path = CommonConfig._get_value_for_key_or_default("resolver-work-path", config_dict, "/tmp/resolver")
-        container_runner_cfg = CommonConfig._get_value_for_key_or_default("run-with-container", config_dict, None)
+        work_path = CommonConfig._get_value_for_key_or_default_warn_deprecated("scan-agent-work-path", "resolver-work-path", 
+                                                                               config_path, config_dict, "/tmp/scan-agent")
+        container_runner_cfg = CommonConfig._get_value_for_key_or_default_warn_deprecated("run-resolver-with-container", "run-with-container", 
+                                                                                          config_path, config_dict, None)
         disable_resolver = CommonConfig._get_value_for_key_or_default("disable-resolver", config_dict, False)
+        resolver_path = CommonConfig._get_value_for_key_or_default("resolver-path", config_dict, None)
 
         resolver_runner = None
 
         if disable_resolver:
             resolver_runner = NoResolverRunner()
-        elif container_runner_cfg is None:
+        elif resolver_path is not None:
             resolver_runner = ResolverShellRunner(work_path, opts, 
-                               CommonConfig._get_value_for_key_or_fail(config_path, "resolver-path", config_dict), 
+                               resolver_path, 
                                CommonConfig._get_value_for_key_or_default("resolver-run-as", config_dict, None))
-        else:
+        elif container_runner_cfg is not None:
             resolver_runner = ResolverToolkitRunner(work_path, opts,
-                                 CommonConfig._get_value_for_key_or_fail(f"{config_path}/run-with-container", "supply-chain-toolkit-path", container_runner_cfg),
-                                 CommonConfig._get_value_for_key_or_fail(f"{config_path}/run-with-container", "container-image-tag", container_runner_cfg),
+                                 CommonConfig._get_value_for_key_or_fail(f"{config_path}/run-resolver-with-container", 
+                                                                         "supply-chain-toolkit-path", container_runner_cfg),
+                                 CommonConfig._get_value_for_key_or_fail(f"{config_path}/run-resolver-with-container", 
+                                                                         "container-image-tag", container_runner_cfg),
                                  CommonConfig._get_value_for_key_or_default("use-running-uid", container_runner_cfg, True),
                                  CommonConfig._get_value_for_key_or_default("use-running-gid", container_runner_cfg, True),
                                  )
+        else:
+            raise ConfigurationException.missing_at_least_one_key_path(config_path, ["disable-resolver", "run-resolver-with-container", "resolver-path"])
+
     
         prescan_dict = CommonConfig._get_value_for_key_or_default("pre-scan", config_dict, None)
 
