@@ -2,23 +2,23 @@
 
 case $1 in
   "remove")
-    systemctl is-enabled --quiet cxoneflow-resolver-agent
-    [ $? -eq 0 ] && systemctl disable cxoneflow-resolver-agent || :
+    systemctl is-enabled --quiet cxoneflow-scan-agent
+    [ $? -eq 0 ] && systemctl disable cxoneflow-scan-agent || :
     ;;
 
   "purge")
-    getent passwd resolver-runtime > /dev/null
+    getent passwd cx-scan-agent-rt > /dev/null
     if [ $? -eq 0 ];
     then
-      echo Removing 'resolver-runtime' user
-      userdel resolver-runtime
+      echo Removing 'cx-scan-agent-rt' user
+      userdel cx-scan-agent-rt
     fi
 
-    getent passwd resolver > /dev/null
+    getent passwd cx-scan-agent > /dev/null
     if [ $? -eq 0 ];
     then
-      echo Removing 'resolver' user/group
-      userdel resolver
+      echo Removing 'cx-scan-agent' user/group
+      userdel cx-scan-agent
     fi
     ;;
 

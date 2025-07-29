@@ -4,32 +4,32 @@ case $1 in
   "configure")
     if [ $# -le 2 ];
     then
-      getent passwd resolver > /dev/null
+      getent passwd cx-scan-agent > /dev/null
       if [ $? -ne 0 ];
       then
-        echo Creating 'resolver' user/group
-        useradd --no-create-home -c "Checkmarx Resolver Service" --home-dir /nonexistant --shell /usr/sbin/nologin resolver
+        echo Creating 'cx-scan-agent' user/group
+        useradd --no-create-home -c "Checkmarx Scan Agent Service" --home-dir /nonexistant --shell /usr/sbin/nologin cx-scan-agent
       fi
 
-      getent passwd resolver-runtime > /dev/null
+      getent passwd cx-scan-agent-rt > /dev/null
       if [ $? -ne 0 ];
       then
-        echo Creating 'resolver-runtime' user
-        useradd --no-create-home -c "Checkmarx Resolver Runtime User" -g resolver --home-dir /nonexistant --shell /usr/sbin/nologin resolver-runtime
+        echo Creating 'cx-scan-agent-rt' user
+        useradd --no-create-home -c "Checkmarx Scan Agent Runtime User" -g resolver --home-dir /nonexistant --shell /usr/sbin/nologin cx-scan-agent-rt
       fi
 
       echo Creating default secrets directory '/var/secrets'
       mkdir -p /var/secrets
-      chown resolver:resolver /var/secrets
+      chown cx-scan-agent:cx-scan-agent /var/secrets
       chmod 500 /var/secrets
 
-      chown -R root:root /etc/cxoneflow-resolver-agent
-      chown -R root:root /opt/cxoneflow-resolver-agent
+      chown -R root:root /etc/cxoneflow-scan-agent
+      chown -R root:root /opt/cxoneflow-scan-agent
     fi
 
-    echo Enabling 'cxoneflow-resolver-agent.service' to start at system start.
-    systemctl enable /opt/cxoneflow-resolver-agent/cxoneflow-resolver-agent.service
-    [ -f /etc/cxoneflow-resolver-agent/config.yaml ] && systemctl start cxoneflow-resolver-agent || :
+    echo Enabling 'cxoneflow-scan-agent.service' to start at system start.
+    systemctl enable /opt/cxoneflow-scan-agent/cxoneflow-scan-agent.service
+    [ -f /etc/cxoneflow-scan-agent/config.yaml ] && systemctl start cxoneflow-scan-agent || :
     ;;
 
   *)

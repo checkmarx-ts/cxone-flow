@@ -1,9 +1,9 @@
 #!/bin/sh
 
-systemctl is-active --quiet cxoneflow-resolver-agent
+systemctl is-active --quiet cxoneflow-scan-agent
 
 if [ $? -eq 0 ];
 then
-  echo Stopping the 'cxoneflow-resolver-agent' service.
-  systemctl stop cxoneflow-resolver-agent
+  echo Stopping the 'cxoneflow-scan-agent' service.
+  systemctl stop cxoneflow-scan-agent
 fi
