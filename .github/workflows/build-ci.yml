@@ -106,7 +106,7 @@ jobs:
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
 
       - name: Build Debian amd64 Package
-        run: agent_packages/resolver/debian/build-package.sh
+        run: agent_packages/scan-agent/debian/build-package.sh
    
   execute-unit-tests:
     runs-on: ubuntu-latest

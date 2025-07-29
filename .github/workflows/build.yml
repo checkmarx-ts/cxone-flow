@@ -24,7 +24,7 @@ env:
 jobs:
   publish-container:
     runs-on: ubuntu-latest
-    needs: [compile-manual,resolver-agent-deb-amd64,build-kickoff-whl]
+    needs: [compile-manual,scan-agent-deb-amd64,build-kickoff-whl]
     steps:
       - name: Set up Docker Buildx
         id: buildx
@@ -143,7 +143,7 @@ jobs:
           name: release-notes-${{ github.run_number }}
           path: release_notes/release_notes.pdf
 
-  resolver-agent-deb-amd64:
+  scan-agent-deb-amd64:
     runs-on: ubuntu-latest
     steps:
       - name: Fetch Code @ tag ${{ inputs.tag }}
@@ -156,17 +156,17 @@ jobs:
             echo __version__=\"${{ inputs.tag }}\" > _version.py
 
       - name: Build deb package
-        run: agent_packages/resolver/debian/build-package.sh ${{ inputs.tag }}
+        run: agent_packages/scan-agent/debian/build-package.sh ${{ inputs.tag }}
 
       - name: Upload deb amd64 package
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
         with:
           name: deb-amd64-${{ github.run_number }}
-          path: agent_packages/resolver/debian/*.deb
+          path: agent_packages/scan-agent/debian/*.deb
 
   publish-release:
     runs-on: ubuntu-latest
-    needs: [publish-container,compile-manual,resolver-agent-deb-amd64,build-kickoff-whl]
+    needs: [publish-container,compile-manual,scan-agent-deb-amd64,build-kickoff-whl]
     steps:
       - name: Download whl
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
