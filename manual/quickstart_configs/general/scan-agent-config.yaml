@@ -62,4 +62,3 @@ serviced-tags:
           cd $(dirname $x)
           terraform init
         done
-
