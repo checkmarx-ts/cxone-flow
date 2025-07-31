@@ -15,7 +15,7 @@ case $1 in
       if [ $? -ne 0 ];
       then
         echo Creating 'cx-scan-agent-rt' user
-        useradd --no-create-home -c "Checkmarx Scan Agent Runtime User" -g resolver --home-dir /nonexistant --shell /usr/sbin/nologin cx-scan-agent-rt
+        useradd --no-create-home -c "Checkmarx Scan Agent Runtime User" -g cx-scan-agent --home-dir /nonexistant --shell /usr/sbin/nologin cx-scan-agent-rt
       fi
 
       echo Creating default secrets directory '/var/secrets'
