@@ -17,11 +17,11 @@ Please refer to the [Releases](https://github.com/checkmarx-ts/cxone-flow/releas
 
 * Supported SCMs
     * BitBucket Data Center
-    * Azure DevOps Enterprise, On-premise or Cloud
-    * GitHub Enterprise and Cloud
-    * GitLab On-premise or Cloud
+    * Azure DevOps Enterprise, Self-Hosted and Cloud
+    * GitHub Enterprise Self-Hosted and Cloud
+    * GitLab Self-Hosted and Cloud
 * Scans are invoked by Push events when code is pushed to protected branches.
 * Scans are invoked on Pull-Requests that target a protected branch.
 * Scan results for Pull-Request scans are summarized in a pull-request comment.
 * Pull-Request state is reflected in scan tags as the pull request is under review.
-* Dependency resolution with SCA Resolver can be orchestrated to run behind the corporate firewall.
+* Pre-scan execution of SCA Resolver and/or shell script.
