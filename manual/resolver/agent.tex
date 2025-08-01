@@ -125,7 +125,12 @@ upon container exit.
 The intention of this feature is to allow a small amount of prepration of the code
 before it is sent to \cxone for scanning.  It is not intended as a full-featured code
 build tool.  Any tooling configuration needed to support the pre-scan execution should be
-included in the container image.
+included in the container image.  Scripts that require interactive input can not be supported.
+If the script returns a non-zero exit status code,  the scan will have the resolver tag
+\texttt{failure} but will still execute a scan.  Scripts should properly trap error conditions
+to ensure successful execution.  For complex scripting needs, it is recommended that
+the majority of the logic is built in to the container image with the pre-scan script only
+serving to invoke the container's complex logic.
 
 Container tags can reference publicly available images or private images.  The machine
 where the Scan Agent is installed must have \texttt{docker} installed an configured
