@@ -8,7 +8,7 @@ case $1 in
       if [ $? -ne 0 ];
       then
         echo Creating 'cx-scan-agent' user/group
-        useradd --no-create-home -c "Checkmarx Scan Agent Service" --home-dir /nonexistant --shell /usr/sbin/nologin cx-scan-agent
+        useradd -c "Checkmarx Scan Agent Service User" --shell /usr/sbin/nologin cx-scan-agent
       fi
 
       getent passwd cx-scan-agent-rt > /dev/null
