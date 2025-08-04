@@ -25,7 +25,7 @@ class ResolverConfig(CommonConfig):
     def __resolver_runner_factory(config_path : str, config_dict : dict) -> ResolverRunner:
         opts = ResolverConfig.__resolver_opts_factory(CommonConfig._get_value_for_key_or_default("resolver-opts", config_dict, None))
         work_path = CommonConfig._get_value_for_key_or_default_warn_deprecated("scan-agent-work-path", "resolver-work-path", 
-                                                                               config_path, config_dict, "/tmp/scan-agent")
+                                                                               config_path, config_dict, "/tmp")
         container_runner_cfg = CommonConfig._get_value_for_key_or_default_warn_deprecated("run-resolver-with-container", "run-with-container", 
                                                                                           config_path, config_dict, None)
         disable_resolver = CommonConfig._get_value_for_key_or_default("disable-resolver", config_dict, False)

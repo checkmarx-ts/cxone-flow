@@ -162,8 +162,8 @@ elsewhere in this document.\\\\
     .3 \intlink{sec:yaml-moniker-project-naming}{project-naming} \DTcomment{[Optional]}.
     .4 \intlink{sec:project-naming-elements}{...see "YAML \texttt{project-naming} Elements"}.
     .3 \intlink{sec:yaml-moniker-repo-match}{repo-match} \DTcomment{[Required]}.
-    .3 \intlink{sec:yaml-moniker-resolver}{resolver} \DTcomment{[Optional]}.
-    .4 \intlink{sec:resolver-elements}{...see "YAML \texttt{resolver} Elements"}.
+    .3 \intlink{sec:yaml-moniker-scan-agent}{scan-agent} \DTcomment{[Optional]}.
+    .4 \intlink{sec:scan-agent-elements}{...see "YAML \texttt{scan-agent} Elements"}.
     .3 \intlink{sec:yaml-moniker-scan-config}{scan-config} \DTcomment{[Optional]}.
     .4 \intlink{sec:scan-config-elements}{...see "YAML \texttt{scan-config} Elements"}.
     .3 \intlink{sec:yaml-moniker-service-name}{service-name} \DTcomment{[Required]}.
@@ -290,25 +290,25 @@ is assigned.\\
 
 
 \pagebreak
-\paragraph{YAML \texttt{resolver} Elements}\label{sec:resolver-elements}
+\paragraph{YAML \texttt{scan-agent} Elements}\label{sec:scan-agent-elements}
 \noindent\\
 
 \dirtree{%
     .1 <root>.
     .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
-    .3 \intlink{sec:yaml-moniker-resolver}{resolver} \DTcomment{[Optional]}.
+    .3 \intlink{sec:yaml-moniker-scan-agent}{scan-agent} \DTcomment{[Optional]}.
     .4 \intlink{sec:yaml-generic-amqp}{amqp} \DTcomment{[Optional] Default: container instance}.
     .5 \intlink{sec:yaml-generic-amqp-amqp-password}{amqp-password} \DTcomment{[Optional]}.
     .5 \intlink{sec:yaml-generic-amqp-amqp-url}{amqp-url} \DTcomment{[Required]}.
     .5 \intlink{sec:yaml-generic-amqp-amqp-user}{amqp-user} \DTcomment{[Optional]}.
     .5 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
-    .4 \intlink{sec:yaml-resolver-allowed-agent-tags}{allowed-agent-tags} \DTcomment{[Required]}.
-    .4 \intlink{sec:yaml-resolver-capture-resolver-logs}{capture-resolver-logs} \DTcomment{[Optional] Default: False}.
-    .4 \intlink{sec:yaml-resolver-default-agent-tag}{default-agent-tag} \DTcomment{[Optional]}.
-    .4 \intlink{sec:yaml-resolver-private-key}{private-key} \DTcomment{[Required]}.
-    .4 \intlink{sec:yaml-resolver-resolver-tag-key}{resolver-tag-key} \DTcomment{[Optional] Default: resolver}.
-    .4 \intlink{sec:resolver-scan-retries}{scan-retries}\DTcomment{[Optional] Default: 3}.
-    .4 \intlink{sec:resolver-scan-timeout-seconds}{scan-timeout-seconds}\DTcomment{[Optional] Default: 10800}.
+    .4 \intlink{sec:yaml-scan-agent-allowed-agent-tags}{allowed-agent-tags} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-scan-agent-capture-resolver-logs}{capture-resolver-logs} \DTcomment{[Optional] Default: False}.
+    .4 \intlink{sec:yaml-scan-agent-default-agent-tag}{default-agent-tag} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-scan-agent-private-key}{private-key} \DTcomment{[Required]}.
+    .4 \intlink{sec:yaml-scan-agent-resolver-tag-key}{resolver-tag-key} \DTcomment{[Optional] Default: resolver}.
+    .4 \intlink{sec:scan-agent-scan-retries}{scan-retries}\DTcomment{[Optional] Default: 3}.
+    .4 \intlink{sec:scan-agent-scan-timeout-seconds}{scan-timeout-seconds}\DTcomment{[Optional] Default: 10800}.
 }
 
 

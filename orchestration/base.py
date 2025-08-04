@@ -97,9 +97,20 @@ class AbstractOrchestrator:
 
     @staticmethod
     def __zip_write_delegate(zip_entries : Dict, zipfile : zipfile.ZipFile):
-        for entry_key in zip_entries.keys():
-            zipfile.write(entry_key, zip_entries[entry_key])
-    
+        try:
+            for entry_key in zip_entries.keys():
+                AbstractOrchestrator.log().debug(f"Writing file [{zip_entries[entry_key]}] @ {zipfile.fp.tell()}")
+                zipfile.write(entry_key, zip_entries[entry_key])
+        except ValueError as vex:
+            AbstractOrchestrator.log().exception("ValueError exception indicating 'write to file that is closed'" +
+                                                 " indicates the MQ is timing out waiting for message ACK.  You may need to increase the" + 
+                                                 " timeout for consumed message acknowledgements.", vex)
+            raise
+        except BaseException as ex:
+            AbstractOrchestrator.log().exception(ex)
+            raise
+
+
     @staticmethod
     async def exec_local_scan(code_path : str, cxone_service : CxOneService,
                               scan_source_msg : str, source_branch : str, project_config : ProjectRepoConfig, 
@@ -115,7 +126,7 @@ class AbstractOrchestrator:
 
                 await asyncio.to_thread(AbstractOrchestrator.__zip_write_delegate, zip_entries, upload_payload)
                 
-                AbstractOrchestrator.log().info(f"[{scan_source_msg}] zipped in {perf_counter_ns() - check}ns")
+                AbstractOrchestrator.log().info(f"[{scan_source_msg}] zipped {len(zip_entries)} file in {perf_counter_ns() - check}ns")
 
             scan_submit = await cxone_service.execute_scan(zip_file.name, project_config, source_branch, tags)
 

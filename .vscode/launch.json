@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Resolver Agent",
+            "name": "Python: Scan Agent",
             "type": "debugpy",
             "request": "launch",
-            "program": "resolver_agent.py",
+            "program": "cx_scan_agent.py",
             "console": "integratedTerminal",
             "env": {
                 "LOG_LEVEL": "DEBUG",

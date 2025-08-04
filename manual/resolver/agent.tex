@@ -126,11 +126,31 @@ The intention of this feature is to allow a small amount of prepration of the co
 before it is sent to \cxone for scanning.  It is not intended as a full-featured code
 build tool.  Any tooling configuration needed to support the pre-scan execution should be
 included in the container image.  Scripts that require interactive input can not be supported.
-If the script returns a non-zero exit status code,  the scan will have the resolver tag
+
+The time taken to perform the pre-scan scripting for any script should generally be much
+less than 10 minutes for any given code repository.  Pre-scan scripts that take a long time
+run the risk of failing due to the message queue assuming that lack of acknowledgement
+for the consumed scan delegation message means the agent is not working properly.  If
+using RabbitMQ as the AMQP endpoint, it has a default server configuration \texttt{consumer-timeout}
+set at 30 minutes (1800000ms).  This can be configured as a Policy via the RabbitMQ administrative
+UI.  Figure \ref{fig:rmq-consumer-timeout} shows an example policy to increase the timeout to
+3 hours.  It is applied on Queues with the name pattern \texttt{\^{}cx:res:Resolver Req.*} to limit
+the change to queues used specifically by the Scan Agent.
+
+\begin{figure}[h]
+    \includegraphics[scale=1]{graphics/scan-agent-consumer-timeout.png}
+    \centering
+    \caption{RabbitMQ Policy for Consumer Timeout}
+    \label{fig:rmq-consumer-timeout}
+\end{figure}
+
+
+If the pre-scan script returns a non-zero exit status code,  the scan will have the resolver tag
 \texttt{failure} but will still execute a scan.  Scripts should properly trap error conditions
 to ensure successful execution.  For complex scripting needs, it is recommended that
 the majority of the logic is built in to the container image with the pre-scan script only
 serving to invoke the container's complex logic.
+
 
 Container tags can reference publicly available images or private images.  The machine
 where the Scan Agent is installed must have \texttt{docker} installed an configured
@@ -347,7 +367,7 @@ example release artifacts.
     .4 \intlink{sec:agent-resolver-opts}{resolver-opts}\DTcomment{[Optional] Default: None}.
     .4 \intlink{sec:agent-resolver-path}{resolver-path}\DTcomment{[Required if not \texttt{run-with-container}]}.
     .4 \intlink{sec:agent-resolver-run-as}{resolver-run-as}\DTcomment{[Optional] Default: run as service user}.
-    .4 \intlink{sec:scan-agent-work-path}{scan-agent-work-path}\DTcomment{[Optional] Default: /tmp/scan-agent}.
+    .4 \intlink{sec:scan-agent-work-path}{scan-agent-work-path}\DTcomment{[Optional] Default: /tmp}.
     .4 \intlink{sec:agent-run-with-container}{run-with-container}\DTcomment{[Required if not \texttt{resolver-path}]}.
     .5 \intlink{sec:agent-container-image-tag}{container-image-tag}\DTcomment{[Required]}.
     .5 \intlink{sec:agent-supply-chain-toolkit-path}{supply-chain-toolkit-path}\DTcomment{[Required]}.

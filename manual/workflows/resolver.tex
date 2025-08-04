@@ -2,10 +2,10 @@
 
 \section{Overview}
 For any scan invoked by \cxoneflow\space when \intlink{sec:resolver-elements}{configured to use resolver}, 
-a "deferred" scan is enqueued with the message queue to run a resolver scan.  The deferred scan is handed over
+a delegated scan is enqueued with the message queue to run a resolver scan and/or a pre-scan script.  The delegated scan is handed over
 to a Scan Agent that clones the code and executes \scaresolver.  The \scaresolver results are
-then sent back to the \cxoneflow endpoint server to submit for scan along with the code.  This section details
-exchange, queue, and workflow logic of this process.
+then submitted for scan along with the code.  The executing scan then follows any configured feedback workflows.
+This section details exchange, queue, and workflow logic of this process.
 
 
 \section{Delegated Scan Workflow}

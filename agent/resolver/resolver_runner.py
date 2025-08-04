@@ -152,7 +152,11 @@ class ResolverExecutionContext(AbstractExecutionContext):
 
         self.log().debug(f"Running resolver: {cmd + exec_opts}")
 
-        resolver_exec_result = await ResolverRunner.execute_cmd_async(cmd + exec_opts, {"HOME" : self.home})
+        try:
+            resolver_exec_result = await ResolverRunner.execute_cmd_async(cmd + exec_opts, {"HOME" : self.home})
+        except subprocess.CalledProcessError as cpex:
+            ResolverExecutionContext.log().exception(cpex)
+            resolver_exec_result = subprocess.CompletedProcess(cpex.cmd, cpex.returncode, cpex.stdout, cpex.stderr)
 
         self.log().debug(f"Resolver finished: {resolver_exec_result}")
 

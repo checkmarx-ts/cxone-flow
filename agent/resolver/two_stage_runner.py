@@ -25,51 +25,57 @@ class ResolverTwoStageExecutionContext(ResolverExecutionContext):
         self, project_name: str, exclusions: str
     ) -> subprocess.CompletedProcess:
         
+        exit_code = 0
+        resolver_result = None
+        shell_result = None
+        result_log = b""
+
         try:
-          resolver_result = None
-          
-          if self.__resolver_before:
-              resolver_result = await self.__resolver_executor.execute_resolver(project_name, exclusions)
+            if self.__resolver_before:
+                try:
+                    resolver_result = await self.__resolver_executor.execute_resolver(project_name, exclusions)
+                except subprocess.CalledProcessError as cpex:
+                    ResolverExecutionContext.log().exception(cpex)
+                    resolver_result = subprocess.CompletedProcess(cpex.cmd, cpex.returncode, cpex.stdout)
+            
+            exit_code = resolver_result.returncode if resolver_result is not None else exit_code
 
-          exec_command = ResolverTwoStageExecutionContext.__docker_cmd + \
-            ["-u", f"{os.getuid()}:{os.getgid()}",
-            "-v", f"{self.clone_path}:/code", "-w", "/code",
-            "--entrypoint", self.__shell,
-            self.__container_tag,
-            "-c", self.__script]
-          
-          shell_result = await AbstractRunner.execute_cmd_async(exec_command, {"HOME" : "/code"})
+            try:
+                exec_command = ResolverTwoStageExecutionContext.__docker_cmd + \
+                ["-u", f"{os.getuid()}:{os.getgid()}",
+                "-v", f"{self.clone_path}:/code", "-w", "/code",
+                "--entrypoint", self.__shell,
+                self.__container_tag,
+                "-c", self.__script]
 
-          if not self.__resolver_before:
-              resolver_result = await self.__resolver_executor.execute_resolver(project_name, exclusions)
+                shell_result = await AbstractRunner.execute_cmd_async(exec_command, {"HOME" : "/code"})
+            except subprocess.CalledProcessError as cpex:
+                ResolverExecutionContext.log().exception(cpex)
+                shell_result = subprocess.CompletedProcess(cpex.cmd, cpex.returncode, cpex.stdout)
 
-          result_log = b""
+            exit_code = shell_result.returncode if exit_code == 0 else exit_code
 
-          if resolver_result.returncode != 0:
-              return resolver_result
-          elif resolver_result.stdout is not None:
-              result_log = resolver_result.stdout
+            if not self.__resolver_before:
+                try:
+                    resolver_result = await self.__resolver_executor.execute_resolver(project_name, exclusions)
+                except subprocess.CalledProcessError as cpex:
+                    ResolverExecutionContext.log().exception(cpex)
+                    resolver_result = subprocess.CompletedProcess(cpex.cmd, cpex.returncode, cpex.stdout)
+                 
+            exit_code = resolver_result.returncode if exit_code == 0 else exit_code
 
-          if shell_result.returncode != 0:
-              return shell_result
-          elif shell_result.stdout is not None:
-            result_log += shell_result.stdout
+            if resolver_result.stdout is not None:
+                result_log = resolver_result.stdout
 
-          if resolver_result is not None:
-              ResolverTwoStageExecutionContext.log().info(f"Resolver execution result code: {resolver_result.returncode}")
-              
-              if resolver_result.stdout is not None:
-                ResolverTwoStageExecutionContext.log().debug(resolver_result.stdout)
-          
-          if shell_result is not None:
-              ResolverTwoStageExecutionContext.log().info(f"Shell execution result code: {shell_result.returncode}")
-              
-              if shell_result.stdout is not None:
-                ResolverTwoStageExecutionContext.log().debug(shell_result.stdout)
-              
-          return subprocess.CompletedProcess(None, 0, stdout=result_log)
+            if shell_result.stdout is not None:
+                result_log += shell_result.stdout
+
+            ResolverTwoStageExecutionContext.log().info(f"Resolver execution result code: {resolver_result.returncode}, " 
+                                                        + f"pre-scan shell exit code: {shell_result.returncode}")
         except BaseException as ex:
           ResolverTwoStageExecutionContext.log().error(ex)
+        
+        return subprocess.CompletedProcess(None, exit_code, stdout=result_log)
 
     async def __aenter__(self):
         if self.__resolver_executor is not None:
