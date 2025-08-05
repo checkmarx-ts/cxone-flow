@@ -29,15 +29,16 @@ class ResolverResultsAgent(BaseWorkflowService):
             else:
                 # Execute just like an event message was received.
                 if result_msg.state == ScanStates.FAILURE:
-                    if result_msg.get("scan_id") is not None:
+                    if result_msg.scan_id is not None:
                         ResolverResultsAgent.log().warning(f"Delegated scan correlation_id {result_msg.correlation_id} indicated a soft failure with exit code {result_msg.resolver_exit_code}, scanning anyway.")
                     else:
                         ResolverResultsAgent.log().error(f"Delegated scan correlation_id {result_msg.correlation_id} indicated a hard failure with exit code {result_msg.resolver_exit_code}, no scan executed.")
                 
                 self.__services.resolver.capture_logs(result_msg.logs)
-                
-                ResolverResultsAgent.log().info(await OrchestrationDispatch.dispatch_delegated_scan_workflow (
-                    ResolverResultsAgent.__orchestrator_factory(result_msg.details.orchestrator, result_msg.details.event_context), result_msg.scan_id))
+
+                if result_msg.scan_id is not None:
+                    ResolverResultsAgent.log().info(await OrchestrationDispatch.dispatch_delegated_scan_workflow (
+                        ResolverResultsAgent.__orchestrator_factory(result_msg.details.orchestrator, result_msg.details.event_context), result_msg.scan_id))
            
             await msg.ack()
         except BaseException as ex:

@@ -145,7 +145,7 @@ class ResolverRunnerAgent(BaseWorkflowService):
 
                         result_msg = DelegatedScanResultMessage.factory(
                             moniker=scan_msg.moniker,
-                            state=ScanStates.DONE,
+                            state=ScanStates.DONE if return_code == 0 else ScanStates.FAILURE,
                             workflow=scan_msg.workflow,
                             details=scan_msg.details,
                             details_signature=scan_msg.details_signature,
@@ -161,16 +161,16 @@ class ResolverRunnerAgent(BaseWorkflowService):
                             ResolverScanService.EXCHANGE_RESOLVER_SCAN,
                         )
         except subprocess.CalledProcessError as cpex:
-            ResolverRunnerAgent.log().error(f"Process failure for CorId: [{scan_msg.correlation_id}]")
+            ResolverRunnerAgent.log().error(f"Resolver workflow failure for CorId: [{scan_msg.correlation_id}]")
             ResolverRunnerAgent.log().exception(cpex)
             await self.__send_failure_response(
                 workflow, scan_msg, cpex.returncode, cpex.output
             )
             await msg.nack(requeue=False)
         except BaseException as ex:
-            ResolverRunnerAgent.log().exception(f"Process failure for CorId: [{scan_msg.correlation_id}]", ex)
+            ResolverRunnerAgent.log().exception(f"Resolver workflow failure for CorId: [{scan_msg.correlation_id}]", ex)
             await self.__send_failure_response(workflow, scan_msg)
             await msg.nack(requeue=False)
         else:
-            ResolverRunnerAgent.log().info(f"Success for CorId: [{scan_msg.correlation_id}]")
+            ResolverRunnerAgent.log().info(f"Resolver workflow completed successfully for CorId: [{scan_msg.correlation_id}]")
             await msg.ack()

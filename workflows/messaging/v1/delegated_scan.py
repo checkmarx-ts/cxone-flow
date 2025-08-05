@@ -30,6 +30,6 @@ class DelegatedScanMessage(DelegatedScanMessageBase):
 
 @dataclass(frozen=True)
 class DelegatedScanResultMessage(DelegatedScanMessageBase):
-    resolver_exit_code : int
-    scan_id : Optional[str]
-    logs : Optional[bytearray]
+    resolver_exit_code : Optional[int] = None
+    scan_id : Optional[str] = None
+    logs : Optional[bytearray] = None

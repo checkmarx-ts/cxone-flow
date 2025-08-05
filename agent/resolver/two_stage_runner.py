@@ -1,7 +1,7 @@
 from agent.resolver.resolver_runner import ResolverRunner, ResolverExecutionContext, AbstractRunner
 from agent.resolver.resolver_opts import ResolverOpts
 from agent.resolver.exceptions import ResolverAgentException
-import subprocess, os
+import subprocess, os, asyncio
 
 class ResolverTwoStageExecutionContext(ResolverExecutionContext):
     __docker_cmd = ["docker", "run", "-t", "--rm"]
@@ -72,8 +72,11 @@ class ResolverTwoStageExecutionContext(ResolverExecutionContext):
 
             ResolverTwoStageExecutionContext.log().info(f"Resolver execution result code: {resolver_result.returncode}, " 
                                                         + f"pre-scan shell exit code: {shell_result.returncode}")
+        except asyncio.CancelledError as cex:
+          ResolverTwoStageExecutionContext.log().exception(cex)
+          raise
         except BaseException as ex:
-          ResolverTwoStageExecutionContext.log().error(ex)
+          ResolverTwoStageExecutionContext.log().exception(ex)
         
         return subprocess.CompletedProcess(None, exit_code, stdout=result_log)
 

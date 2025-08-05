@@ -166,9 +166,6 @@ class ResolverScanService(BaseWorkflowService):
                         state=ScanStates.FAILURE,
                         workflow=requeue_msg.workflow,
                         correlation_id=requeue_msg.correlation_id,
-                        resolver_results=None,
-                        container_results= None,
-                        exit_code=None,
                         logs=None
                     ),
                     ResolverScanService.EXCHANGE_RESOLVER_SCAN,
