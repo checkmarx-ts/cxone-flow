@@ -13,9 +13,11 @@ from cxone_service import CxOneService
 from cxone_service.grouping import GroupingService
 from password_strength import PasswordPolicy
 from workflows.pr_feedback_service import PRFeedbackService
+from workflows.push_feedback_service import PushFeedbackService
 from workflows.scan_polling_service import ScanPollingService
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.pull_request import PullRequestWorkflow
+from workflows.push import PushWorkflow
 from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
 from workflows.resolver_workflow import (
     DummyResolverScanningWorkflow,
@@ -231,6 +233,10 @@ class CxOneFlowConfig(CommonConfig):
     ) -> ScanPollingService:
         if kwargs is None or len(kwargs.keys()) == 0:
             return ScanPollingService(
+                # TODO: workflow needs to be specific to polling, can't be external
+                # workflow based on message type.  It should just make the message
+                # into a ScanStates.FEEDBACK message so it routes to the correct
+                # queue.
                 workflow,
                 CxOneFlowConfig.DEFAULT_MAX_POLL_INT_SECS,
                 CxOneFlowConfig.DEFAULT_POLL_BACKOFF_SCALAR,
@@ -318,6 +324,26 @@ class CxOneFlowConfig(CommonConfig):
 
             return PRFeedbackService(
                 moniker, CxOneFlowConfig.__server_base_url, pr_workflow,
+                *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
+            )
+
+
+
+    @staticmethod
+    def __push_feedback_service_factory(
+        config_path, moniker, **kwargs
+    ) -> PushFeedbackService:
+        if kwargs is None or len(kwargs.keys()) == 0:
+            return PushFeedbackService(
+                moniker, CxOneFlowConfig.__server_base_url, PushWorkflow(),
+                CxOneFlowConfig._default_amqp_url,
+                None,
+                None,
+                True,
+            )
+        else:
+            return PushFeedbackService(
+                moniker, PushWorkflow(),
                 *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
             )
 
@@ -441,6 +467,16 @@ class CxOneFlowConfig(CommonConfig):
         )
 
         pr_feedback_service = CxOneFlowConfig.__pr_feedback_service_factory(
+            f"{config_path}/feedback",
+            service_moniker,
+            **(
+                CxOneFlowConfig._get_value_for_key_or_default(
+                    "feedback", config_dict, {}
+                )
+            ),
+        )
+
+        push_feedback_service = CxOneFlowConfig.__push_feedback_service_factory(
             f"{config_path}/feedback",
             service_moniker,
             **(
@@ -588,6 +624,7 @@ class CxOneFlowConfig(CommonConfig):
             scm_service,
             pr_feedback_service,
             scan_polling_service,
+            push_feedback_service,
             resolver_service,
             CxOneFlowConfig.__kickoff_service_factory(cxone_client,
                 CxOneFlowConfig._get_value_for_key_or_default("kickoff", config_dict, None), 

@@ -11,6 +11,7 @@ class ScanWorkflow(__base_enum):
     PUSH = "push"
 class FeedbackWorkflow(__base_enum):
     PR = "pull-request"
+    PUSH = "push"
 
 class ScanStates(__base_enum):
     AWAIT = "await"

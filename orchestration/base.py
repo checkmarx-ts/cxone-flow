@@ -8,7 +8,7 @@ from scm_services import SCMService
 from cxone_service import CxOneService
 from scm_services.cloner import Cloner, CloneWorker, CloneAuthException
 from workflows.exceptions import WorkflowException
-from workflows.messaging import PRDetails
+from workflows.messaging import PRDetails, PushDetails
 from workflows import ScanWorkflow
 from api_utils.auth_factories import EventContext
 from enum import Enum
@@ -200,15 +200,24 @@ class AbstractOrchestrator:
                     # pylint: disable=E1205
                     AbstractOrchestrator.log().exception("Delegated scan workflow exception.", ex)
 
-            return await AbstractOrchestrator.exec_clone_scan(services.cxone, services.scm, clone_url, source_hash,
+            inspector, action = await AbstractOrchestrator.exec_clone_scan(services.cxone, services.scm, clone_url, source_hash,
                                             source_branch, project_config, scan_tags, self.event_context)
+            
+            if action == AbstractOrchestrator.ScanAction.EXECUTING:
+                await services.push.start_sarif_feedback(inspector.project_id, inspector.scan_id,
+                                                         PushDetails.factory(clone_url=clone_url,
+                                                                             repo_project=self._repo_project_key,
+                                                                             repo_slug=self._repo_slug,
+                                                                             organization=self._repo_organization,
+                                                                             source_branch=source_branch,
+                                                                             event_context=self.event_context))
+            return inspector, action
         else:
             AbstractOrchestrator.log().info(f"{clone_url}:{source_hash}:{source_branch} is not related to any protected branch: {protected_branches}")
             return None, AbstractOrchestrator.ScanAction.SKIPPED
 
     async def _execute_delegated_push_scan_workflow(self, services : CxOneFlowServices, scan_id : str) -> Tuple[ScanInspector, ScanAction]:
         
-        # Placeholder for eventual delivery of a Sarif feed.
 
         AbstractOrchestrator.log().debug(f"_execute_delegated_push_scan_workflow")
         inspector =  await services.cxone.load_scan_inspector(scan_id)
@@ -216,6 +225,14 @@ class AbstractOrchestrator:
 
         if inspector.executing:
             status = AbstractOrchestrator.ScanAction.EXECUTING
+            source_branch, _ = await self._get_source_branch_and_hash()
+            await services.push.start_sarif_feedback(inspector.project_id, inspector.scan_id,
+                                                        PushDetails.factory(clone_url=self._repo_clone_url(services.scm.cloner),
+                                                                            repo_project=self._repo_project_key,
+                                                                            repo_slug=self._repo_slug,
+                                                                            organization=self._repo_organization,
+                                                                            source_branch=source_branch,
+                                                                            event_context=self.event_context))
         elif inspector.failed:
             status = AbstractOrchestrator.ScanAction.FAILED
 

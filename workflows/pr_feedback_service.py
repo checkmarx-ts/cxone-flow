@@ -1,5 +1,4 @@
-import aio_pika, logging, pamqp.commands
-from datetime import timedelta
+import aio_pika, logging
 from cxone_service import CxOneService
 from scm_services import SCMService
 from workflows.messaging import ScanAnnotationMessage, ScanFeedbackMessage, PRDetails
@@ -115,11 +114,4 @@ class PRFeedbackService(BaseWorkflowService):
 
     async def start_pr_scan_workflow(self, projectid : str, scanid : str, details : PRDetails) -> None:
         await self.workflow.workflow_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))
-        await self.start_pr_annotation(projectid, scanid, "Scan started", details)
-
-    async def start_pr_feedback(self, projectid : str, scanid : str, details : PRDetails):
-        await self.workflow.feedback_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))
-
-    async def start_pr_annotation(self, projectid : str, scanid : str, annotation : str, details : PRDetails):
-        await self.workflow.annotation_start(await self.mq_client(), self.__service_moniker, projectid, scanid, annotation, **(details.as_dict()))
-
+        await self.workflow.annotation_start(await self.mq_client(), self.__service_moniker, projectid, scanid, "Scan Started", **(details.as_dict()))
