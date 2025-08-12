@@ -13,8 +13,10 @@ from cxone_service import CxOneService
 from cxone_service.grouping import GroupingService
 from password_strength import PasswordPolicy
 from workflows.pr_feedback_service import PRFeedbackService
+from workflows.scan_polling_service import ScanPollingService
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.pull_request import PullRequestWorkflow
+from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
 from workflows.resolver_workflow import (
     DummyResolverScanningWorkflow,
     ResolverScanningWorkflow,
@@ -28,6 +30,12 @@ from naming_services import ProjectNamingService
 
 
 class CxOneFlowConfig(CommonConfig):
+
+    DEFAULT_MAX_POLL_INT_SECS = 600
+    DEFAULT_POLL_INTERVAL_SECS = 60
+    DEFAULT_POLL_BACKOFF_SCALAR = 2
+    DEFAULT_SCAN_TIMEOUT_HOURS = 48
+
     __shared_secret_policy = PasswordPolicy.from_names(
         length=20, uppercase=3, numbers=3, special=2
     )
@@ -51,10 +59,10 @@ class CxOneFlowConfig(CommonConfig):
     def retrieve_services_by_route(
         clone_urls: str, scm_config_key: str
     ) -> Union[CxOneFlowServices, None]:
-        
+
         if scm_config_key not in CxOneFlowConfig.__ordered_scm_services_config.keys():
             return None
-        
+
         if type(clone_urls) is list:
             it_list = clone_urls
         else:
@@ -91,7 +99,7 @@ class CxOneFlowConfig(CommonConfig):
 
             CxOneFlowConfig.__script_root = CxOneFlowConfig._get_value_for_key_or_default("script-path",
                 raw_yaml, None)
-            
+
             if CxOneFlowConfig.__script_root is not None:
                 sys.path.append(CxOneFlowConfig.__script_root)
 
@@ -218,18 +226,39 @@ class CxOneFlowConfig(CommonConfig):
             )
 
     @staticmethod
+    def __polling_service_factory(
+        config_path, workflow : AbstractFeedbackWorkflow, **kwargs
+    ) -> ScanPollingService:
+        if kwargs is None or len(kwargs.keys()) == 0:
+            return ScanPollingService(
+                workflow,
+                CxOneFlowConfig.DEFAULT_MAX_POLL_INT_SECS,
+                CxOneFlowConfig.DEFAULT_POLL_BACKOFF_SCALAR,
+                CxOneFlowConfig._default_amqp_url,
+                None,
+                None,
+                True,
+            )
+        else:
+            return ScanPollingService(
+                workflow,
+                CxOneFlowConfig.DEFAULT_MAX_POLL_INT_SECS,
+                CxOneFlowConfig.DEFAULT_POLL_BACKOFF_SCALAR,
+                *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
+                )
+        
+
+    @staticmethod
     def __pr_feedback_service_factory(
         config_path, moniker, **kwargs
     ) -> PRFeedbackService:
         if kwargs is None or len(kwargs.keys()) == 0:
             return PRFeedbackService(
-                moniker,
+                moniker, CxOneFlowConfig.__server_base_url, PullRequestWorkflow(),
                 CxOneFlowConfig._default_amqp_url,
                 None,
                 None,
                 True,
-                CxOneFlowConfig.__server_base_url,
-                PullRequestWorkflow(),
             )
         else:
 
@@ -277,41 +306,19 @@ class CxOneFlowConfig(CommonConfig):
                 ),
                 int(
                     CxOneFlowConfig._get_value_for_key_or_default(
-                        "poll-interval-seconds", scan_monitor_dict, 60
+                        "poll-interval-seconds", scan_monitor_dict, CxOneFlowConfig.DEFAULT_POLL_INTERVAL_SECS
                     )
                 ),
                 int(
                     CxOneFlowConfig._get_value_for_key_or_default(
-                        "scan-timeout-hours", scan_monitor_dict, 48
+                        "scan-timeout-hours", scan_monitor_dict, CxOneFlowConfig.DEFAULT_SCAN_TIMEOUT_HOURS
                     )
                 ),
             )
 
-            max_poll_interval = int(
-                CxOneFlowConfig._get_value_for_key_or_default(
-                    "poll-max-interval-seconds", scan_monitor_dict, 600
-                )
-            )
-            poll_backoff = int(
-                CxOneFlowConfig._get_value_for_key_or_default(
-                    "poll-backoff-multiplier", scan_monitor_dict, 2
-                )
-            )
-
-            amqp_url, amqp_user, amqp_password, ssl_verify = (
-                CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
-            )
-
             return PRFeedbackService(
-                moniker,
-                amqp_url,
-                amqp_user,
-                amqp_password,
-                ssl_verify,
-                CxOneFlowConfig.__server_base_url,
-                pr_workflow,
-                max_poll_interval,
-                poll_backoff,
+                moniker, CxOneFlowConfig.__server_base_url, pr_workflow,
+                *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
             )
 
     __ordered_scm_services_config = {}
@@ -356,12 +363,12 @@ class CxOneFlowConfig(CommonConfig):
             )
 
         return retval
-    
+
     @staticmethod
     def __kickoff_service_factory(cxone_client, config_dict, config_path, moniker):
         if config_dict is None:
             return DummyKickoffService()
-        
+
         # Default 3 max concurrent scans with a max of 10
         max_scans = min(10, int(CxOneFlowConfig._get_value_for_key_or_default("max-concurrent-scans", config_dict, 3)))
         # Just in case someone gets funny and uses a 0 or negative number.
@@ -370,7 +377,6 @@ class CxOneFlowConfig(CommonConfig):
         return KickoffService(cxone_client,
             CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path, "ssh-public-key", config_dict),
             moniker, max_scans)
-
 
     @staticmethod
     def __setup_naming(config_path :str, config_dict : Dict) -> Tuple[ProjectNamingService.CORO_SPEC, bool]:
@@ -392,7 +398,7 @@ class CxOneFlowConfig(CommonConfig):
         if config_dict is not None:
             assignments = CxOneFlowConfig._get_value_for_key_or_default("group-assigments", config_dict, 
                     CxOneFlowConfig._get_value_for_key_or_default("group-assignments", config_dict, None))
-            
+
             if assignments is None:
                 raise ConfigurationException.missing_key_path(f"{config_path}/group-assignments")
 
@@ -406,7 +412,6 @@ class CxOneFlowConfig(CommonConfig):
                 assign_index += 1
 
         return grouping, update_flag
-
 
     @staticmethod
     def __setup_scm(
@@ -445,6 +450,16 @@ class CxOneFlowConfig(CommonConfig):
             ),
         )
 
+        scan_polling_service = CxOneFlowConfig.__polling_service_factory(
+            f"{config_path}/feedback",
+            pr_feedback_service.workflow, 
+            **(
+                CxOneFlowConfig._get_value_for_key_or_default(
+                    "feedback", config_dict, {}
+                )
+            ),
+        )
+
         resolver_service = CxOneFlowConfig.__resolver_service_factory(
             cxone_client,
             f"{config_path}/scan-agent",
@@ -458,7 +473,7 @@ class CxOneFlowConfig(CommonConfig):
 
         naming_coro, naming_update_flag = CxOneFlowConfig.__setup_naming(f"{config_path}/project-naming",
                 CxOneFlowConfig._get_value_for_key_or_default("project-naming", config_dict, None))
-        
+
         grouping_service, group_update_flag = CxOneFlowConfig.__setup_grouping(f"{config_path}/project-groups",
                 CxOneFlowConfig._get_value_for_key_or_default("project-groups", config_dict, None), cxone_client)
 
@@ -572,6 +587,7 @@ class CxOneFlowConfig(CommonConfig):
             cxone_service,
             scm_service,
             pr_feedback_service,
+            scan_polling_service,
             resolver_service,
             CxOneFlowConfig.__kickoff_service_factory(cxone_client,
                 CxOneFlowConfig._get_value_for_key_or_default("kickoff", config_dict, None), 
@@ -734,7 +750,6 @@ class CxOneFlowConfig(CommonConfig):
                 ),
                 ssl_no_verify,
             )
-        
 
     @staticmethod
     def __gl_cloner_factory(

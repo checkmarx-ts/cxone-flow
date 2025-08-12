@@ -2,6 +2,7 @@ import logging, asyncio, aio_pika
 import cxoneflow_logging as cof_logging
 from config import ConfigurationException, get_config_path
 from config.server import CxOneFlowConfig
+from workflows.scan_polling_service import ScanPollingService
 from workflows.pr_feedback_service import PRFeedbackService
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.messaging import (
@@ -24,7 +25,7 @@ async def process_poll(msg: aio_pika.abc.AbstractIncomingMessage) -> None:
         )
         sm = ScanAwaitMessage.from_binary(msg.body)
         services = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
-        await services.pr.execute_poll_scan_workflow(msg, services.cxone)
+        await services.poll.execute_poll_scan_workflow(msg, services.cxone)
     except BaseException as ex:
         __log.exception(ex)
         await msg.nack(requeue=False)
@@ -70,9 +71,18 @@ async def spawn_agents():
                     process_poll,
                     await services.pr.mq_client(),
                     moniker,
-                    PRFeedbackService.QUEUE_SCAN_POLLING,
+                    PRFeedbackService.QUEUE_SCAN_POLLING_LEGACY,
                 )
             )
+            g.create_task(
+                mq_agent(
+                    process_poll,
+                    await services.pr.mq_client(),
+                    moniker,
+                    ScanPollingService.QUEUE_SCAN_POLLING,
+                )
+            )
+
             g.create_task(
                 mq_agent(
                     process_pr_annotate,

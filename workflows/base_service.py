@@ -1,13 +1,20 @@
 import urllib.parse, aio_pika, logging, asyncio, os
+from workflows import ScanStates
 from ssl import create_default_context, CERT_NONE
 from cxoneflow_logging import SecretRegistry
 from workflows.messaging.base_message import BaseMessage
+from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
 from typing import Any
 
 class BaseWorkflowService:
 
     ELEMENT_PREFIX = "cx:"
     TOPIC_PREFIX = "cx."
+
+    EXCHANGE_SCAN_INPUT = f"{ELEMENT_PREFIX}Scan In"
+    EXCHANGE_SCAN_WAIT = f"{ELEMENT_PREFIX}Scan Await"
+    EXCHANGE_SCAN_POLLING = f"{ELEMENT_PREFIX}Scan Polling Delivery"
+
 
     def __init__(self, amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool):
         self.__lock = asyncio.Lock()
@@ -31,6 +38,9 @@ class BaseWorkflowService:
     def use_ssl(self):
         return urllib.parse.urlparse(self.__amqp_url).scheme == "amqps"
 
+    @property
+    def workflow(self) -> AbstractFeedbackWorkflow:
+        raise NotImplementedError("workflow")
 
     async def mq_client(self) -> aio_pika.abc.AbstractRobustConnection:
         async with self.__lock:
