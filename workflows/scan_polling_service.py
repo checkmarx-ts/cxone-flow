@@ -1,4 +1,4 @@
-import aio_pika, logging, pamqp.commands
+import aio_pika, logging, pamqp.commands, asyncio
 from datetime import timedelta
 from workflows.messaging import ScanAwaitMessage
 from workflows.base_service import BaseWorkflowService
@@ -6,7 +6,7 @@ from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
 from workflows import ScanStates
 from cxone_service import CxOneService
 from cxone_api.exceptions import ResponseException
-
+from typing import List
 
 class ScanPollingService(BaseWorkflowService):
     QUEUE_SCAN_POLLING = f"{BaseWorkflowService.ELEMENT_PREFIX}Polling Scans"
@@ -19,13 +19,12 @@ class ScanPollingService(BaseWorkflowService):
     def log():
         return logging.getLogger("ScanPollingService")
 
-    def __init__(self, workflow : AbstractFeedbackWorkflow, max_interval_seconds : timedelta, backoff_scalar : int, 
+    def __init__(self, services : List[BaseWorkflowService], max_interval_seconds : timedelta, backoff_scalar : int, 
                  amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool):
         super().__init__(amqp_url, amqp_user, amqp_password, ssl_verify)
         self.__max_interval = timedelta(seconds=max_interval_seconds)
         self.__backoff = backoff_scalar
-        self.__workflow = workflow
-
+        self.__services = services
 
     async def execute_poll_scan_workflow(self, msg : aio_pika.abc.AbstractIncomingMessage, cxone_service : CxOneService):
 
@@ -48,11 +47,10 @@ class ScanPollingService(BaseWorkflowService):
                         
                         if inspector.successful:
                             ScanPollingService.log().info(f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow.")
-                            await self.__workflow.feedback_start(await self.mq_client(), swm.moniker, swm.projectid, swm.scanid, **(swm.workflow_details))
+                            await asyncio.gather(*[svc.handle_completed_scan(swm) for svc in self.__services])
                         else:
                             ScanPollingService.log().info(f"Scan failure for scan id {swm.scanid}, enqueuing feedback error workflow.")
-                            await self.__workflow.feedback_error(await self.mq_client(), swm.moniker, swm.projectid, swm.scanid, 
-                                                                                    inspector.state_msg, **(swm.workflow_details))
+                            await asyncio.gather(*[svc.handle_awaited_scan_error(swm, inspector.state_msg) for svc in self.__services])
                     except BaseException as bex:
                         ScanPollingService.log().exception(bex)
                     finally:

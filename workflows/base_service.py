@@ -3,7 +3,7 @@ from workflows import ScanStates
 from ssl import create_default_context, CERT_NONE
 from cxoneflow_logging import SecretRegistry
 from workflows.messaging.base_message import BaseMessage
-from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
+from workflows.messaging import ScanAwaitMessage
 from typing import Any
 
 class BaseWorkflowService:
@@ -38,10 +38,6 @@ class BaseWorkflowService:
     def use_ssl(self):
         return urllib.parse.urlparse(self.__amqp_url).scheme == "amqps"
 
-    @property
-    def workflow(self) -> AbstractFeedbackWorkflow:
-        raise NotImplementedError("workflow")
-
     async def mq_client(self) -> aio_pika.abc.AbstractRobustConnection:
         async with self.__lock:
 
@@ -75,3 +71,9 @@ class BaseWorkflowService:
             BaseWorkflowService.log().exception(ex)
             await msg.nack(requeue=False)
             raise
+
+    async def handle_completed_scan(self, msg : ScanAwaitMessage) -> None:
+        raise NotImplementedError("handle_awaited_scan")
+    
+    async def handle_awaited_scan_error(self, msg : ScanAwaitMessage, error_msg : str) -> None:
+        raise NotImplementedError("handle_awaited_scan_error")    

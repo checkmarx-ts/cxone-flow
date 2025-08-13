@@ -18,6 +18,9 @@ class PullRequestWorkflow(AbstractPRFeedbackWorkflow):
         self.__interval = timedelta(seconds=interval_seconds)
         self.__scan_timeout = timedelta(hours=scan_timeout)
 
+    async def is_handler(self, msg : ScanAwaitMessage) -> bool:
+        return msg.workflow == ScanWorkflow.PR
+
     @property
     def excluded_severities(self) -> List[ResultSeverity]:
         return self.__excluded_severities
@@ -26,22 +29,53 @@ class PullRequestWorkflow(AbstractPRFeedbackWorkflow):
     def excluded_states(self) -> List[ResultStates]:
         return self.__excluded_states
 
+    def __feedback_msg_factory(
+        self, projectid: str, scanid: str, moniker: str, **kwargs
+    ) -> aio_pika.Message:
+        return aio_pika.Message(
+            ScanFeedbackMessage.factory(
+                projectid=projectid,
+                scanid=scanid,
+                moniker=moniker,
+                state=ScanStates.FEEDBACK,
+                workflow=ScanWorkflow.PR,
+                workflow_details=kwargs,
+            ).to_binary(),
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+        )
 
-    def __feedback_msg_factory(self, projectid : str, scanid : str, moniker : str, **kwargs) -> aio_pika.Message:
-        return aio_pika.Message(ScanFeedbackMessage.factory(projectid=projectid, scanid=scanid, moniker=moniker, state=ScanStates.FEEDBACK,
-                                                    workflow=ScanWorkflow.PR, workflow_details=kwargs).to_binary(), 
-                                                    delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
+    def __annotation_msg_factory(
+        self, projectid: str, scanid: str, moniker: str, annotation: str, **kwargs
+    ) -> aio_pika.Message:
+        return aio_pika.Message(
+            ScanAnnotationMessage.factory(
+                projectid=projectid,
+                scanid=scanid,
+                moniker=moniker,
+                annotation=annotation,
+                state=ScanStates.ANNOTATE,
+                workflow=ScanWorkflow.PR,
+                workflow_details=kwargs,
+            ).to_binary(),
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+        )
 
-    def __annotation_msg_factory(self, projectid : str, scanid : str, moniker : str, annotation : str, **kwargs) -> aio_pika.Message:
-        return aio_pika.Message(ScanAnnotationMessage.factory(projectid=projectid, scanid=scanid, moniker=moniker, annotation=annotation, state=ScanStates.ANNOTATE,
-                                                    workflow=ScanWorkflow.PR, workflow_details=kwargs).to_binary(), 
-                                                    delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
-    
-    def __await_msg_factory(self, projectid : str, scanid : str, moniker : str, **kwargs) -> aio_pika.Message:
-        return aio_pika.Message(ScanAwaitMessage.factory(projectid=projectid, scanid=scanid, drop_by=compute_drop_by_timestamp(self.__scan_timeout), moniker=moniker, 
-                                                 state=ScanStates.AWAIT, workflow_details=kwargs,
-                                                 workflow=ScanWorkflow.PR).to_binary(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                                                 expiration=self.__interval)
+    def __await_msg_factory(
+        self, projectid: str, scanid: str, moniker: str, **kwargs
+    ) -> aio_pika.Message:
+        return aio_pika.Message(
+            ScanAwaitMessage.factory(
+                projectid=projectid,
+                scanid=scanid,
+                drop_by=compute_drop_by_timestamp(self.__scan_timeout),
+                moniker=moniker,
+                state=ScanStates.AWAIT,
+                workflow_details=kwargs,
+                workflow=ScanWorkflow.PR,
+            ).to_binary(),
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            expiration=self.__interval,
+        )
 
     async def workflow_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, **kwargs):
         topic = PRFeedbackService.make_topic(ScanStates.AWAIT, ScanWorkflow.PR, moniker)
@@ -59,10 +93,8 @@ class PullRequestWorkflow(AbstractPRFeedbackWorkflow):
         topic = PRFeedbackService.make_topic(ScanStates.FEEDBACK, ScanWorkflow.PR, moniker)
         await self._publish(mq_client, topic, self.__feedback_msg_factory(projectid, scanid, moniker, **kwargs), 
                             f"{topic} for scan id {scanid} on service {moniker}", BaseWorkflowService.EXCHANGE_SCAN_INPUT)
-        
+
     async def annotation_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, annotation : str, **kwargs):
         topic = PRFeedbackService.make_topic(ScanStates.ANNOTATE, ScanWorkflow.PR, moniker)
         await self._publish(mq_client, topic, self.__annotation_msg_factory(projectid, scanid, moniker, annotation, **kwargs), 
                             f"{topic} for scan id {scanid} on service {moniker}", BaseWorkflowService.EXCHANGE_SCAN_INPUT)
-
-

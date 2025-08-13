@@ -18,7 +18,7 @@ from workflows.scan_polling_service import ScanPollingService
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.pull_request import PullRequestWorkflow
 from workflows.push import PushWorkflow
-from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
+from workflows.base_service import BaseWorkflowService
 from workflows.resolver_workflow import (
     DummyResolverScanningWorkflow,
     ResolverScanningWorkflow,
@@ -229,15 +229,13 @@ class CxOneFlowConfig(CommonConfig):
 
     @staticmethod
     def __polling_service_factory(
-        config_path, workflow : AbstractFeedbackWorkflow, **kwargs
+        config_path, services : List[BaseWorkflowService], **kwargs
     ) -> ScanPollingService:
+        
+
         if kwargs is None or len(kwargs.keys()) == 0:
             return ScanPollingService(
-                # TODO: workflow needs to be specific to polling, can't be external
-                # workflow based on message type.  It should just make the message
-                # into a ScanStates.FEEDBACK message so it routes to the correct
-                # queue.
-                workflow,
+                services,
                 CxOneFlowConfig.DEFAULT_MAX_POLL_INT_SECS,
                 CxOneFlowConfig.DEFAULT_POLL_BACKOFF_SCALAR,
                 CxOneFlowConfig._default_amqp_url,
@@ -246,10 +244,14 @@ class CxOneFlowConfig(CommonConfig):
                 True,
             )
         else:
+            scan_monitor_dict = CxOneFlowConfig._get_value_for_key_or_default(
+                "scan-monitor", kwargs, {}
+            )
+
             return ScanPollingService(
-                workflow,
-                CxOneFlowConfig.DEFAULT_MAX_POLL_INT_SECS,
-                CxOneFlowConfig.DEFAULT_POLL_BACKOFF_SCALAR,
+                services,
+                CxOneFlowConfig._get_value_for_key_or_default("poll-max-interval-seconds", scan_monitor_dict, CxOneFlowConfig.DEFAULT_MAX_POLL_INT_SECS),
+                CxOneFlowConfig._get_value_for_key_or_default("poll-backoff-multiplier", scan_monitor_dict, CxOneFlowConfig.DEFAULT_POLL_BACKOFF_SCALAR),
                 *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
                 )
         
@@ -333,6 +335,11 @@ class CxOneFlowConfig(CommonConfig):
     def __push_feedback_service_factory(
         config_path, moniker, **kwargs
     ) -> PushFeedbackService:
+
+        # TODO: Need to get the defaults for timeouts.
+        # scan-timeout-hours
+        # poll-interval-seconds
+
         if kwargs is None or len(kwargs.keys()) == 0:
             return PushFeedbackService(
                 moniker, CxOneFlowConfig.__server_base_url, PushWorkflow(),
@@ -488,7 +495,7 @@ class CxOneFlowConfig(CommonConfig):
 
         scan_polling_service = CxOneFlowConfig.__polling_service_factory(
             f"{config_path}/feedback",
-            pr_feedback_service.workflow, 
+            [pr_feedback_service, push_feedback_service], 
             **(
                 CxOneFlowConfig._get_value_for_key_or_default(
                     "feedback", config_dict, {}

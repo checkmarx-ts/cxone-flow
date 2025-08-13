@@ -74,7 +74,7 @@ async def setup() -> None:
             )
 
             scan_feedback_exchange_push = await channel.declare_exchange(
-                PushFeedbackService.EXCHANGE_SCAN_FEEDBACK,
+                PushFeedbackService.EXCHANGE_SARIF_WORK,
                 aio_pika.ExchangeType.TOPIC,
                 durable=True,
                 internal=True,
@@ -173,12 +173,12 @@ async def setup() -> None:
             )
 
             push_feedback_queue = await channel.declare_queue(
-                PushFeedbackService.QUEUE_FEEDBACK_PUSH,
+                PushFeedbackService.QUEUE_SARIF_GEN,
                 durable=True,
                 arguments={"x-queue-type": "quorum"},
             )
             await push_feedback_queue.bind(
-                scan_feedback_exchange_push, PushFeedbackService.ROUTEKEY_FEEDBACK_PUSH
+                scan_feedback_exchange_push, PushFeedbackService.ROUTEKEY_GEN_SARIF
             )
 
 

@@ -2,25 +2,20 @@ import aio_pika, logging
 from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
 from workflows import ScanStates, ScanWorkflow, FeedbackWorkflow
 from workflows.base_service import BaseWorkflowService
-from workflows.messaging import PushDetails
+from workflows.messaging import PushDetails, ScanAwaitMessage
 
 class PushFeedbackService(BaseWorkflowService):
     PUSH_ELEMENT_PREFIX = "push:"
     PUSH_TOPIC_PREFIX = "push."
 
-    ROUTEKEY_FEEDBACK_PUSH = f"{BaseWorkflowService.TOPIC_PREFIX}{PUSH_TOPIC_PREFIX}{ScanStates.FEEDBACK}.{FeedbackWorkflow.PUSH}.*"
-
-    EXCHANGE_SCAN_FEEDBACK = f"{BaseWorkflowService.ELEMENT_PREFIX}{PUSH_ELEMENT_PREFIX}Scan Feedback"
-    QUEUE_FEEDBACK_PUSH = f"{BaseWorkflowService.ELEMENT_PREFIX}{PUSH_ELEMENT_PREFIX}Push Feedback"
+    ROUTEKEY_GEN_SARIF = f"{BaseWorkflowService.TOPIC_PREFIX}{PUSH_TOPIC_PREFIX}{ScanStates.FEEDBACK}.{FeedbackWorkflow.PUSH}.*"
+    EXCHANGE_SARIF_WORK = f"{BaseWorkflowService.ELEMENT_PREFIX}{PUSH_ELEMENT_PREFIX}Sarif Workflows"
+    QUEUE_SARIF_GEN = f"{BaseWorkflowService.ELEMENT_PREFIX}{PUSH_ELEMENT_PREFIX}Generate Sarif"
 
 
     @staticmethod
     def log():
         return logging.getLogger("PushFeedbackService")
-
-    @property
-    def workflow(self) -> AbstractFeedbackWorkflow:
-        return self.__workflow
 
     @staticmethod
     def make_topic(state : ScanStates, workflow : ScanWorkflow, moniker : str):
@@ -45,4 +40,12 @@ class PushFeedbackService(BaseWorkflowService):
     #     ...
 
     async def start_sarif_feedback(self, projectid : str, scanid : str, details : PushDetails) -> None:
-        await self.workflow.workflow_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))
+        await self.__workflow.workflow_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))
+
+    async def handle_completed_scan(self, msg : ScanAwaitMessage) -> None:
+        if msg.workflow == ScanWorkflow.PUSH:
+            await self.__workflow.feedback_start(await self.mq_client(), msg.moniker, msg.projectid, msg.scanid, **(msg.workflow_details))
+    
+    async def handle_awaited_scan_error(self, msg : ScanAwaitMessage, error_msg : str) -> None:
+        if msg.workflow == ScanWorkflow.PUSH:
+            await self.__workflow.feedback_error(await self.mq_client(), msg.moniker, msg.projectid, msg.scanid, error_msg, **(msg.workflow_details))
