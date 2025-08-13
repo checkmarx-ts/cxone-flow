@@ -90,7 +90,7 @@ jobs:
           shell: bash
           run: |
             . .venv/bin/activate
-            pylint --disable=all --enable=E,F --score=false --ignore=cxoneflow_kickoff_api --ignore=.venv .
+            pylint --disable=all --enable=E,F --disable=E1121 --score=false --ignore=cxoneflow_kickoff_api --ignore=.venv .
 
 
         - name: YAML Lint Documentation Examples

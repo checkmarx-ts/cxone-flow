@@ -172,15 +172,32 @@ async def setup() -> None:
                 scan_feedback_exchange_pr, PRFeedbackService.ROUTEKEY_FEEDBACK_PR
             )
 
-            push_feedback_queue = await channel.declare_queue(
+            gen_sarif_queue = await channel.declare_queue(
                 PushFeedbackService.QUEUE_SARIF_GEN,
                 durable=True,
                 arguments={"x-queue-type": "quorum"},
             )
-            await push_feedback_queue.bind(
+            await gen_sarif_queue.bind(
                 scan_feedback_exchange_push, PushFeedbackService.ROUTEKEY_GEN_SARIF
             )
 
+            deliver_sarif_http_queue = await channel.declare_queue(
+                PushFeedbackService.QUEUE_SARIF_DELIVER_HTTP,
+                durable=True,
+                arguments={"x-queue-type": "quorum"},
+            )
+            await deliver_sarif_http_queue.bind(
+                scan_feedback_exchange_push, PushFeedbackService.ROUTEKEY_DELIVER_SARIF_HTTP
+            )
+
+            deliver_sarif_amqp_queue = await channel.declare_queue(
+                PushFeedbackService.QUEUE_SARIF_DELIVER_AMQP,
+                durable=True,
+                arguments={"x-queue-type": "quorum"},
+            )
+            await deliver_sarif_amqp_queue.bind(
+                scan_feedback_exchange_push, PushFeedbackService.ROUTEKEY_DELIVER_SARIF_AMQP
+            )
 
             # Scan State: Annotation
             pr_annotate_queue = await channel.declare_queue(

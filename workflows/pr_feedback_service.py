@@ -35,7 +35,7 @@ class PRFeedbackService(BaseWorkflowService):
 
 
     @staticmethod
-    def make_topic(state : ScanStates, workflow : ScanWorkflow, moniker : str):
+    def make_topic(state : ScanStates, workflow : FeedbackWorkflow, moniker : str):
         return f"{BaseWorkflowService.TOPIC_PREFIX}{PRFeedbackService.PR_TOPIC_PREFIX}{state}.{workflow}.{moniker}"
     
     @staticmethod
