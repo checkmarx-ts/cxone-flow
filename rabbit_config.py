@@ -5,6 +5,7 @@ import cxoneflow_logging as cof_logging
 from config import ConfigurationException, get_config_path
 from config.server import CxOneFlowConfig
 from workflows.pr_feedback_service import PRFeedbackService
+from workflows.push_feedback_service import PushFeedbackService
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.scan_polling_service import ScanPollingService
 from workflows.base_service import BaseWorkflowService
@@ -59,28 +60,37 @@ async def setup() -> None:
             )
 
 
-            scan_annotate_exchange = await channel.declare_exchange(
+            scan_annotate_exchange_pr = await channel.declare_exchange(
                 PRFeedbackService.EXCHANGE_SCAN_ANNOTATE,
                 aio_pika.ExchangeType.TOPIC,
                 durable=True,
                 internal=True,
             )
-            scan_feedback_exchange = await channel.declare_exchange(
+            scan_feedback_exchange_pr = await channel.declare_exchange(
                 PRFeedbackService.EXCHANGE_SCAN_FEEDBACK,
                 aio_pika.ExchangeType.TOPIC,
                 durable=True,
                 internal=True,
             )
 
+            scan_feedback_exchange_push = await channel.declare_exchange(
+                PushFeedbackService.EXCHANGE_SCAN_FEEDBACK,
+                aio_pika.ExchangeType.TOPIC,
+                durable=True,
+                internal=True,
+            )
+
+
             # Bind "Scan In" Exchange to all the routing exchanges
             await scan_await_exchange_legacy.bind(scan_in_exchange_legacy)
             await scan_await_exchange.bind(scan_in_exchange)
 
-            await scan_feedback_exchange.bind(scan_in_exchange_legacy)
-            await scan_feedback_exchange.bind(scan_in_exchange)
+            await scan_feedback_exchange_pr.bind(scan_in_exchange_legacy)
+            await scan_feedback_exchange_pr.bind(scan_in_exchange)
+            await scan_feedback_exchange_push.bind(scan_in_exchange)
 
-            await scan_annotate_exchange.bind(scan_in_exchange_legacy)
-            await scan_annotate_exchange.bind(scan_in_exchange)
+            await scan_annotate_exchange_pr.bind(scan_in_exchange_legacy)
+            await scan_annotate_exchange_pr.bind(scan_in_exchange)
 
             # The awaited scans allows scans to soak until a timeout, then they go to the polling exchange where the
             # scan is polled to see the state or times out.
@@ -153,27 +163,33 @@ async def setup() -> None:
             # Once polling is complete, a feedback message for the correct workflow is created.
 
             # Scan state: Feedback
-            # Available workflows:
-            # * PR - Pull Request feedback writted to the PR comments
             pr_feedback_queue = await channel.declare_queue(
                 PRFeedbackService.QUEUE_FEEDBACK_PR,
                 durable=True,
                 arguments={"x-queue-type": "quorum"},
             )
             await pr_feedback_queue.bind(
-                scan_feedback_exchange, PRFeedbackService.ROUTEKEY_FEEDBACK_PR
+                scan_feedback_exchange_pr, PRFeedbackService.ROUTEKEY_FEEDBACK_PR
             )
 
+            push_feedback_queue = await channel.declare_queue(
+                PushFeedbackService.QUEUE_FEEDBACK_PUSH,
+                durable=True,
+                arguments={"x-queue-type": "quorum"},
+            )
+            await push_feedback_queue.bind(
+                scan_feedback_exchange_push, PushFeedbackService.ROUTEKEY_FEEDBACK_PUSH
+            )
+
+
             # Scan State: Annotation
-            # Available workflows:
-            # * PR - Pull request annotation to indicate scan progress.
             pr_annotate_queue = await channel.declare_queue(
                 PRFeedbackService.QUEUE_ANNOTATE_PR,
                 durable=True,
                 arguments={"x-queue-type": "quorum"},
             )
             await pr_annotate_queue.bind(
-                scan_annotate_exchange, PRFeedbackService.ROUTEKEY_ANNOTATE_PR
+                scan_annotate_exchange_pr, PRFeedbackService.ROUTEKEY_ANNOTATE_PR
             )
 
         resolver_rmq = await services.resolver.mq_client()
