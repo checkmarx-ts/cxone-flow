@@ -2,6 +2,7 @@ from .signatures import signature
 from .auth_factories import AuthFactory, StaticAuthFactory
 from requests.auth import HTTPBasicAuth
 from .bearer import HTTPBearerAuth
+from typing import Tuple
 import urllib
 
 
@@ -19,8 +20,8 @@ def gen_signature_hash(algorithm : str, secret : str, body : str) -> str:
 
     return signature.hmac(algorithm, secret, body)
 
-def gen_signature_header(secret : str, body : str) -> str:
-    return f"sha256={gen_signature_hash("sha256", secret, body)}"
+def gen_signature_header(secret : str, body : str) -> Tuple[str, str]:
+    return "sha256", gen_signature_hash("sha256", secret, body)
 
 def verify_signature(signature_header, secret, body) -> bool:
     (algorithm, hash) = signature_header.split("=")

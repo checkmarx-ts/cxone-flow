@@ -15,13 +15,14 @@ class TestPayloadSignatures(unittest.TestCase):
         body = b"abc"
         secret = "Xyz123!"
         hash = gen_signature_hash("sha256", secret, body)
-        self.assertTrue(gen_signature_header(secret, body).endswith(hash))
+        alg, generated_hash = gen_signature_header(secret, body)
+        self.assertTrue(generated_hash == hash)
 
     def test_generated_header_verifies(self):
         body = b"abc"
         secret = "Xyz123!"
-        header = gen_signature_header(secret, body)
-        self.assertTrue(verify_signature(header, secret, body))
+        alg, hash = gen_signature_header(secret, body)
+        self.assertTrue(verify_signature(f"{alg}={hash}", secret, body))
 
 
 if __name__ == '__main__':
