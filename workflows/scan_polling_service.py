@@ -1,25 +1,24 @@
 import aio_pika, logging, pamqp.commands, asyncio
 from datetime import timedelta
 from workflows.messaging import ScanAwaitMessage
-from workflows.base_service import BaseWorkflowService
-from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
+from workflows.base_service import CxOneFlowAbstractWorkflowService
 from workflows import ScanStates
 from cxone_service import CxOneService
 from cxone_api.exceptions import ResponseException
 from typing import List
 
-class ScanPollingService(BaseWorkflowService):
-    QUEUE_SCAN_POLLING = f"{BaseWorkflowService.ELEMENT_PREFIX}Polling Scans"
-    QUEUE_SCAN_WAIT = f"{BaseWorkflowService.ELEMENT_PREFIX}Awaited Scans"
+class ScanPollingService(CxOneFlowAbstractWorkflowService):
+    QUEUE_SCAN_POLLING = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}Polling Scans"
+    QUEUE_SCAN_WAIT = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}Awaited Scans"
 
-    ROUTEKEY_POLL_BINDING = f"{BaseWorkflowService.TOPIC_PREFIX}*.{ScanStates.AWAIT}.*.*"
+    ROUTEKEY_POLL_BINDING = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}*.{ScanStates.AWAIT}.*.*"
 
 
     @staticmethod
     def log():
         return logging.getLogger("ScanPollingService")
 
-    def __init__(self, services : List[BaseWorkflowService], max_interval_seconds : timedelta, backoff_scalar : int, 
+    def __init__(self, services : List[CxOneFlowAbstractWorkflowService], max_interval_seconds : timedelta, backoff_scalar : int, 
                  amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool):
         super().__init__(amqp_url, amqp_user, amqp_password, ssl_verify)
         self.__max_interval = timedelta(seconds=max_interval_seconds)
@@ -65,7 +64,7 @@ class ScanPollingService(BaseWorkflowService):
                 if requeue_on_finally:
                     exchange = None
                     if write_channel:
-                        exchange = await write_channel.get_exchange(BaseWorkflowService.EXCHANGE_SCAN_INPUT)
+                        exchange = await write_channel.get_exchange(CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_INPUT)
 
                     if exchange:
                         orig_exp = int(msg.headers['x-death'][0]['original-expiration'])

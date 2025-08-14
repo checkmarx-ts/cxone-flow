@@ -1,9 +1,9 @@
-from workflows.base_service import BaseWorkflowService
+from workflows.base_service import CxOneFlowAbstractWorkflowService
 from services import CxOneFlowServices
 from workflows.messaging import DelegatedScanMessage
 import aio_pika
 
-class ResolverTimeoutAgent(BaseWorkflowService):
+class ResolverTimeoutAgent(CxOneFlowAbstractWorkflowService):
 
     def __init__(self, services : CxOneFlowServices):
         self.__services = services

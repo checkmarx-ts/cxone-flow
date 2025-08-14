@@ -5,38 +5,38 @@ from workflows.messaging import ScanAnnotationMessage, ScanFeedbackMessage, PRDe
 from workflows.feedback_workflow_base import AbstractPRFeedbackWorkflow
 from workflows import ScanStates, ScanWorkflow, FeedbackWorkflow
 from workflows.pr import PullRequestAnnotation, PullRequestFeedback
-from workflows.base_service import BaseWorkflowService
+from workflows.base_service import CxOneFlowAbstractWorkflowService
 from cxone_service import CxOneException
 
-class PRFeedbackService(BaseWorkflowService):
+class PRFeedbackService(CxOneFlowAbstractWorkflowService):
     PR_ELEMENT_PREFIX = "pr:"
     PR_TOPIC_PREFIX = "pr."
 
-    EXCHANGE_SCAN_INPUT_LEGACY = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan In"
-    EXCHANGE_SCAN_WAIT_LEGACY = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Await"
-    EXCHANGE_SCAN_POLLING_LEGACY = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Polling Delivery"
+    EXCHANGE_SCAN_INPUT_LEGACY = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan In"
+    EXCHANGE_SCAN_WAIT_LEGACY = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Await"
+    EXCHANGE_SCAN_POLLING_LEGACY = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Polling Delivery"
 
 
-    EXCHANGE_SCAN_ANNOTATE = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Annotate"
-    EXCHANGE_SCAN_FEEDBACK = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Feedback"
+    EXCHANGE_SCAN_ANNOTATE = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Annotate"
+    EXCHANGE_SCAN_FEEDBACK = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Scan Feedback"
 
-    QUEUE_SCAN_POLLING_LEGACY = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Polling Scans"
-    QUEUE_SCAN_WAIT_LEGACY = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Awaited Scans"
+    QUEUE_SCAN_POLLING_LEGACY = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Polling Scans"
+    QUEUE_SCAN_WAIT_LEGACY = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}Awaited Scans"
 
 
-    QUEUE_ANNOTATE_PR = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}PR Annotating"
-    QUEUE_FEEDBACK_PR = f"{BaseWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}PR Feedback"
+    QUEUE_ANNOTATE_PR = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}PR Annotating"
+    QUEUE_FEEDBACK_PR = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PR_ELEMENT_PREFIX}PR Feedback"
     
-    ROUTEKEY_POLL_BINDING_LEGACY = f"{BaseWorkflowService.TOPIC_PREFIX}{PR_TOPIC_PREFIX}{ScanStates.AWAIT}.*.*"
+    ROUTEKEY_POLL_BINDING_LEGACY = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{PR_TOPIC_PREFIX}{ScanStates.AWAIT}.*.*"
 
 
-    ROUTEKEY_FEEDBACK_PR = f"{BaseWorkflowService.TOPIC_PREFIX}{PR_TOPIC_PREFIX}{ScanStates.FEEDBACK}.{FeedbackWorkflow.PR}.*"
-    ROUTEKEY_ANNOTATE_PR = f"{BaseWorkflowService.TOPIC_PREFIX}{PR_TOPIC_PREFIX}{ScanStates.ANNOTATE}.{FeedbackWorkflow.PR}.*"
+    ROUTEKEY_FEEDBACK_PR = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{PR_TOPIC_PREFIX}{ScanStates.FEEDBACK}.{FeedbackWorkflow.PR}.*"
+    ROUTEKEY_ANNOTATE_PR = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{PR_TOPIC_PREFIX}{ScanStates.ANNOTATE}.{FeedbackWorkflow.PR}.*"
 
 
     @staticmethod
     def make_topic(state : ScanStates, workflow : FeedbackWorkflow, moniker : str):
-        return f"{BaseWorkflowService.TOPIC_PREFIX}{PRFeedbackService.PR_TOPIC_PREFIX}{state}.{workflow}.{moniker}"
+        return f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{PRFeedbackService.PR_TOPIC_PREFIX}{state}.{workflow}.{moniker}"
     
     @staticmethod
     def log():

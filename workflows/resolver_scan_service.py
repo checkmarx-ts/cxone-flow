@@ -1,4 +1,4 @@
-from .base_service import BaseWorkflowService
+from .base_service import CxOneFlowAbstractWorkflowService
 from . import ScanStates, ExecTypes, ResolverOps, ScanWorkflow
 from .resolver_workflow_base import AbstractResolverWorkflow
 from scm_services import SCMService
@@ -17,7 +17,7 @@ from cxone_api.high.scans import ScanFilterConfig
 from cxone_api import CxOneClient
 
 
-class ResolverScanService(BaseWorkflowService):
+class ResolverScanService(CxOneFlowAbstractWorkflowService):
 
     __tag_validation_re = re.compile("[^0-9a-zA-z-_]+")
 
@@ -27,24 +27,24 @@ class ResolverScanService(BaseWorkflowService):
     RESOLVER_ELEMENT_PREFIX = "res:"
     RESOLVER_TOPIC_PREFIX = "res."
 
-    EXCHANGE_RESOLVER_SCAN = f"{BaseWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}SCA Resolver Scan In"
-    QUEUE_RESOLVER_COMPLETE = f"{BaseWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Finished Resolver Scans"
-    ROUTEKEY_EXEC_SCA_SCAN_COMPLETE = f"{BaseWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN_COMPLETE}.#"
+    EXCHANGE_RESOLVER_SCAN = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}SCA Resolver Scan In"
+    QUEUE_RESOLVER_COMPLETE = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Finished Resolver Scans"
+    ROUTEKEY_EXEC_SCA_SCAN_COMPLETE = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN_COMPLETE}.#"
 
     EXCHANGE_RESOLVER_SCAN_DLX = (
-        f"{BaseWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}SCA Resolver DLX"
+        f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}SCA Resolver DLX"
     )
-    ROUTEKEY_DLX = f"{BaseWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}#"
+    ROUTEKEY_DLX = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}#"
     QUEUE_RESOLVER_TIMEOUT = (
-        f"{BaseWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Resolver Timeout"
+        f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Resolver Timeout"
     )
 
     QUEUE_RESOLVER_EXEC_STUB = (
-        f"{BaseWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Resolver Req"
+        f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Resolver Req"
     )
-    ROUTEKEY_EXEC_SCA_SCAN_STUB = f"{BaseWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN}"
+    ROUTEKEY_EXEC_SCA_SCAN_STUB = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN}"
 
-    ROUTEKEY_RESOLVER_RESULT_STUB = f"{BaseWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}exec.sca-resolver.scan-complete"
+    ROUTEKEY_RESOLVER_RESULT_STUB = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}exec.sca-resolver.scan-complete"
 
     @staticmethod
     def __validate_tags(keys: List[str]):

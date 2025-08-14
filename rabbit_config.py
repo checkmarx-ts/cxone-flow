@@ -8,7 +8,7 @@ from workflows.pr_feedback_service import PRFeedbackService
 from workflows.push_feedback_service import PushFeedbackService
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.scan_polling_service import ScanPollingService
-from workflows.base_service import BaseWorkflowService
+from workflows.base_service import CxOneFlowAbstractWorkflowService
 
 
 
@@ -41,7 +41,7 @@ async def setup() -> None:
                 durable=True,
             )
             scan_in_exchange = await channel.declare_exchange(
-                BaseWorkflowService.EXCHANGE_SCAN_INPUT,
+                CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_INPUT,
                 aio_pika.ExchangeType.FANOUT,
                 durable=True,
             )
@@ -53,7 +53,7 @@ async def setup() -> None:
                 internal=True,
             )
             scan_await_exchange = await channel.declare_exchange(
-                BaseWorkflowService.EXCHANGE_SCAN_WAIT,
+                CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_WAIT,
                 aio_pika.ExchangeType.TOPIC,
                 durable=True,
                 internal=True,
@@ -101,7 +101,7 @@ async def setup() -> None:
                 internal=True,
             )
             polling_delivery_exchange = await channel.declare_exchange(
-                BaseWorkflowService.EXCHANGE_SCAN_POLLING,
+                CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_POLLING,
                 aio_pika.ExchangeType.TOPIC,
                 durable=True,
                 internal=True,
@@ -125,7 +125,7 @@ async def setup() -> None:
                     "x-queue-type": "quorum",
                     "x-dead-letter-strategy": "at-least-once",
                     "x-overflow": "reject-publish",
-                    "x-dead-letter-exchange": BaseWorkflowService.EXCHANGE_SCAN_POLLING,
+                    "x-dead-letter-exchange": CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_POLLING,
                 },
             )
 

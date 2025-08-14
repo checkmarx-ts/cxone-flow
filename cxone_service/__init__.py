@@ -50,12 +50,16 @@ class CxOneService:
         self.__group_service = grouping_service
     
     @property
-    def moniker(self):
+    def moniker(self) -> str:
         return self.__moniker
     
     @property
-    def display_link(self):
+    def display_link(self) -> str:
         return self.__client.display_endpoint
+
+    @property
+    def client(self) -> CxOneClient:
+        return self.__client
     
     @staticmethod
     def __get_json_or_fail(response):

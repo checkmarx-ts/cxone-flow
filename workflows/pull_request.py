@@ -5,7 +5,7 @@ from workflows import ScanWorkflow, ScanStates, ResultSeverity, ResultStates
 from workflows.feedback_workflow_base import AbstractPRFeedbackWorkflow
 from workflows.messaging import ScanAwaitMessage, ScanFeedbackMessage, ScanAnnotationMessage
 from workflows.messaging.util import compute_drop_by_timestamp
-from workflows.base_service import BaseWorkflowService
+from workflows.base_service import CxOneFlowAbstractWorkflowService
 from typing import List
 
 class PullRequestWorkflow(AbstractPRFeedbackWorkflow):
@@ -80,7 +80,7 @@ class PullRequestWorkflow(AbstractPRFeedbackWorkflow):
     async def workflow_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, **kwargs):
         topic = PRFeedbackService.make_topic(ScanStates.AWAIT, ScanWorkflow.PR, moniker)
         await self._publish(mq_client, topic, self.__await_msg_factory(projectid, scanid, moniker, **kwargs), 
-                            f"{topic} for scan id {scanid} on service {moniker}", BaseWorkflowService.EXCHANGE_SCAN_INPUT)
+                            f"{topic} for scan id {scanid} on service {moniker}", CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_INPUT)
 
     async def feedback_error(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str,
                              error_msg : str, **kwargs):
@@ -92,9 +92,9 @@ class PullRequestWorkflow(AbstractPRFeedbackWorkflow):
     async def feedback_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, **kwargs):
         topic = PRFeedbackService.make_topic(ScanStates.FEEDBACK, ScanWorkflow.PR, moniker)
         await self._publish(mq_client, topic, self.__feedback_msg_factory(projectid, scanid, moniker, **kwargs), 
-                            f"{topic} for scan id {scanid} on service {moniker}", BaseWorkflowService.EXCHANGE_SCAN_INPUT)
+                            f"{topic} for scan id {scanid} on service {moniker}", CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_INPUT)
 
     async def annotation_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, annotation : str, **kwargs):
         topic = PRFeedbackService.make_topic(ScanStates.ANNOTATE, ScanWorkflow.PR, moniker)
         await self._publish(mq_client, topic, self.__annotation_msg_factory(projectid, scanid, moniker, annotation, **kwargs), 
-                            f"{topic} for scan id {scanid} on service {moniker}", BaseWorkflowService.EXCHANGE_SCAN_INPUT)
+                            f"{topic} for scan id {scanid} on service {moniker}", CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_INPUT)

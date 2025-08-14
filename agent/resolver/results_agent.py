@@ -1,4 +1,4 @@
-from workflows.base_service import BaseWorkflowService
+from workflows.base_service import CxOneFlowAbstractWorkflowService
 from workflows.messaging import DelegatedScanResultMessage
 from services import CxOneFlowServices
 from api_utils.auth_factories import EventContext
@@ -8,7 +8,7 @@ from workflows import ScanStates
 import aio_pika, gzip, importlib
 from typing import List
 
-class ResolverResultsAgent(BaseWorkflowService):
+class ResolverResultsAgent(CxOneFlowAbstractWorkflowService):
 
     def __init__(self, services : CxOneFlowServices):
         self.__services = services

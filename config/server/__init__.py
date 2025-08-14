@@ -2,7 +2,8 @@ from _version import __version__
 from _agent import __agent__
 from pathlib import Path
 from config import ConfigurationException, RouteNotFoundException, CommonConfig
-import re, uuid, sys
+import re, uuid, sys, dataclasses_json
+from dataclasses import make_dataclass, asdict
 from importlib import import_module
 from scm_services import SCMService, ADOEService, BBDCService, GHService, GLService
 from scm_services.cloner import Cloner
@@ -18,7 +19,7 @@ from workflows.scan_polling_service import ScanPollingService
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.pull_request import PullRequestWorkflow
 from workflows.push import PushWorkflow
-from workflows.base_service import BaseWorkflowService
+from workflows.base_service import CxOneFlowAbstractWorkflowService
 from workflows.resolver_workflow import (
     DummyResolverScanningWorkflow,
     ResolverScanningWorkflow,
@@ -29,6 +30,8 @@ from typing import List, Dict, Union, Tuple
 from cxone_api import CxOneClient
 from kickoff_services import DummyKickoffService, KickoffService
 from naming_services import ProjectNamingService
+from cxone_sarif import get_sarif_v210_log_for_scan
+from cxone_sarif.opts import DEFAULT as SARIF_DEFAULT_OPTS, ReportOpts
 
 
 class CxOneFlowConfig(CommonConfig):
@@ -229,7 +232,7 @@ class CxOneFlowConfig(CommonConfig):
 
     @staticmethod
     def __polling_service_factory(
-        config_path, services : List[BaseWorkflowService], **kwargs
+        config_path, services : List[CxOneFlowAbstractWorkflowService], **kwargs
     ) -> ScanPollingService:
         
 
@@ -330,16 +333,26 @@ class CxOneFlowConfig(CommonConfig):
             )
 
 
+    @staticmethod
+    def __sarif_ReportOpts_factory(config_path : str, opts : dict) -> ReportOpts:
+        if opts is None:
+            return SARIF_DEFAULT_OPTS
+        @dataclasses_json.dataclass_json
+        class JsonSarifReportOpts(ReportOpts):
+            @classmethod
+            def from_dict(clazz, json : dict):
+                return make_dataclass(clazz.__name__, json)
+        
+        config = asdict(SARIF_DEFAULT_OPTS)
+        config.update(opts)
+        return JsonSarifReportOpts.from_dict(config)
+
+    
 
     @staticmethod
     def __push_feedback_service_factory(
         config_path, moniker, **kwargs
     ) -> PushFeedbackService:
-
-        # TODO: Need to get the defaults for timeouts.
-        # scan-timeout-hours
-        # poll-interval-seconds
-
         if kwargs is None or len(kwargs.keys()) == 0:
             return PushFeedbackService(
                 moniker, CxOneFlowConfig.__server_base_url, PushWorkflow(),
@@ -349,8 +362,42 @@ class CxOneFlowConfig(CommonConfig):
                 True,
             )
         else:
+            push_config_dict = CxOneFlowConfig._get_value_for_key_or_default("push", kwargs, {})
+            scan_monitor_dict = CxOneFlowConfig._get_value_for_key_or_default(
+                "scan-monitor", kwargs, {}
+            )
+
+            sarif_opts_dict = CxOneFlowConfig._get_value_for_key_or_default("sarif-opts", push_config_dict, None)
+
+            amqp_delivery_dict = CxOneFlowConfig._get_value_for_key_or_default("via-amqp", push_config_dict, None)
+
+            delivery_agents = []
+
+            if amqp_delivery_dict is not None and not 'amqp' in amqp_delivery_dict.keys():
+                raise ConfigurationException.missing_key_path(f"{config_path}/via-amqp/amqp")
+            elif amqp_delivery_dict is not None:
+                delivery_agents.append(PushFeedbackService.amqp_agent_factory
+                                       (moniker, 
+                                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail
+                                            (f"{config_path}/via-amqp", "shared-secret", amqp_delivery_dict),
+                                        *CxOneFlowConfig._load_amqp_settings(config_path, **amqp_delivery_dict)))
+                
             return PushFeedbackService(
-                moniker, PushWorkflow(),
+                moniker, delivery_agents, CxOneFlowConfig.__sarif_ReportOpts_factory(f"{config_path}/push", sarif_opts_dict), 
+                PushWorkflow(
+                CxOneFlowConfig._get_value_for_key_or_default(
+                    "enabled", push_config_dict, False
+                ),
+                int(
+                    CxOneFlowConfig._get_value_for_key_or_default(
+                        "poll-interval-seconds", scan_monitor_dict, CxOneFlowConfig.DEFAULT_POLL_INTERVAL_SECS
+                    )
+                ),
+                int(
+                    CxOneFlowConfig._get_value_for_key_or_default(
+                        "scan-timeout-hours", scan_monitor_dict, CxOneFlowConfig.DEFAULT_SCAN_TIMEOUT_HOURS
+                    )
+                )),
                 *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
             )
 

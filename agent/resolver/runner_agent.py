@@ -1,5 +1,5 @@
 from workflows.resolver_workflow import ResolverScanningWorkflow
-from workflows.base_service import BaseWorkflowService
+from workflows.base_service import CxOneFlowAbstractWorkflowService
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.messaging import (
     DelegatedScanMessage,
@@ -17,7 +17,7 @@ from pathlib import Path
 from _version import __version__
 
 
-class ResolverRunnerAgent(BaseWorkflowService):
+class ResolverRunnerAgent(CxOneFlowAbstractWorkflowService):
 
     def __init__(
         self,
