@@ -13,5 +13,5 @@ PyJWT==2.10.1
 cryptography==44.0.1
 aiofiles==24.1.0
 sortedcontainers==2.4.0
-https://github.com/checkmarx-ts/cxone-async-api/releases/download/1.0.8/cxone_api-1.0.8-py3-none-any.whl
 https://github.com/checkmarx-ts/cxone-sarif/releases/download/1.0.3/cxone_sarif-1.0.3-py3-none-any.whl
+https://github.com/checkmarx-ts/cxone-async-api/releases/download/1.0.8/cxone_api-1.0.8-py3-none-any.whl
