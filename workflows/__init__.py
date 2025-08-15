@@ -12,8 +12,6 @@ class ScanWorkflow(__base_enum):
 class FeedbackWorkflow(__base_enum):
     PR = "pull-request"
     PUSH_GEN = "push-gen-sarif"
-    PUSH_DELIVER_HTTP = "push-deliver-sarif-http"
-    PUSH_DELIVER_AMQP = "push-deliver-sarif-amqp"
 
 class ScanStates(__base_enum):
     AWAIT = "await"

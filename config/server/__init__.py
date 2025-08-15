@@ -353,14 +353,20 @@ class CxOneFlowConfig(CommonConfig):
     def __push_feedback_service_factory(
         config_path, moniker, **kwargs
     ) -> PushFeedbackService:
-        if kwargs is None or len(kwargs.keys()) == 0:
-            return PushFeedbackService(
-                moniker, CxOneFlowConfig.__server_base_url, PushWorkflow(),
+        disabled_workflow = PushFeedbackService(
+                moniker, [], None, PushWorkflow(),
                 CxOneFlowConfig._default_amqp_url,
                 None,
                 None,
                 True,
             )
+        
+        if kwargs is None or len(kwargs.keys()) == 0:
+            return disabled_workflow
+        elif "push" not in kwargs.keys():
+            return disabled_workflow
+        elif not CxOneFlowConfig._get_value_for_key_or_default("enabled", kwargs['push'], False):
+            return disabled_workflow
         else:
             push_config_dict = CxOneFlowConfig._get_value_for_key_or_default("push", kwargs, {})
             scan_monitor_dict = CxOneFlowConfig._get_value_for_key_or_default(
@@ -370,20 +376,48 @@ class CxOneFlowConfig(CommonConfig):
             sarif_opts_dict = CxOneFlowConfig._get_value_for_key_or_default("sarif-opts", push_config_dict, None)
 
             amqp_delivery_dict = CxOneFlowConfig._get_value_for_key_or_default("via-amqp", push_config_dict, None)
+            http_delivery_list = CxOneFlowConfig._get_value_for_key_or_default("via-http-post", push_config_dict, None)
+
+            if amqp_delivery_dict is None and http_delivery_list is None:
+                raise ConfigurationException.missing_at_least_one_key_path(config_path, ["via-amqp", "via-http"])
 
             delivery_agents = []
 
             if amqp_delivery_dict is not None and not 'amqp' in amqp_delivery_dict.keys():
                 raise ConfigurationException.missing_key_path(f"{config_path}/via-amqp/amqp")
             elif amqp_delivery_dict is not None:
-                delivery_agents.append(PushFeedbackService.amqp_agent_factory
+                exchange = CxOneFlowConfig._get_value_for_key_or_fail(f"{config_path}/via-amqp", "exchange", amqp_delivery_dict)
+                prefix = CxOneFlowConfig._get_value_for_key_or_default("topic-prefix", amqp_delivery_dict, None)
+                suffix = CxOneFlowConfig._get_value_for_key_or_default("topic-suffix", amqp_delivery_dict, None)
+
+                delivery_agents.append(PushFeedbackService.AmqpDeliveryAgent
                                        (moniker, 
                                         CxOneFlowConfig._get_secret_from_value_of_key_or_fail
                                             (f"{config_path}/via-amqp", "shared-secret", amqp_delivery_dict),
+                                        exchange,
+                                        prefix,
+                                        suffix,
                                         *CxOneFlowConfig._load_amqp_settings(config_path, **amqp_delivery_dict)))
-                
+
+            if http_delivery_list is not None and not isinstance(http_delivery_list, list):
+                raise ConfigurationException.invalid_value(f"{config_path}/via-http-post")
+            elif http_delivery_list is not None:
+                counter = 0
+                for http_delivery in http_delivery_list:
+                    cur_path = f"{config_path}/via-http-post[{counter}]"
+                    counter += 1
+                    delivery_agents.append(PushFeedbackService.HttpDeliveryAgent(
+                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(cur_path, "shared-secret", http_delivery),
+                        CxOneFlowConfig._get_value_for_key_or_fail(cur_path, "endpoint-url", http_delivery),
+                        CxOneFlowConfig._get_value_for_key_or_default("delivery-retries", http_delivery, 2),
+                        CxOneFlowConfig._get_value_for_key_or_default("delivery-retry-delay-seconds", http_delivery, 60),
+                        CxOneFlowConfig._get_value_for_key_or_default("proxies", http_delivery, None),
+                        CxOneFlowConfig._get_value_for_key_or_default("ssl-verify", http_delivery, True)))
+
             return PushFeedbackService(
-                moniker, delivery_agents, CxOneFlowConfig.__sarif_ReportOpts_factory(f"{config_path}/push", sarif_opts_dict), 
+                moniker, 
+                delivery_agents, 
+                CxOneFlowConfig.__sarif_ReportOpts_factory(f"{config_path}/push", sarif_opts_dict), 
                 PushWorkflow(
                 CxOneFlowConfig._get_value_for_key_or_default(
                     "enabled", push_config_dict, False

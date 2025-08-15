@@ -1,4 +1,4 @@
-from ..scan_message import ScanMessage
+from workflows.messaging.scan_message import ScanMessage
 from dataclasses import dataclass
 from typing import Optional
 

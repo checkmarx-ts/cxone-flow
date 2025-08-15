@@ -1,4 +1,4 @@
-import aio_pika, json
+import aio_pika, gzip, asyncio, json, requests, logging
 from time import perf_counter_ns
 from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
 from workflows import ScanStates, ScanWorkflow, FeedbackWorkflow
@@ -13,7 +13,7 @@ from sarif_om import SarifLog
 from api_utils import gen_signature_header
 from dataclasses import dataclass, asdict, make_dataclass
 from dataclasses_json import dataclass_json
-from typing import List, Dict
+from typing import List, Dict, Union, Any, Tuple
 
 class PushFeedbackService(CxOneFlowAbstractWorkflowService):
     PUSH_ELEMENT_PREFIX = "push:"
@@ -24,76 +24,148 @@ class PushFeedbackService(CxOneFlowAbstractWorkflowService):
     QUEUE_SARIF_GEN = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PUSH_ELEMENT_PREFIX}Generate Sarif"
     ROUTEKEY_GEN_SARIF = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{PUSH_TOPIC_PREFIX}{ScanStates.FEEDBACK}.{FeedbackWorkflow.PUSH_GEN}.*"
 
-    QUEUE_SARIF_DELIVER_HTTP = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PUSH_ELEMENT_PREFIX}Deliver Sarif - HTTP"
-    ROUTEKEY_DELIVER_SARIF_HTTP = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{PUSH_TOPIC_PREFIX}{ScanStates.FEEDBACK}.{FeedbackWorkflow.PUSH_DELIVER_HTTP}.*"
-
-    QUEUE_SARIF_DELIVER_AMQP = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{PUSH_ELEMENT_PREFIX}Deliver Sarif - AMQP"
-    ROUTEKEY_DELIVER_SARIF_AMQP = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{PUSH_TOPIC_PREFIX}{ScanStates.FEEDBACK}.{FeedbackWorkflow.PUSH_DELIVER_AMQP}.*"
-
 
     class AbstractDeliveryAgent:
+        @classmethod
+        def log(clazz):
+            return logging.getLogger(clazz.__name__)
 
-        @dataclass_json
-        @dataclass(frozen=True)
-        class SarifMessage(StampedMessage):
-            sarif : Dict
-            feedback_context : ScanFeedbackMessage
+        @staticmethod
+        def _gen_signature_headers(secret : str, content : Any) -> Dict[str, str]:
+            alg, hash = gen_signature_header(secret, content)
+            return {"x-cx-signature-alg" : alg, "x-cx-signature": hash}
 
-        async def post_sarif_deliver_msg(self, mq_client : aio_pika.abc.AbstractRobustConnection, log : SarifLog, fb_msg : ScanFeedbackMessage) -> None:
-            raise NotImplementedError("post_sarif_deliver_msg")
-        
-        async def execute_deliver(self, log : SarifLog):
-            raise NotImplementedError("execute_deliver")
+        async def execute_sarif_delivery(self, log : SarifLog, msg_headers : Dict) -> None:
+            raise NotImplementedError("execute_sarif_delivery")
 
+        async def execute_sarif_error_delivery(self, msg : str, msg_headers : Dict) -> None:
+            raise NotImplementedError("execute_sarif_error_delivery")
         
-        
-    class AmqpDelivery(AMQPClient, AbstractDeliveryAgent):
-        def __init__(self, moniker : str, shared_secret : str, *args):
-            AMQPClient.__init__(self, *args)
-            self.__moniker = moniker
+    class AbstractMessageDeliveryAgent(AbstractDeliveryAgent):
+        def __init__(self, shared_secret : str):
             self.__shared_secret = shared_secret
 
-        async def post_sarif_deliver_msg(self, 
-                                         mq_client : aio_pika.abc.AbstractRobustConnection, 
-                                         log : SarifLog, 
-                                         fb_msg : ScanFeedbackMessage) -> None:
+        def package_message(self, msg : bytes) -> Tuple[bytes, Dict[str,str]]:
+            compressed_msg = gzip.compress(msg)
+            headers = {"content-encoding" : "gzip"}
+            headers.update(PushFeedbackService.AbstractDeliveryAgent._gen_signature_headers(self.__shared_secret, compressed_msg))
+            return compressed_msg, headers
+
+        
+        
+    class AmqpDeliveryAgent(AMQPClient, AbstractMessageDeliveryAgent):
+        def __init__(self, moniker : str, 
+                     shared_secret : str, 
+                     exchange : str, 
+                     topic_prefix : str,
+                     topic_suffix : str,
+                     *args):
+            PushFeedbackService.AbstractMessageDeliveryAgent.__init__(self, shared_secret)
+            AMQPClient.__init__(self, *args)
+            self.__moniker = moniker
+            self.__dest_exchange = exchange
+            self.__topic_prefix = topic_prefix
+            self.__topic_suffix = topic_suffix
+
+        def __get_topic(self):
+            topic = ""
+            if self.__topic_prefix is not None:
+                topic += self.__topic_prefix.rstrip(".") + "."
+            
+            topic += self.__moniker
+
+            if self.__topic_suffix is not None:
+                topic += "." + self.__topic_prefix.lstrip(".")
+            
+            return topic
+
+
+        async def __publish_message(self, msg : bytes, headers : Dict):
             write_channel = None
 
             try:
-                # Write to the passed MQ since the MQ client implemented in self
-                # is where the AMQP Sarif delivery is executed.
-                write_channel = await mq_client.channel()
-                exchange = await write_channel.get_exchange(CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_INPUT)
+                write_channel = await (await self.mq_client()).channel()
+                exchange = await write_channel.get_exchange(self.__dest_exchange)
 
-                sarif_msg = PushFeedbackService.AbstractDeliveryAgent.SarifMessage.factory(
-                    sarif = json.loads(log.asjson()),
-                    feedback_context=fb_msg).to_binary()
+                await exchange.publish(aio_pika.Message(msg, headers = headers, delivery_mode=aio_pika.DeliveryMode.PERSISTENT), 
+                                       routing_key=self.__get_topic())
 
-                # TODO: gzip the serialized message, add the content-encoding header.
-                # TODO: hash the gzipped content.
-                alg, hash = gen_signature_header(self.__shared_secret, sarif_msg)
-
-
-                await exchange.publish(aio_pika.Message(sarif_msg, headers = {alg : hash}, delivery_mode=aio_pika.DeliveryMode.PERSISTENT), 
-                                       routing_key=PushFeedbackService.make_topic(ScanStates.FEEDBACK, 
-                                       FeedbackWorkflow.PUSH_DELIVER_AMQP, self.__moniker))
-
-            except BaseException as ex:
-                pass
+            except BaseException:
+                PushFeedbackService.log().exception("Sarif AMQP delivery failed.")
             finally:
                 if write_channel is not None:
                     await write_channel.close()
 
-    @staticmethod
-    def amqp_agent_factory(moniker : str, shared_secret : str, *args) -> AbstractDeliveryAgent:
-        return PushFeedbackService.AmqpDelivery(moniker, shared_secret, *args)
+        async def __pack_and_publish(self, msg : bytes, msg_headers):
+            packaged_msg, packaged_headers = self.package_message(msg)
+            packaged_headers.update(msg_headers)
+            await self.__publish_message(packaged_msg, packaged_headers)
+
+        async def execute_sarif_delivery(self, log : SarifLog, msg_headers : Dict) -> None:
+            await self.__pack_and_publish(log.asjson().encode("UTF-8"), msg_headers)
+
+        async def execute_sarif_error_delivery(self, msg : str, msg_headers : Dict) -> None:
+            await self.__pack_and_publish(json.dumps({"error" : msg}).encode('UTF-8'), msg_headers)
+
+    class HttpDeliveryAgent(AbstractMessageDeliveryAgent):
+
+        def __init__(self, shared_secret : str, endpoint_url : str, 
+                     delivery_retries : int, delivery_retry_delay_s : int, proxies : Dict[str, str], ssl_verify : Union[bool, str]):
+            super().__init__(shared_secret)
+            self.__url = endpoint_url
+            self.__retries = delivery_retries
+            self.__delay = delivery_retry_delay_s
+            self.__proxies = proxies
+            self.__ssl_verify = ssl_verify
+
+        async def __post(self, msg : bytes, headers : Dict):
+            remaining = max(self.__retries, 0)
+
+            once = False
+            delivered = False
+            while remaining >= 0:
+                try:
+                    if once:
+                        PushFeedbackService.HttpDeliveryAgent.log().warning(f"Delaying before retring delivery to {self.__url}. Retries remaining: {remaining}")
+                        await asyncio.sleep(self.__delay)                    
+
+                    response = await asyncio.to_thread(requests.post, url=self.__url, data=msg, headers=headers, proxies=self.__proxies, verify=self.__ssl_verify)
+                    PushFeedbackService.HttpDeliveryAgent.log().info(f"Posted Sarif log to {self.__url} with response {response.status_code}")
+
+                    if response.ok:
+                        delivered = True
+                        break
+                except BaseException as bex:
+                    PushFeedbackService.HttpDeliveryAgent.log().exception(bex)
+                    break
+                finally:
+                    remaining -= 1
+                    once = True
+            
+            if not delivered:
+                PushFeedbackService.HttpDeliveryAgent.log().error(f"Delivery of Sarif log to {self.__url} failed!")
+
+
+        async def execute_sarif_delivery(self, log : SarifLog, msg_headers : Dict) -> None:
+            packaged_msg, packaged_headers = self.package_message(log.asjson().encode("UTF-8"))
+            packaged_headers.update(msg_headers)
+            await self.__post(packaged_msg, packaged_headers)
+
+        async def execute_sarif_error_delivery(self, msg : str, msg_headers : Dict) -> None:
+            packaged_msg, packaged_headers = self.package_message(json.dumps({"error" : msg}).encode('UTF-8'))
+            packaged_headers.update(msg_headers)
+            await self.__post(packaged_msg, packaged_headers)
+
 
     @staticmethod
     def make_topic(state : ScanStates, workflow : FeedbackWorkflow, moniker : str):
         return f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{PushFeedbackService.PUSH_TOPIC_PREFIX}{state}.{workflow}.{moniker}"
 
 
-    def __init__(self, moniker : str, delivery_agents : List[AbstractDeliveryAgent], sarif_opts : ReportOpts, workflow : AbstractFeedbackWorkflow, 
+    def __init__(self, moniker : str, 
+                 delivery_agents : List[AbstractDeliveryAgent], 
+                 sarif_opts : ReportOpts, 
+                 workflow : AbstractFeedbackWorkflow, 
                  amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool):
         super().__init__(amqp_url, amqp_user, amqp_password, ssl_verify)
         self.__sarif_opts = sarif_opts
@@ -107,20 +179,34 @@ class PushFeedbackService(CxOneFlowAbstractWorkflowService):
 
         try:
             if await self.__workflow.is_enabled():
+
+                headers = {
+                    "x-cx-scanid" : fm.scanid,
+                    "x-cx-projectid" : fm.projectid,
+                    "x-cx-moniker" : fm.moniker,
+                    "x-cx-clone-url" : push_details.clone_url,
+                    "x-cx-branch" : push_details.source_branch,
+                    "x-cx-commit" : push_details.commit_hash,
+                    "x-cx-is-error" : str(fm.is_error)
+                }
+
                 # Generate Sarif for the scan
-                sarif_start = perf_counter_ns()
-                sarif_log = await get_sarif_v210_log_for_scan(cxone_client, self.__sarif_opts, fm.scanid, throw_on_run_failure=True,
-                                                              clone_url=push_details.clone_url, branch=push_details.source_branch)
-                PushFeedbackService.log().debug(f"Sarif log generated in {perf_counter_ns() - sarif_start}ns")
+                if not fm.is_error:
+                    sarif_start = perf_counter_ns()
+                    sarif_log = await get_sarif_v210_log_for_scan(cxone_client, 
+                                                                self.__sarif_opts, 
+                                                                fm.scanid, 
+                                                                throw_on_run_failure=True,
+                                                                clone_url=push_details.clone_url, 
+                                                                branch=push_details.source_branch)
+                    
+                    PushFeedbackService.log().debug(f"Sarif log generated in {perf_counter_ns() - sarif_start}ns")
 
-
-                # TODO: This should be tasks
-                for agent in self.__agents:
-                    await agent.post_sarif_deliver_msg(await self.mq_client(), sarif_log, fm)
-
+                    # Post the message for delivery
+                    await asyncio.wait([asyncio.create_task(agent.execute_sarif_delivery(sarif_log, headers)) for agent in self.__agents])
+                else:
+                    await asyncio.wait([asyncio.create_task(agent.execute_sarif_error_delivery(fm.error_msg, headers)) for agent in self.__agents])
                 
-                # Get the json for the Sarif
-                # Publish messages for delivery, routed by type of delivery topic (amqp/http)
                 await msg.ack()
             else:
                 await msg.ack()

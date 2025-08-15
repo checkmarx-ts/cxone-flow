@@ -81,4 +81,5 @@ class ScanPollingService(CxOneFlowAbstractWorkflowService):
                             ScanPollingService.log().debug(f"Scan id {swm.scanid} failed to re-enqueue new poll message.")
                             await msg.nack()
                 
-                await write_channel.close()
+                if write_channel is not None:
+                    await write_channel.close()

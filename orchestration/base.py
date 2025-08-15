@@ -217,14 +217,15 @@ class AbstractOrchestrator:
 
         if inspector.executing:
             status = AbstractOrchestrator.ScanAction.EXECUTING
-            source_branch, _ = await self._get_source_branch_and_hash()
+            source_branch, commit_hash = await self._get_source_branch_and_hash()
             await services.push.start_sarif_feedback(inspector.project_id, inspector.scan_id,
                                                         PushDetails.factory(clone_url=self._repo_clone_url(services.scm.cloner),
                                                                             repo_project=self._repo_project_key,
                                                                             repo_slug=self._repo_slug,
                                                                             organization=self._repo_organization,
                                                                             source_branch=source_branch,
-                                                                            event_context=self.event_context))
+                                                                            event_context=self.event_context,
+                                                                            commit_hash=commit_hash))
         elif inspector.failed:
             status = AbstractOrchestrator.ScanAction.FAILED
 
@@ -250,7 +251,7 @@ class AbstractOrchestrator:
         inspector, action = await self.__orchestrate_scan(services, submitted_scan_tags, ScanWorkflow.PUSH)
 
         if inspector is not None and action == AbstractOrchestrator.ScanAction.EXECUTING:
-            source_branch, _ = await self._get_source_branch_and_hash()
+            source_branch, commit_hash = await self._get_source_branch_and_hash()
             clone_url = self._repo_clone_url(services.scm.cloner)
             await services.push.start_sarif_feedback(inspector.project_id, inspector.scan_id,
                                                         PushDetails.factory(clone_url=clone_url,
@@ -258,15 +259,16 @@ class AbstractOrchestrator:
                                                                             repo_slug=self._repo_slug,
                                                                             organization=self._repo_organization,
                                                                             source_branch=source_branch,
-                                                                            event_context=self.event_context))
+                                                                            event_context=self.event_context,
+                                                                            commit_hash=commit_hash))
 
         return inspector, action
 
 
     async def __start_pr_workflow(self, services : CxOneFlowServices, inspector : ScanInspector):
 
-        source_branch, _ = await self._get_source_branch_and_hash()
-        target_branch, _ = await self._get_target_branch_and_hash()
+        source_branch, commit_hash = await self._get_source_branch_and_hash()
+        target_branch, _  = await self._get_target_branch_and_hash()
 
         await services.pr.start_pr_scan_workflow(inspector.project_id, inspector.scan_id, 
                                                     PRDetails.factory(event_context=self.event_context, 
