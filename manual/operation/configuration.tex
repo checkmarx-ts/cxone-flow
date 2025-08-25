@@ -234,6 +234,31 @@ elsewhere in this document.\\\\
     .5 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
     .4 \intlink{sec:yaml-feedback-pull-request}{pull-request} \DTcomment{[Optional]}.
     .5 \intlink{sec:yaml-pull-request-enabled}{enabled} \DTcomment{[Optional] Default: False}.
+    .4 \intlink{sec:yaml-feedback-push}{push} \DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-push-enabled}{enabled} \DTcomment{[Optional] Default: False}.
+    .5 \intlink{sec:yaml-push-sarif-opts}{sarif-opts} \DTcomment{[Optional]}.
+    .6 \intlink{sec:yaml-push-sarif-opts-sastopts}{SastOpts} \DTcomment{[Optional]}.
+    .7 \intlink{sec:yaml-push-sarif-opts-sastopts-omitapiresults}{OmitApiResults} \DTcomment{[Optional] Default: False}.
+    .7 \intlink{sec:yaml-push-sarif-opts-sastopts-skipsast}{SkipSast} \DTcomment{[Optional] Default: False}.
+    .6 \intlink{sec:yaml-push-sarif-opts-skipcontainers}{SkipContainers} \DTcomment{[Optional] Default: False}.
+    .6 \intlink{sec:yaml-push-sarif-opts-skipkics}{SkipKics} \DTcomment{[Optional] Default: False}.
+    .6 \intlink{sec:yaml-push-sarif-opts-skipsca}{SkipSca} \DTcomment{[Optional] Default: False}.
+    .5 \intlink{sec:yaml-push-via-amqp}{via-amqp} \DTcomment{[Optional]}.
+    .6 \intlink{sec:yaml-generic-amqp}{amqp} \DTcomment{[Optional] Default: container instance}.
+    .7 \intlink{sec:yaml-generic-amqp-amqp-password}{amqp-password} \DTcomment{[Optional]}.
+    .7 \intlink{sec:yaml-generic-amqp-amqp-url}{amqp-url} \DTcomment{[Required]}.
+    .7 \intlink{sec:yaml-generic-amqp-amqp-user}{amqp-user} \DTcomment{[Optional]}.
+    .6 \intlink{sec:yaml-push-via-amqp-exchange}{exchange} \DTcomment{[Required]}.
+    .6 \intlink{sec:yaml-push-via-amqp-shared-secret}{shared-secret} \DTcomment{[Required]}.
+    .6 \intlink{sec:yaml-push-via-amqp-topic-prefix}{topic-prefix} \DTcomment{[Optional]}.
+    .6 \intlink{sec:yaml-push-via-amqp-topic-suffix}{topic-suffix} \DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-push-via-http-post}{via-http-post} \DTcomment{[Optional]}.
+    .6 \intlink{sec:yaml-push-via-http-post-delivery-retries}{delivery-retries} \DTcomment{[Optional] Default: 2}.
+    .6 \intlink{sec:yaml-push-via-http-post-delivery-retry-delay-seconds}{delivery-retry-delay-seconds} \DTcomment{[Optional] Default: 60s}.
+    .6 \intlink{sec:yaml-push-via-http-post-endpoint-url}{endpoint-url} \DTcomment{[Required]}.
+    .6 \intlink{sec:yaml-generic-proxies}{proxies} \DTcomment{[Optional]}.
+    .6 \intlink{sec:yaml-push-via-http-post-shared-secret}{shared-secret} \DTcomment{[Required]}.
+    .6 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
     .4 \intlink{sec:yaml-feedback-scan-monitor}{scan-monitor} \DTcomment{[Optional]}.
     .5 \intlink{sec:yaml-scan-monitor-poll-backoff-multiplier}{poll-backoff-multiplier} \DTcomment{[Optional] Default: 2}.
     .5 \intlink{sec:yaml-scan-monitor-poll-interval-seconds}{poll-interval-seconds} \DTcomment{[Optional] Default: 90s}.
@@ -252,7 +277,7 @@ elsewhere in this document.\\\\
     .1 <root>.
     .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-kickoff}{kickoff} \DTcomment{[Optional]}.
-    .4 \intlink{sec:yaml-kickoff-max-concurrent-scans}{max-concurrent-scans} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-kickoff-max-concurrent-scans}{max-concurrent-scans} \DTcomment{[Optional] Default: 3}.
     .4 \intlink{sec:yaml-kickoff-ssh-public-key}{ssh-public-key} \DTcomment{[Required]}.
 }
 

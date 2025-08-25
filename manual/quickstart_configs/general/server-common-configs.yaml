@@ -30,6 +30,14 @@ amqp_common: &all-amqp
   amqp:
     amqp-url: amqps://rabbitmq.corp.com:5671
 
+# Optional: Example for delivery of Sarif logs using a different AMQP
+# server/virtual host than CxOneFlow.  It can also be shared across
+# multiple feedback definitions
+amqp_common: &sarif-amqp
+  amqp:
+    amqp-url: amqps://rabbitmq.corp.com/sarif_vhost:5671
+
+
 # All service definitions will need a CheckmarxOne connection
 # configuration.  This example uses a YAML anchor to reference
 # a single connection.
@@ -93,9 +101,46 @@ common_scan_cfg: &common-scan-cfg
   # Optional: Configure the parameters for supported feedback
   # methods.
   feedback:
+    # This AMQP connection is for orchestrating
+    # the feedback workflows.
     <<: *all-amqp
     pull-request:
       enabled: true
+
+    push:
+      enabled: true
+
+      sarif-opts:
+        SkipSca: false
+        SkipKics: false
+        SkipContainers: false
+        SastOpts:
+          SkipSast: false
+          OmitApiResults: false
+
+
+      # Delivery of Sarif logs can be done by AMQP, HTTP post to multiple
+      # defined endpoints.  Both can be configured and delivery will be
+      # processed via all defined methods.
+      via-amqp:
+        # This AMQP connection is for delivering Sarif logs.
+        # It may not be the same AMQP server that is used for
+        # orchestrating the feedback workflows.
+        <<: *sarif-amqp
+        exchange: SARIF_EXCHANGE
+        shared-secret: sarif-hmac-shared-secret
+        
+      via-http-post:
+        # Multiple HTTP endpoints can be defined.  Delivery order
+        # is arbitrary.
+        - endpoint-url: https://unstable.corp.com/sarif
+          shared-secret: sarif-hmac-shared-secret
+          delivery-retries: 6
+          delivery-retry-delay-seconds: 30
+
+        - endpoint-url: https://stable.corp.com/sarif
+          shared-secret: sarif-hmac-shared-secret
+
 
 # Optional: This example assigns groups to projects with repositories that
 # match regular expressions.

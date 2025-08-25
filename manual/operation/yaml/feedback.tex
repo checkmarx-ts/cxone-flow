@@ -6,6 +6,67 @@ Defaults to \texttt{False}.  If set to \texttt{True}, the feedback workflow for 
 a Pull Request. See Section \ref{sec:pull-request-workflow} for details about the Pull Request feedback workflow.
 
 
+\subsubsection{YAML Element: <scm moniker>.feedback.push}\label{sec:yaml-feedback-push}
+The configuration parameters for Sarif delivery as push feedback.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.enabled}\label{sec:yaml-push-enabled}
+Defaults to \texttt{False}.  If set to \texttt{True}, delivery of Sarif logs is executed upon completion of a scan
+of a protected branch. See Section \ref{sec:push-workflow} for details about the Pull Request feedback workflow.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.sarif-opts}\label{sec:yaml-push-sarif-opts}
+This is a dictionary that follows the structure of the \extlink{https://github.com/checkmarx-ts/cxone-sarif/blob/master/cxone_sarif/opts/__init__.py}{ReportOpts}
+object in the \cxonesarif Python module.  This defines the options used when generating the Sarif log.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.sarif-opts.SastOpts}\label{sec:yaml-push-sarif-opts-sastopts}
+A dictionary that contains elements that control the options used for SAST options in the Sarif dictionary.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.sarif-opts.SastOpts.OmitApiResults}\label{sec:yaml-push-sarif-opts-sastopts-omitapiresults}
+Defaults to \texttt{False}.  If set to \texttt{True}, API security scan results will not be included with the reported SAST results.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.sarif-opts.SastOpts.SkipSast}\label{sec:yaml-push-sarif-opts-sastopts-skipsast}
+Defaults to \texttt{False}.  If set to \texttt{True}, both SAST and API security scan results will not be included in the generated Sarif log.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.sarif-opts.SkipContainers}\label{sec:yaml-push-sarif-opts-skipcontainers}
+Defaults to \texttt{False}.  If set to \texttt{True}, Container scan results will not be included in the generated Sarif log.
+\subsubsection{YAML Element: <scm moniker>.feedback.push.sarif-opts.SkipKics}\label{sec:yaml-push-sarif-opts-skipkics}
+Defaults to \texttt{False}.  If set to \texttt{True}, KICS (IaC) scan results will not be included in the generated Sarif log.
+\subsubsection{YAML Element: <scm moniker>.feedback.push.sarif-opts.SkipSca}\label{sec:yaml-push-sarif-opts-skipsca}
+Defaults to \texttt{False}.  If set to \texttt{True}, SCA scan results will not be included in the generated Sarif log.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.via-amqp}\label{sec:yaml-push-via-amqp}
+A dictionary of configuration options to define the parameters for publishing the generated Sarif log to an AMQP exchange.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.via-amqp.exchange}\label{sec:yaml-push-via-amqp-exchange}
+The name of the exchange where the Sarif log message will be submitted.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.via-amqp.shared-secret}\label{sec:yaml-push-via-amqp-shared-secret}
+A shared secret used for validating an HMAC signature of the Sarif log delivered as a message via AMQP.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.via-amqp.topic-prefix}\label{sec:yaml-push-via-amqp-topic-prefix}
+An optional value used as a prefix to the service name when forming the topic used when sending the Sarif log to the exchange.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.via-amqp.topic-suffix}\label{sec:yaml-push-via-amqp-topic-suffix}
+An optional value used as a suffix to the service name when forming the topic used when sending the Sarif log to the exchange.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.via-http-post}\label{sec:yaml-push-via-http-post}
+A list of one or more groups of configuration elements that define HTTP endpoints where the generated Sarif log will be POSTed.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.via-http-post.delivery-retries}\label{sec:yaml-push-via-http-post-delivery-retries}
+An integer that defines the number of retries that will be attempted upon failure to deliver a Sarif log to the defined HTTP endpoint.  If not
+explicitly defines, the default number of retries is 2.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.via-http-post.delivery-retry-delay-seconds}\label{sec:yaml-push-via-http-post-delivery-retry-delay-seconds}
+An integer that defines the amount of a time delay, in seconds, between attempts to retry delivery of the Sarif log.  If not explicitly defines, the
+delay is 60 seconds.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.via-http-post.endpoint-url}\label{sec:yaml-push-via-http-post-endpoint-url}
+The URL to the endpoint where the Sarif log will be POSTed.
+
+
+\subsubsection{YAML Element: <scm moniker>.feedback.push.via-http-post.shared-secret}\label{sec:yaml-push-via-http-post-shared-secret}
+A shared secret used for validating an HMAC signature of the Sarif log delivered as the body of a POSTed HTTP request.
+
+
 \subsubsection{YAML Element: <scm moniker>.feedback.scan-monitor}\label{sec:yaml-feedback-scan-monitor}
 The parameters used when monitoring scan progress during workflow orchestration. 
 
