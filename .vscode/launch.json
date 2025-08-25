@@ -58,6 +58,30 @@
             "jinja": true,
             "autoStartBrowser": false,
             "justMyCode": false
+        },
+        {
+            "name": "Flask Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "${file}",
+                "FLASK_DEBUG": "1",
+                "LOG_LEVEL": "DEBUG",
+                "ENABLE_DUMP": "1"
+            },
+            "args": [
+                "run",
+                "-h",
+                "0.0.0.0",
+                "-p",
+                "4000",
+                "--no-debugger",
+                "--no-reload"
+            ],
+            "jinja": true,
+            "autoStartBrowser": false,
+            "justMyCode": false
         }
     ]
 }
