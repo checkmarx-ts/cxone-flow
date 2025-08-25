@@ -33,7 +33,7 @@ amqp_common: &all-amqp
 # Optional: Example for delivery of Sarif logs using a different AMQP
 # server/virtual host than CxOneFlow.  It can also be shared across
 # multiple feedback definitions
-amqp_common: &sarif-amqp
+amqp_for_sarif: &sarif-amqp
   amqp:
     amqp-url: amqps://rabbitmq.corp.com/sarif_vhost:5671
 
@@ -129,7 +129,7 @@ common_scan_cfg: &common-scan-cfg
         <<: *sarif-amqp
         exchange: SARIF_EXCHANGE
         shared-secret: sarif-hmac-shared-secret
-        
+
       via-http-post:
         # Multiple HTTP endpoints can be defined.  Delivery order
         # is arbitrary.
