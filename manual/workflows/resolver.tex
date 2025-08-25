@@ -1,7 +1,7 @@
 \chapter{Resolver Workflows}\label{sec:resolver-workflows}
 
 \section{Overview}
-For any scan invoked by \cxoneflow\space when \intlink{sec:resolver-elements}{configured to use resolver}, 
+For any scan invoked by \cxoneflow\space when \intlink{sec:scan-agent-elements}{configured to use a scan agent,} 
 a delegated scan is enqueued with the message queue to run a resolver scan and/or a pre-scan script.  The delegated scan is handed over
 to a Scan Agent that clones the code and executes \scaresolver.  The \scaresolver results are
 then submitted for scan along with the code.  The executing scan then follows any configured feedback workflows.
