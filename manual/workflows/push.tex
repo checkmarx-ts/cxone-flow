@@ -1,0 +1,176 @@
+\section{Push Feedback Workflow}\label{sec:push-workflow}
+
+The feedback workflow for pull-requests is invoked for pull-requests that target
+protected branches.  The push feedback workflow is invoked for when scans of protected
+branches are completed.  This would typically indicate that the code in the branch
+is appropriate for deployment and thus risk for unresolved vulnerabilities is acceptable.
+
+At the completion of a scan on a protected branch, a Sarif log is generated using the
+\cxonesarif Python module.  The contents of the generated log is then delivered to one
+or more endpoints as configured.  The receiver is then responsible for interpreting the
+Sarif log contents and performing any additional workflows that may catalog the
+scan results.
+
+
+\subsection{Common Log Delivery Message Headers}
+Delivery of a scan's Sarif log is performed by delivering the log to a receiver
+endpoint via \intlink{sec:push-sarif-amqp}{AMQP} and/or \intlink{sec:push-sarif-http}{HTTP}
+transports.  Each of these methods will deliver a Sarif log or error message as appropriate for
+the scan disposition.  As part of the delivered message, Table \ref{tab:common-push-feedback-headers}
+enumerates header key/value pairs that are sent along with the message body.  The headers can be accessed
+with methods appropriate for the transport method.
+
+\begin{table}[ht]
+    \caption{Common Push Feedback Message Headers}  
+    \label{tab:common-push-feedback-headers}      
+    \begin{tabularx}{\textwidth}{ll}
+        \toprule
+        \textbf{Header} & \textbf{Description} \\
+        \midrule
+        \texttt{x-cx-signature} & \makecell[l]{The HMAC signature of the raw binary of the message body.} \\
+        \midrule
+        \texttt{x-cx-signature-alg} & \makecell[l]{The HMAC algorithm used to produce the signature value in the\\\texttt{x-cx-signature} header.}\\
+        \midrule
+        \texttt{x-cx-scanid} & \makecell[l]{The \cxone scan id that was used to generate the contents\\of the message.}\\
+        \midrule
+        \texttt{x-cx-projectid} & \makecell[l]{The \cxone project id where the scan can be found.}\\
+        \midrule
+        \texttt{x-cx-service} & \makecell[l]{The \cxoneflow service definition that handled the webhook event\\that performed the scan.}\\
+        \midrule
+        \texttt{x-cx-clone-url} & \makecell[l]{The clone URL for the code repository that was scanned.}\\
+        \midrule
+        \texttt{x-cx-branch} & \makecell[l]{The branch of the code repository for which the scan was executed.}\\
+        \midrule
+        \texttt{x-cx-commit} & \makecell[l]{The git commit hash of the code that was scanned.}\\
+        \midrule
+        \texttt{x-cx-is-error} & \makecell[l]{A boolean value indicating if the message body is an error message.}\\
+        \midrule
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+
+\subsection{Scan Error Message Delivery}
+
+\subsection{AMQP Sarif Log Delivery}\label{sec:push-sarif-amqp}
+
+The AMQP delivery is performed by posting a message to an \extlink{https://www.rabbitmq.com/docs/exchanges}{exchange} with a routing key
+consisting of the name of the service definition that orchestrated the scan.  This allows multiple queues to bind to the exchange
+so that the message is sent to queues using the routing key match criteria defined in the binding.
+
+
+\subsection{HTTP Sarif Log Delivery}\label{sec:push-sarif-http}
+If the HTTP endpoints are unstable or there are many, consider receipt of the log
+by many endpoints by using AMQP.
+
+
+
+\subsection{Sender Verification with HMAC}
+The method of authenticating the sender is to validate a signature hash calculated
+from the body of the delivered message.  This is done using a secret value
+known by both the sender and receiver.  There is no need for sender and receiver to
+exchange the shared secret; the signature verification allows each side to demonstrate
+knowledge of the shared secret by producing the same calculated signature.
+
+If the signatures match, it is verified the sender and receiver both know the same
+shared secret.  If the signatures don't match, the received message is typically
+discarded since the sender can't be verified by demonstrating knowledge of a
+mutually shared secret.  The data integrity is also ensured given the signature
+of the received body content would not have a matching signature if it was
+modified in transit.
+
+The signature is typically validated prior to processing the received contents.  This
+allows data sent by unverified senders or data that was modified in transit to be
+discarded.
+
+\subsubsection{AMQP Example}
+
+The example code for demonstrating HMAC signature validation with an AMQP receiver
+consumes a pre-defined queue that has been bound to a pre-defined exchange. Sarif logs are
+delivered to the exchange and the queue is bound to the exchange.  Agents that consume
+the queue are given messages from the queue to handle as appropriate.
+
+The example reads the signature and algorithm from the received message headers.
+The receiver, which also knows the shared secret used to calculate the signature
+by the sender, recalculates the signature on the received message content.  If the signatures
+match, the message is verified as sent by the correct sender.
+
+
+\begin{code}{HMAC Verification Example}{[AMQP]}{}
+import hmac
+import asyncio, aio_pika
+
+# An example of how to verify the HMAC signature
+# of the received Sarif log body.
+
+async def receive_sarif_log(msg: aio_pika.abc.AbstractIncomingMessage) -> None:
+    try:
+       
+      shared_secret = "MySharedSecret-12344$abc!123"
+      sig = msg.headers['x-cx-signature']
+      alg = msg.headers['x-cx-signature-alg']
+      print(f"Received message with signature: {sig} generated using algorithm {alg}")
+
+      h = hmac.new(bytes(shared_secret, 'UTF-8'), msg.body, alg)
+      if h.hexdigest() != sig:
+          print(f"Calculated signature {h.hexdigest()} is invalid.")
+      else:
+        print("The signature verified correctly.")
+
+    except BaseException as ex:
+        await msg.nack(requeue=False)
+    finally:
+        await msg.ack()
+
+async def be_an_agent():
+  mq_client = await aio_pika.connect_robust("amqp://localhost/sarif")
+  async with mq_client.channel() as channel:
+      q = await channel.get_queue("SARIF")
+      await q.consume(receive_sarif_log)
+      while True:
+          await asyncio.Future()
+
+if __name__ == "__main__":
+  asyncio.run(be_an_agent())
+\end{code}
+
+
+
+\subsubsection{HTTP Example}
+
+The example code for demonstrating HMAC signature validation with an HTTP receiver
+is a simple Flask application. The application acts as an HTTP receiver endpoint
+for receiving Sarif logs.  The example reads the signature and algorithm from the request
+headers.  The receiver, which also knows the shared secret used to calculate the signature
+by the sender, recalculates the signature on the received body content. If the signatures
+match, the message is verified as sent by the correct sender.
+
+
+\begin{code}{HMAC Verification Example}{[HTTP]}{}
+import hmac
+from flask import Flask, request, Response
+
+# An example of how to verify the HMAC signature
+# of the received Sarif log body.
+
+app = Flask("Example")
+
+@app.route("/sarif", methods=['POST'])
+async def validate__hmac_signature():
+    shared_secret = "MySharedSecret-12344$abc!123"
+    sig = request.headers['x-cx-signature']
+    alg = request.headers['x-cx-signature-alg']
+    print(f"Received message with signature: {sig} generated using algorithm {alg}")
+
+    h = hmac.new(bytes(shared_secret, 'UTF-8'), request.data, alg)
+    if h.hexdigest() != sig:
+        print(f"Calculated signature {h.hexdigest()} is invalid.")
+        return Response(status=403)
+    else:
+      print("The signature verified correctly.")
+      return Response(status=204)
+
+\end{code}
+
+
+

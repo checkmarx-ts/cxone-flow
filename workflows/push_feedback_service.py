@@ -183,7 +183,7 @@ class PushFeedbackService(CxOneFlowAbstractWorkflowService):
                 headers = {
                     "x-cx-scanid" : fm.scanid,
                     "x-cx-projectid" : fm.projectid,
-                    "x-cx-moniker" : fm.moniker,
+                    "x-cx-service" : fm.moniker,
                     "x-cx-clone-url" : push_details.clone_url,
                     "x-cx-branch" : push_details.source_branch,
                     "x-cx-commit" : push_details.commit_hash,
