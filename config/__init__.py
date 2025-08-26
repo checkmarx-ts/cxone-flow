@@ -223,10 +223,11 @@ class CommonConfig:
                 __agent__, \
                 tenant_auth_endpoint, \
                 tenant_api_endpoint, \
-                CommonConfig._get_value_for_key_or_default('timeout-seconds', kwargs, 60), \
-                CommonConfig._get_value_for_key_or_default('retries', kwargs, 3), \
-                CommonConfig._get_value_for_key_or_default('proxies', kwargs, None), \
-                CommonConfig._get_value_for_key_or_default('ssl-verify', kwargs, CommonConfig.get_default_ssl_verify_value()) \
+                timeout=CommonConfig._get_value_for_key_or_default('timeout-seconds', kwargs, 60), \
+                retries=CommonConfig._get_value_for_key_or_default('retries', kwargs, 3), \
+                retry_delay_s=CommonConfig._get_value_for_key_or_default('retry-delay', kwargs, 30),
+                proxy=CommonConfig._get_value_for_key_or_default('proxies', kwargs, None), \
+                ssl_verify=CommonConfig._get_value_for_key_or_default('ssl-verify', kwargs, CommonConfig.get_default_ssl_verify_value()) \
                 )
         elif 'oauth' in kwargs.keys():
             oauth_params = CommonConfig._get_value_for_key_or_fail(config_path, 'oauth', kwargs)
@@ -238,10 +239,11 @@ class CommonConfig:
                 __agent__, \
                 tenant_auth_endpoint, \
                 tenant_api_endpoint, \
-                CommonConfig._get_value_for_key_or_default('timeout-seconds', kwargs, 60), \
-                CommonConfig._get_value_for_key_or_default('retries', kwargs, 3), \
-                CommonConfig._get_value_for_key_or_default('proxies', kwargs, None), \
-                CommonConfig._get_value_for_key_or_default('ssl-verify', kwargs, CommonConfig.get_default_ssl_verify_value()) \
+                timeout=CommonConfig._get_value_for_key_or_default('timeout-seconds', kwargs, 60), \
+                retries=CommonConfig._get_value_for_key_or_default('retries', kwargs, 3), \
+                retry_delay_s=CommonConfig._get_value_for_key_or_default('retry-delay', kwargs, 30),
+                proxy=CommonConfig._get_value_for_key_or_default('proxies', kwargs, None), \
+                ssl_verify=CommonConfig._get_value_for_key_or_default('ssl-verify', kwargs, CommonConfig.get_default_ssl_verify_value()) \
                 )
 
         return None
