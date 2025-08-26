@@ -1,9 +1,8 @@
 \section{Push Feedback Workflow}\label{sec:push-workflow}
 
-The feedback workflow for pull-requests is invoked for pull-requests that target
-protected branches.  The push feedback workflow is invoked for when scans of protected
-branches are completed.  This would typically indicate that the code in the branch
-is appropriate for deployment and thus risk for unresolved vulnerabilities is acceptable.
+The push feedback workflow is invoked when scans of protected branches are completed.
+This would typically indicate that the code in the branch is appropriate for deployment and
+thus risk for unresolved vulnerabilities is acceptable.
 
 At the completion of a scan on a protected branch, a Sarif log is generated using the
 \cxonesarif Python module.  The contents of the generated log is then delivered to one
@@ -12,13 +11,12 @@ Sarif log contents and performing any additional workflows that may catalog the
 scan results.
 
 
-\subsection{Common Log Delivery Message Headers}
-Delivery of a scan's Sarif log is performed by delivering the log to a receiver
-endpoint via \intlink{sec:push-sarif-amqp}{AMQP} and/or \intlink{sec:push-sarif-http}{HTTP}
-transports.  Each of these methods will deliver a Sarif log or error message as appropriate for
-the scan disposition.  As part of the delivered message, Table \ref{tab:common-push-feedback-headers}
-enumerates header key/value pairs that are sent along with the message body.  The headers can be accessed
-with methods appropriate for the transport method.
+\subsection{Common Sarif Log Message Headers}
+A scan's Sarif log is delivered to a receiver endpoint via \intlink{sec:push-sarif-amqp}{AMQP}
+and/or \intlink{sec:push-sarif-http}{HTTP} transports.  Each of these methods will deliver a Sarif log
+or error message as appropriate for the scan disposition.  As part of the delivered message,
+Table \ref{tab:common-push-feedback-headers} enumerates header key/value pairs that are sent along with
+the message body.  The headers can be accessed with methods appropriate for the transport method.
 
 \begin{table}[ht]
     \caption{Common Push Feedback Message Headers}  
@@ -50,29 +48,69 @@ with methods appropriate for the transport method.
 \end{table}
 
 
-\subsection{Scan Error Message Delivery}
-
 \subsection{AMQP Sarif Log Delivery}\label{sec:push-sarif-amqp}
 
 The AMQP delivery is performed by posting a message to an \extlink{https://www.rabbitmq.com/docs/exchanges}{exchange} with a routing key
-consisting of the name of the service definition that orchestrated the scan.  This allows multiple queues to bind to the exchange
-so that the message is sent to queues using the routing key match criteria defined in the binding.
+consisting of the name of the service definition that orchestrated the scan.  This allows multiple queues or exchanges to bind to the
+log delivery exchange to route Sarif logs to the appropriate handlers.
+
+Figure \ref{fig:sarif-amqp-example} shows an example of an AMQP schema for routing logs to handlers of different issue
+tracking systems.  The Sarif delivery exchange \texttt{Sarif Exchange} has two other exchanges bound by routing key
+wildcards.  The routing specifications utilize the \intlink{sec:yaml-push-via-amqp-topic-prefix}{topic-prefix} to
+add \texttt{jira} or \texttt{snow} to the routing key.  The bound exchanges themselves have queues bound with routing keys
+that use a \intlink{sec:yaml-push-via-amqp-topic-suffix}{topic-suffix} to route Sarif log messages to an organization-specific
+queue.  Agents that interface with Jira or Service Now receive the Sarif log and perform the appropriate updates
+in their corresponding systems.
+
+This is only an example to demonstrate possibilities; there are many ways to route the Sarif log
+to the appropriate consumer.
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{graphics/cxoneflow-diagrams-sarif-exchange-example.png}
+    \caption{Sarif Log Delivery Example AMQP Schema}
+    \label{fig:sarif-amqp-example}
+\end{figure}
 
 
 \subsection{HTTP Sarif Log Delivery}\label{sec:push-sarif-http}
-If the HTTP endpoints are unstable or there are many, consider receipt of the log
-by many endpoints by using AMQP.
+
+HTTP delivery allows one or more HTTP endpoints to be defined where the Sarif log will be
+POSTed.  The endpoint would receive the POST request and process the Sarif log as
+appropriate.
+
+Depending on the volume of scanning and production of Sarif logs, the implementation
+of an HTTP receiver endpoint can be challenging.  If implementing a custom HTTP endpoint
+receiver, the implementation should follow these guidelines:
 
 
+\begin{itemize}
+    \item When receiving the request, the response should be sent without waiting for
+    a complete processing of the Sarif log.  A long delay before response will cause the
+    sender to time out and attempt to retry the request.
+    \item The receiver should persist the Sarif log for resuming workflows if the endpoint is terminated
+    before all received Sarif logs are processed.
+    \item The response status code when successfullying receiving a Sarif log should be a 2XX status.
+    \item The response status code to a signature mismatch for the received message should be a 4XX status.
+    \item The response status code to a failure to process the Sarif log should be a 5XX status.
+\end{itemize}
+
+The \cxoneflow delivery will retry on failure but otherwise the status codes are for logging purposes. 
+If creating a custom HTTP receiver endpoint implementation is unstable or difficult, explore using
+the AMQP delivery option.  The use of the AMQP integration will typically be easier given the difficult
+implementation parts of an HTTP receiver endpoint are implemented by the queue fabric.
 
 \subsection{Sender Verification with HMAC}
 The method of authenticating the sender is to validate a signature hash calculated
 from the body of the delivered message.  This is done using a secret value
 known by both the sender and receiver.  There is no need for sender and receiver to
 exchange the shared secret; the signature verification allows each side to demonstrate
-knowledge of the shared secret by producing the same calculated signature.
+knowledge of the shared secret by producing the same calculated signature for the
+exchanged message content.
 
-If the signatures match, it is verified the sender and receiver both know the same
+If the signature calculated by the receiver matches the signature sent
+by the sender, it is verified the sender and receiver both know the same
 shared secret.  If the signatures don't match, the received message is typically
 discarded since the sender can't be verified by demonstrating knowledge of a
 mutually shared secret.  The data integrity is also ensured given the signature
@@ -83,7 +121,10 @@ The signature is typically validated prior to processing the received contents. 
 allows data sent by unverified senders or data that was modified in transit to be
 discarded.
 
-\subsubsection{AMQP Example}
+Examples of signature verification are provided in the next section.
+\footnote{Do not use the example shared secret in production; it is for demonstration purposes only.}
+
+\subsubsection{AMQP HMAC Signature Verification Example}
 
 The example code for demonstrating HMAC signature validation with an AMQP receiver
 consumes a pre-defined queue that has been bound to a pre-defined exchange. Sarif logs are
@@ -96,7 +137,8 @@ by the sender, recalculates the signature on the received message content.  If t
 match, the message is verified as sent by the correct sender.
 
 
-\begin{code}{HMAC Verification Example}{[AMQP]}{}
+
+\begin{code}{HMAC Signature Verification Example}{[AMQP]}{}
 import hmac
 import asyncio, aio_pika
 
@@ -136,7 +178,7 @@ if __name__ == "__main__":
 
 
 
-\subsubsection{HTTP Example}
+\subsubsection{HTTP HMAC Signature Verification Example}
 
 The example code for demonstrating HMAC signature validation with an HTTP receiver
 is a simple Flask application. The application acts as an HTTP receiver endpoint
@@ -145,8 +187,7 @@ headers.  The receiver, which also knows the shared secret used to calculate the
 by the sender, recalculates the signature on the received body content. If the signatures
 match, the message is verified as sent by the correct sender.
 
-
-\begin{code}{HMAC Verification Example}{[HTTP]}{}
+\begin{code}{HMAC Signature Verification Example}{[HTTP]}{}
 import hmac
 from flask import Flask, request, Response
 
@@ -173,4 +214,14 @@ async def validate__hmac_signature():
 \end{code}
 
 
+\subsection{Scan Error Message Delivery}
+
+In the event of a scan error that prevents the generation of a Sarif log, a message is delivered with the header
+\texttt{x-cx-is-error} set to True.  The HMAC validation of the content to confirm a valid sender can be
+performed as it is with a message containing a Sarif log.
+
+The body of the message when the \texttt{x-cx-is-error} header indicates the message is an error is a simple
+JSON dictionary containing one key named \texttt{error}.  The value for \texttt{error} is a simple text string
+indicating the reason for the failure.  The message headers will contain details of the scan parameters that
+can be used to further query the SCM and \cxone if necessary.
 
