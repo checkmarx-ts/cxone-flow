@@ -1,4 +1,4 @@
-<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.0.6 Chrome/138.0.7204.100 Electron/37.2.3 Safari/537.36" version="28.0.6" pages="13">
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.0.6 Chrome/138.0.7204.100 Electron/37.2.3 Safari/537.36" version="28.0.6" pages="14">
   <diagram id="cOkN994JsgNkXrXQWmEZ" name="cxoneflow-deployment">
     <mxGraphModel dx="1426" dy="841" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
       <root>
@@ -1637,6 +1637,161 @@
             <Array as="points">
               <mxPoint x="505" y="345" />
             </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="JS9W0Pgj8JKlJMkShWSY" name="sarif-exchange-example">
+    <mxGraphModel dx="1426" dy="841" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="TvFpMffa88fNXTPHVXaF-1" value="Sarif Exchange" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="217" y="225" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0;exitDx=80;exitDy=65;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-2" target="TvFpMffa88fNXTPHVXaF-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-2" value="Sarif Log&lt;div&gt;Message&lt;/div&gt;" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;" vertex="1" parent="1">
+          <mxGeometry x="74" y="190" width="80" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-5" value="Jira Org 1&lt;div&gt;Queue&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="117.5" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-6" value="Jira Exchange" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="150" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-7" value="Service Now Exchange" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="309" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-8" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-1" target="TvFpMffa88fNXTPHVXaF-7">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="270" y="370" as="sourcePoint" />
+            <mxPoint x="320" y="320" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="277" y="339" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-9" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-1" target="TvFpMffa88fNXTPHVXaF-6">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="180" as="sourcePoint" />
+            <mxPoint x="300" y="130" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="277" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-10" value="jira.#" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="310" y="150" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-11" value="snow.#" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="310" y="339" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-12" value="Jira Org 2&lt;div&gt;Queue&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="182.5" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-13" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-6" target="TvFpMffa88fNXTPHVXaF-5">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="260" y="460" as="sourcePoint" />
+            <mxPoint x="310" y="410" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="470" y="133" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-14" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-6" target="TvFpMffa88fNXTPHVXaF-12">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="480" as="sourcePoint" />
+            <mxPoint x="620" y="430" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="470" y="228" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-15" value="Snow Org 1&lt;div&gt;Queue&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="276.5" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-16" value="Snow Org 2&lt;div&gt;Queue&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="341.5" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-17" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.45;exitY=1.017;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-7" target="TvFpMffa88fNXTPHVXaF-16">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="480" y="460" as="sourcePoint" />
+            <mxPoint x="530" y="410" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="464" y="387" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-18" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-7" target="TvFpMffa88fNXTPHVXaF-15">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="460" y="280" as="sourcePoint" />
+            <mxPoint x="520" y="260" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="470" y="292" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-19" value="snow.#.org1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="530" y="268" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-20" value="snow.#.org2" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="530" y="383" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-21" value="jira.#.org1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="530" y="108" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-22" value="jira.#.org2" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="530" y="224" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-23" value="Jira Agent" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="855" y="150" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-24" value="Snow Agent" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="855" y="309" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-25" value="" style="endArrow=classic;html=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-24" target="TvFpMffa88fNXTPHVXaF-15">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="780" y="500" as="sourcePoint" />
+            <mxPoint x="830" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-26" value="" style="endArrow=classic;html=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-24" target="TvFpMffa88fNXTPHVXaF-16">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="880" y="470" as="sourcePoint" />
+            <mxPoint x="930" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-27" value="" style="endArrow=classic;html=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-23" target="TvFpMffa88fNXTPHVXaF-12">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="880" y="520" as="sourcePoint" />
+            <mxPoint x="930" y="470" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-28" value="" style="endArrow=classic;html=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-23" target="TvFpMffa88fNXTPHVXaF-5">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="860" y="480" as="sourcePoint" />
+            <mxPoint x="910" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-29" value="Snow" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="309" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-30" value="Jira" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="150" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-31" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-24" target="TvFpMffa88fNXTPHVXaF-29">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="940" y="500" as="sourcePoint" />
+            <mxPoint x="990" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TvFpMffa88fNXTPHVXaF-32" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="TvFpMffa88fNXTPHVXaF-23" target="TvFpMffa88fNXTPHVXaF-30">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="880" y="540" as="sourcePoint" />
+            <mxPoint x="930" y="490" as="targetPoint" />
           </mxGeometry>
         </mxCell>
       </root>
