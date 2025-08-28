@@ -61,7 +61,8 @@ class ResolverConfig(CommonConfig):
                         CommonConfig._get_value_for_key_or_default("resolver-before-script", prescan_dict, False),
                         CommonConfig._get_value_for_key_or_fail(f"{config_path}/pre-scan", "container-image-tag", prescan_dict),
                         CommonConfig._get_value_for_key_or_default("shell", prescan_dict, "/bin/sh"),
-                        CommonConfig._get_value_for_key_or_fail(f"{config_path}/pre-scan", "script", prescan_dict))
+                        CommonConfig._get_value_for_key_or_fail(f"{config_path}/pre-scan", "script", prescan_dict),
+                        CommonConfig._get_value_for_key_or_default("run-as-agent", prescan_dict, True))
 
     @staticmethod
     def __agent_factory(config_path : str, agent_tag : str, config_dict : dict) -> ResolverRunnerAgent:

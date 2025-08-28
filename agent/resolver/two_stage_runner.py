@@ -8,7 +8,7 @@ class ResolverTwoStageExecutionContext(ResolverExecutionContext):
 
     def __init__(
         self, workpath: str, opts: ResolverOpts, resolver_runner: ResolverRunner, 
-        resolver_before : bool, container_tag : str, shell : str, script : str):
+        resolver_before : bool, container_tag : str, shell : str, script : str, run_as_agent : bool):
         super().__init__(workpath, opts)
         self.__resolver = resolver_runner
         self.__resolver_executor = None
@@ -16,6 +16,10 @@ class ResolverTwoStageExecutionContext(ResolverExecutionContext):
         self.__container_tag = container_tag
         self.__shell = shell
         self.__script = script
+        if run_as_agent:
+            self.__user_opts = ["-u", f"{os.getuid()}:{os.getgid()}"]
+        else:
+            self.__user_opts = []
 
     @property
     def can_execute(self):
@@ -42,8 +46,8 @@ class ResolverTwoStageExecutionContext(ResolverExecutionContext):
 
             try:
                 exec_command = ResolverTwoStageExecutionContext.__docker_cmd + \
-                ["-u", f"{os.getuid()}:{os.getgid()}",
-                "-v", f"{self.clone_path}:/code", "-w", "/code",
+                self.__user_opts + \
+                ["-v", f"{self.clone_path}:/code", "-w", "/code",
                 "--entrypoint", self.__shell,
                 self.__container_tag,
                 "-c", self.__script]
@@ -107,6 +111,7 @@ class ResolverTwoStageRunner(ResolverRunner):
         container_tag: str,
         shell: str,
         script: str,
+        run_as_agent_user : bool,
     ):
         super().__init__(workpath, opts)
         self.__resolver = resolver_runner
@@ -114,8 +119,9 @@ class ResolverTwoStageRunner(ResolverRunner):
         self.__container_tag = container_tag
         self.__shell = shell
         self.__script = script
+        self.__as_agent = run_as_agent_user
 
     async def executor(self):
         return ResolverTwoStageExecutionContext(
             self.work_path, self.resolver_opts, self.__resolver, self.__resolver_before, self.__container_tag,
-            self.__shell, self.__script)
+            self.__shell, self.__script, self.__as_agent)
