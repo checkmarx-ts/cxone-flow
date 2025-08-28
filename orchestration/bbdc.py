@@ -89,7 +89,7 @@ class BitBucketDataCenterOrchestrator(AbstractOrchestrator):
             return await BitBucketDataCenterOrchestrator.__workflow_map[self.__event](self, services)
 
     async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
-        self.deferred_scan = True
+        self.delegated_scan = True
         return await self.__delegated_dispatcher(BitBucketDataCenterOrchestrator.__delegate_scan_handler_map, services, scan_id)
 
 

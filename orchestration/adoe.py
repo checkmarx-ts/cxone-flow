@@ -89,7 +89,7 @@ class AzureDevOpsEnterpriseOrchestrator(AbstractOrchestrator):
         if self.__event not in AzureDevOpsEnterpriseOrchestrator.__delegate_scan_handler_map.keys():
             AzureDevOpsEnterpriseOrchestrator.log().error(f"Unhandled delegated scan event type: {self.__event}")
         else:
-            self.deferred_scan = True
+            self.delegated_scan = True
             await self.__common_execution_steps(services)
             return await AzureDevOpsEnterpriseOrchestrator.__delegate_scan_handler_map[self.__event](self, services, scan_id)
 

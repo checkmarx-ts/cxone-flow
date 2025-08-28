@@ -182,7 +182,7 @@ class GitlabOrchestrator(AbstractOrchestrator):
         return await GitlabOrchestrator.__workflow_map[self.__event](self, services)
 
     async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
-        self.deferred_scan = True
+        self.delegated_scan = True
         if self.__event not in GitlabOrchestrator.__delegate_scan_handler_map.keys():
             GitlabOrchestrator.log().error(f"Unhandled delegated scan event type: {self.__event}")
         else:
