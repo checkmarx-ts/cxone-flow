@@ -159,7 +159,11 @@ class CxOneService:
                 exec_update = True
                 project_json['name'] = dynamic_project_name
 
-            project_orig_groups = project_json['groups']
+
+            # 'groups' can be null due to a bug in the CxOne API response.  The OpenAPI spec
+            # indicates it should be a non-null list.  No groups assigned yields an empty list for some tenants,
+            # but null for others.
+            project_orig_groups = project_json['groups'] if project_json['groups'] is not None else []
             if self.__update_groups:
                 new_list = await self.__resolve_group_memberships(project_orig_groups, clone_url)
                 # Check if there is a new group assignment needed for the project
