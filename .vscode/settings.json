@@ -8,5 +8,12 @@
     ],
     "python.testing.pytestEnabled": false,
     "python.testing.unittestEnabled": true,
-    "pylint.args": ["--disable=all","--enable=E,F","--disable=E1121","--ignore=.venv"]
+    "pylint.args": ["--disable=all","--enable=E,F","--disable=E1121","--ignore=.venv"],
+    "cSpell.words": [
+        "AMQP",
+        "checkmarx",
+        "cxone",
+        "cxoneflow",
+        "mycert"
+    ]
 }

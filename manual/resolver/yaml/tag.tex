@@ -18,6 +18,18 @@ If set to \texttt{True}, \scaresolver executes before the \intlink{sec:agent-pre
 execution has been disabled with the \intlink{sec:agent-disable-resolver}{disable-resolver} option, this setting is ignored.
 
 
+\subsubsection{<agent tag>.pre-scan.run-as-agent}\label{sec:agent-pre-scan-run-as-agent}
+The default setting is \texttt{True}.  If set to \texttt{True}, the container runs with the UID:GID of
+the scan agent.  This is to allow for the overlay file system to read/write to the mapped code directory
+while executing the pre-scan script.  If set to \texttt{False}, the container runs as the container default
+user.
+
+When running as the container default user, anything written to the mapped code directory may prevent the scan
+agent from having read/write access after the container exits.  The pre-scan script should set the read/write
+permissions on or remove files written during the container execution prior to exiting the container.  This will
+allow the scan agent to remove the temporary copy of the code when the pre-scan execution is complete.
+
+
 \subsubsection{<agent tag>.pre-scan.script}\label{sec:agent-pre-scan-script}
 The script to execute in the running container image.  This can be a single line or a multi-line
 string using the \extlink{https://yaml.org/spec/1.2.2/\#812-literal-style}{YAML literal scalar style} syntax

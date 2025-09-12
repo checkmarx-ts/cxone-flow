@@ -37,15 +37,15 @@ class AbstractOrchestrator:
 
     def __init__(self, event_context : EventContext):
         self.__event_context = event_context
-        self.__isdeferred = False
+        self.__isdelegated = False
 
     @property
-    def deferred_scan(self):
-        return self.__isdeferred
+    def delegated_scan(self):
+        return self.__isdelegated
 
-    @deferred_scan.setter
-    def deferred_scan(self, value):
-        self.__isdeferred = value
+    @delegated_scan.setter
+    def delegated_scan(self, value):
+        self.__isdelegated = value
 
     @property
     def config_key(self):
@@ -184,7 +184,7 @@ class AbstractOrchestrator:
                 await services.naming.get_project_name(await self.get_default_cxone_project_name(), self.event_context), 
                 clone_url)
 
-            if not self.deferred_scan and not services.resolver.skip and await services.cxone.sca_selected(project_config, source_branch):
+            if not self.delegated_scan:
                 try:
                     resolver_tag = await services.cxone.get_resolver_tag_for_project(project_config, 
                                                                                     services.resolver.project_tag_key, services.resolver.default_tag)

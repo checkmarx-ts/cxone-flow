@@ -172,7 +172,7 @@ class GithubOrchestrator(AbstractOrchestrator):
             return await GithubOrchestrator.__workflow_map[self.__dispatch_event](self, services)
 
     async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
-        self.deferred_scan = True
+        self.delegated_scan = True
         if self.__dispatch_event not in GithubOrchestrator.__delegate_scan_handler_map.keys():
             GithubOrchestrator.log().error(f"Unhandled delegated scan event type: {self.__dispatch_event}")
         else:

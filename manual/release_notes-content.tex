@@ -6,6 +6,8 @@
     \item Scan Agents support a pre-scan shell script execution step in addition to an optional execution of SCA Resolver.
     \item Some configuration element names have changed with the transition to the use of the term Scan Agents and may break
     existing configurations.
+    \item A fix was made for an error with automatic group assignments when \texttt{*.project-groups.update-groups} is set
+    to \texttt{True}.
 \end{itemize}
 
 \section{2.1.4}
@@ -140,6 +142,6 @@ message queue running internally in the CxOneFlow container), please see the doc
     \item Support for Azure DevOps Enterprise 2022.1\footnote{Testing was performed against 2022.1 but it is possible that earlier versions will work.}
     \item Webhook Endpoint support for BitBucket Data Center (BBDC) and Azure DevOps Enterprise (ADOE).
     \item Scan on push to protected branches.
-    \item Scan on pull-request targetting protected branches.
+    \item Scan on pull-request targeting protected branches.
     \item Pull-request workflow scan tagging.
 \end{itemize}
