@@ -21,7 +21,7 @@ The \cxone project tag key value used to find the scan agent tag that should be 
 This is described in more detail in Section \ref{sec:scan-agents}.
 
 \subsubsection{<scm moniker>.scan-agent.scan-retries}\label{sec:scan-agent-scan-retries}
-The number of times a request for a de;egated scan will be retried after the initial request if no Scan Agent handles the scan.
+The number of times a request for a delegated scan will be retried after the initial request if no Scan Agent handles the scan.
 Any scan request not handled by a Scan Agent before the \intlink{sec:scan-agent-scan-timeout-seconds}{scan-timeout-seconds} setting 
 will be evaluated for resubmission.  If the number of retries exceeds this amount, the scan will be returned in a failed state.
 

@@ -122,7 +122,7 @@ to \texttt{/code}.  Changes to the content of the \texttt{/code} directory are p
 after the container exits; all other changes made to the container file system are discarded
 upon container exit.
 
-The intention of this feature is to allow a small amount of prepration of the code
+The intention of this feature is to allow a small amount of preparation of the code
 before it is sent to \cxone for scanning.  It is not intended as a full-featured code
 build tool.  Any tooling configuration needed to support the pre-scan execution should be
 included in the container image.  Scripts that require interactive input can not be supported.
@@ -391,7 +391,7 @@ configuration options.
 This is a boolean option that is passed to \scaresolver as the argument \texttt{--break-on-manifest-failure}.  It is recommended
 that this is set in the \intlink{sec:agent-resolver-opts}{resolver-opts} configuration.  This will cause any manifest failures
 encountered when running \scaresolver to flag the scan with the resolver tag of \textbf{failed}.  If this option is not included,
-all scans will have a resolver tag of \textbf{success} regardless of if resoluton of any dependency trees failed when
+all scans will have a resolver tag of \textbf{success} regardless of if resolution of any dependency trees failed when
 executing \scaresolverns.
 
 The reason \scaresolver should be configured to run with this option is to make it easy to filter a list of scans by resolver
@@ -415,7 +415,7 @@ Please note the following limitations apply when using the Scan Agent:
 \begin{itemize}
   \item Server-side configurations with \texttt{clone-auth} using SSH keys will fail.
   \item Windows base container images can not be used to run \scaresolver in a container.  Only Linux base images are supported.
-  \item The Containter Security scans recently moved away from using \scaresolverns, thus container scans will currently
+  \item The Container Security scans recently moved away from using \scaresolverns, thus container scans will currently
     execute in the \cxoneflow server side environment.
 \end{itemize}
 
