@@ -75,7 +75,7 @@ class PushFeedbackService(CxOneFlowAbstractWorkflowService):
             topic += self.__moniker
 
             if self.__topic_suffix is not None:
-                topic += "." + self.__topic_prefix.lstrip(".")
+                topic += "." + self.__topic_suffix.lstrip(".")
             
             return topic
 
@@ -87,9 +87,10 @@ class PushFeedbackService(CxOneFlowAbstractWorkflowService):
                 write_channel = await (await self.mq_client()).channel()
                 exchange = await write_channel.get_exchange(self.__dest_exchange)
 
-                await exchange.publish(aio_pika.Message(msg, headers = headers, delivery_mode=aio_pika.DeliveryMode.PERSISTENT), 
+                pub_result = await exchange.publish(aio_pika.Message(msg, headers = headers, delivery_mode=aio_pika.DeliveryMode.PERSISTENT), 
                                        routing_key=self.__get_topic())
-
+                
+                self.log().debug("Msg published for %s on exchange %s result: %s", self.__moniker, self.__dest_exchange, pub_result)
             except BaseException:
                 PushFeedbackService.log().exception("Sarif AMQP delivery failed.")
             finally:
