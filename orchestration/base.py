@@ -201,7 +201,7 @@ class AbstractOrchestrator:
                     AbstractOrchestrator.log().exception("Delegated scan workflow exception.", ex)
 
             inspector, action = await AbstractOrchestrator.exec_clone_scan(services.cxone, services.scm, clone_url, source_hash,
-                                            source_branch, project_config, scan_tags, self.event_context)
+                                    source_branch, project_config, scan_tags, self.event_context)
             
             return inspector, action
         else:
@@ -267,8 +267,8 @@ class AbstractOrchestrator:
 
     async def __start_pr_workflow(self, services : CxOneFlowServices, inspector : ScanInspector):
 
-        source_branch, commit_hash = await self._get_source_branch_and_hash()
-        target_branch, _  = await self._get_target_branch_and_hash()
+        source_branch, _ = await self._get_source_branch_and_hash()
+        target_branch, _ = await self._get_target_branch_and_hash()
 
         await services.pr.start_pr_scan_workflow(inspector.project_id, inspector.scan_id, 
                                                     PRDetails.factory(event_context=self.event_context, 

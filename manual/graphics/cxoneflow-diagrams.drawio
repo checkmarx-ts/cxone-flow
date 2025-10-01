@@ -1639,6 +1639,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
+<<<<<<< HEAD
       </root>
     </mxGraphModel>
   </diagram>
@@ -1794,6 +1795,8 @@
             <mxPoint x="930" y="490" as="targetPoint" />
           </mxGeometry>
         </mxCell>
+=======
+>>>>>>> master
       </root>
     </mxGraphModel>
   </diagram>
