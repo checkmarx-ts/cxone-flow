@@ -30,7 +30,7 @@ python:3.12-bookworm sh -c \
 " \
 pip install -U pyinstaller && \
 pip install -r requirements.txt && \
-pyinstaller -F --copy-metadata aio-pika --specpath /dist/platform/spec --distpath /dist/output --workpath /dist/work cx_scan_agent.py \
+pyinstaller -F --copy-metadata aio-pika --copy-metadata jschema-to-python --specpath /dist/platform/spec --distpath /dist/output --workpath /dist/work cx_scan_agent.py \
 "
 
 dpkg-deb --build $PACKAGE_ROOT/deb-package
