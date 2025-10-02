@@ -188,4 +188,6 @@ async def gitlab_kickoff_endpoint():
 @app.get("/artifacts/<path:path>" )
 async def artifacts(path):
     __log.debug(f"Fetching artifact at {path}")
-    return send_from_directory("artifacts", path)
+    res = send_from_directory("artifacts", path)
+    res.headers['Access-Control-Allow-Origin'] = '*'
+    return res
