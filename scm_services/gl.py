@@ -2,7 +2,7 @@ from .scm import SCMService
 from api_utils.auth_factories import EventContext
 from cxone_api.util import json_on_ok
 from api_utils import form_url
-from workflows.pr import PullRequestDecoration
+from workflows.pr import PullRequestAbstractMarkdownComment
 import urllib
 
 class GLService(SCMService):
@@ -27,7 +27,7 @@ class GLService(SCMService):
         note_url = GLService.__notes_api_path
         
         for comment in existing_comments:
-          if PullRequestDecoration.matches_identifier(comment['body']):
+          if PullRequestAbstractMarkdownComment.comment_matches_identifier(comment['body']):
               method = "PUT"
               note_url = GLService.__note_update_api_path
               pr_api_params['note_id'] = str(comment['id'])

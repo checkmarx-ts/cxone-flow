@@ -1,7 +1,7 @@
 from .scm import SCMService
 from cxone_api.util import json_on_ok
 import json
-from workflows.pr import PullRequestDecoration
+from workflows.pr import PullRequestAbstractMarkdownComment
 from api_utils.auth_factories import EventContext
 from api_utils import form_url
 
@@ -51,7 +51,7 @@ class BBDCService(SCMService):
                         if 'editable' in comment['permittedOperations'].keys():
                             if bool(comment['permittedOperations']['editable']):
                                 if 'text' in comment.keys():
-                                    if PullRequestDecoration.matches_identifier(item['comment']['text']):
+                                    if PullRequestAbstractMarkdownComment.comment_matches_identifier(item['comment']['text']):
                                         return int(comment['id']), int(comment['version'])
         return None, None
 

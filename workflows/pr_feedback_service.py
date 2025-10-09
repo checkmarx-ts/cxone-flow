@@ -4,7 +4,7 @@ from scm_services import SCMService
 from workflows.messaging import ScanAnnotationMessage, ScanFeedbackMessage, PRDetails, ScanAwaitMessage
 from workflows.feedback_workflow_base import AbstractPRFeedbackWorkflow
 from workflows import ScanStates, ScanWorkflow, FeedbackWorkflow
-from workflows.pr import PullRequestAnnotation, PullRequestFeedback
+from workflows.pr import PullRequestMarkdownAnnotation, PullRequestMarkdownFeedback
 from workflows.base_service import CxOneFlowAbstractWorkflowService
 from cxone_service import CxOneException
 
@@ -58,23 +58,17 @@ class PRFeedbackService(CxOneFlowAbstractWorkflowService):
 
         try:
             if await self.__workflow.is_enabled():
-                inspector = await cxone_service.load_scan_inspector(am.scanid)
+                annotation = PullRequestMarkdownAnnotation(cxone_service.display_link, am.projectid, am.scanid, am.annotation, pr_details.source_branch,
+                                                    self.__server_base_url)
+                await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
+                                                am.scanid, annotation.full_content, annotation.summary_content, pr_details.event_context)
+                await msg.ack()
 
-                if inspector is not None:
-                    annotation = PullRequestAnnotation(cxone_service.display_link, inspector.project_id, am.scanid, am.annotation, pr_details.source_branch,
-                                                       self.__server_base_url)
-                    await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,
-                                                    am.scanid, annotation.full_content, annotation.summary_content, pr_details.event_context)
-                    await msg.ack()
-
-                    self.log().info(f"{am.moniker}: PR {pr_details.pr_id}@{pr_details.clone_url}: Annotation complete")
-                else:
-                    PRFeedbackService.log().error(f"Unable for load scan {am.scanid}")
-                    await msg.nack()
+                self.log().info(f"{am.moniker}: PR {pr_details.pr_id}@{pr_details.clone_url}: Annotation complete")
             else:
                 await msg.ack()
         except BaseException as bex:
-            PRFeedbackService.log().error("Unrecoverable exception, aborting PR annotation.")
+            PRFeedbackService.log().error("Unrecoverable exception, aborting PR annotation for scan id %s.", am.scanid)
             PRFeedbackService.log().exception(bex)
             await msg.ack()
 
@@ -89,7 +83,7 @@ class PRFeedbackService(CxOneFlowAbstractWorkflowService):
                 if report is None:
                     await msg.nack()
                 else:
-                    feedback = PullRequestFeedback(self.__workflow.excluded_severities, 
+                    feedback = PullRequestMarkdownFeedback(self.__workflow.excluded_severities, 
                         self.__workflow.excluded_states, cxone_service.display_link, fm.projectid, fm.scanid, report, 
                         scm_service.create_code_permalink, pr_details, self.__server_base_url)
                     await scm_service.exec_pr_decorate(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id,

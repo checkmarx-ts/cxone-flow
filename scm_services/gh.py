@@ -3,7 +3,7 @@ from api_utils.auth_factories import EventContext
 from api_utils.pagers import async_api_page_generator
 from api_utils import form_url
 from requests import Response
-from workflows.pr import PullRequestDecoration
+from workflows.pr import PullRequestAbstractMarkdownComment
 from cxone_api.util import json_on_ok
 import json
 
@@ -37,7 +37,7 @@ class GHService(SCMService):
             lambda offset: self.__comment_list_args_gen(f"/repos/{organization}/{repo_slug}/issues/{pr_number}/comments", event_context, offset)):
             if 'id' in comment.keys() and 'body' in comment.keys():
                 comment_id = comment['id']
-                if PullRequestDecoration.matches_identifier(comment['body']):
+                if PullRequestAbstractMarkdownComment.comment_matches_identifier(comment['body']):
                     target_id = comment_id
                     break
 
