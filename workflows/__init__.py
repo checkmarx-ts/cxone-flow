@@ -1,5 +1,5 @@
 from enum import Enum
-from aenum import MultiValueEnum, AutoNumberEnum
+from aenum import MultiValueEnum
 
 class __base_enum(Enum):
     def __str__(self):
