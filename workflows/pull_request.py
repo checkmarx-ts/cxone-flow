@@ -1,6 +1,6 @@
 import aio_pika
 from datetime import timedelta
-from workflows.pr_feedback_service import PRFeedbackService
+from workflows.feedback_services import PRFeedbackService
 from workflows import ScanWorkflow, ScanStates, ResultSeverity, ResultStates
 from workflows.feedback_workflow_base import AbstractPRFeedbackWorkflow
 from workflows.messaging import ScanAwaitMessage, ScanFeedbackMessage, ScanAnnotationMessage

@@ -13,8 +13,7 @@ from api_utils.auth_factories import AuthFactory, GithubAppAuthFactory
 from cxone_service import CxOneService
 from cxone_service.grouping import GroupingService
 from password_strength import PasswordPolicy
-from workflows.pr_feedback_service import PRFeedbackService
-from workflows.push_feedback_service import PushFeedbackService
+from workflows.feedback_services import PRFeedbackService, PushFeedbackService
 from workflows.scan_polling_service import ScanPollingService
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.pull_request import PullRequestWorkflow

@@ -7,3 +7,7 @@ class WorkflowException(BaseException):
     @staticmethod
     def invalid_tag(tag : str):
         return WorkflowException(f"Tag [{tag}] is not valid.  Only alphanumeric characters, dashes, and underscores are allowed.")
+
+    @staticmethod
+    def missing_report(project_id : str, scan_id : str):
+        return WorkflowException(f"Project {project_id}: Report for scan {scan_id} not found.")
