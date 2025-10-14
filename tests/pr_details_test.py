@@ -1,5 +1,6 @@
 import unittest
-from workflows.pr import SortedDetailRows, ResultSeverity
+from workflows.pr import SortedDetailRows
+from workflows import ResultSeverity
 
 
 class TestDetailRow(unittest.TestCase):

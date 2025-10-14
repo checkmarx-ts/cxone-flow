@@ -1,7 +1,7 @@
 import aio_pika, gzip, asyncio, json, requests, logging
 from time import perf_counter_ns
 from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
-from workflows import ScanStates, ScanWorkflow, FeedbackWorkflow
+from workflows.enums import ScanStates, ScanWorkflow, FeedbackWorkflow
 from workflows.base_service import AMQPClient, CxOneFlowAbstractWorkflowService
 from workflows.messaging import PushDetails, ScanAwaitMessage, ScanFeedbackMessage
 from cxone_api import CxOneClient

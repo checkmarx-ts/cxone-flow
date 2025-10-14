@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from re import Pattern
 from cxone_service import CxOneService
 from scm_services import SCMService
-from workflows.feedback_services import PushFeedbackService, AbstractPRFeedbackService
+from workflows.feedback_services.push import PushFeedbackService
+from workflows.feedback_services.pr import AbstractPRFeedbackService
 from workflows.scan_polling_service import ScanPollingService
 from workflows.resolver_scan_service import ResolverScanService
 from kickoff_services import KickoffService

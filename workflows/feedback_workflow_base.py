@@ -1,6 +1,6 @@
 import aio_pika
 from typing import List
-from workflows import ResultSeverity, ResultStates
+from workflows.enums import ResultSeverity, ResultStates
 from workflows.base_workflow import AbstractAsyncWorkflow
 from workflows.messaging import ScanAwaitMessage
 

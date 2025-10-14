@@ -4,7 +4,7 @@ from services import CxOneFlowServices
 from api_utils.auth_factories import EventContext
 from orchestration.base import AbstractOrchestrator
 from orchestration import OrchestrationDispatch
-from workflows import ScanStates
+from workflows.enums import ScanStates
 import aio_pika, gzip, importlib
 from typing import List
 

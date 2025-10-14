@@ -3,7 +3,7 @@ from jsonpath_ng import parse
 from jsonpath_ng.ext import parser
 from workflows.messaging import PRDetails
 from typing import Callable, List, Type, Dict
-from . import ResultSeverity, ResultStates
+from workflows.enums import ResultSeverity, ResultStates
 from sortedcontainers import SortedList
 import re, urllib
 

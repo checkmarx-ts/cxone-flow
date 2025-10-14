@@ -9,7 +9,7 @@ from cxone_service import CxOneService
 from scm_services.cloner import Cloner, CloneWorker, CloneAuthException
 from workflows.exceptions import WorkflowException
 from workflows.messaging import PRDetails, PushDetails
-from workflows import ScanWorkflow
+from workflows.enums import ScanWorkflow
 from api_utils.auth_factories import EventContext
 from enum import Enum
 from typing import Tuple, List, Dict, Any

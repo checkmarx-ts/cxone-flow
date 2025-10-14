@@ -13,7 +13,8 @@ from api_utils.auth_factories import AuthFactory, GithubAppAuthFactory
 from cxone_service import CxOneService
 from cxone_service.grouping import GroupingService
 from password_strength import PasswordPolicy
-from workflows.feedback_services import PRFeedbackService, PushFeedbackService
+from workflows.feedback_services.pr import AbstractPRFeedbackService, PRThreadFeedbackService
+from workflows.feedback_services.push import PushFeedbackService
 from workflows.scan_polling_service import ScanPollingService
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.pull_request import PullRequestWorkflow
@@ -23,7 +24,7 @@ from workflows.resolver_workflow import (
     DummyResolverScanningWorkflow,
     ResolverScanningWorkflow,
 )
-from workflows import ResultSeverity, ResultStates
+from workflows.enums import ResultSeverity, ResultStates
 from services import CxOneFlowServices
 from typing import List, Dict, Union, Tuple
 from cxone_api import CxOneClient
@@ -261,9 +262,9 @@ class CxOneFlowConfig(CommonConfig):
     @staticmethod
     def __pr_feedback_service_factory(
         config_path, moniker, **kwargs
-    ) -> PRFeedbackService:
+    ) -> AbstractPRFeedbackService:
         if kwargs is None or len(kwargs.keys()) == 0:
-            return PRFeedbackService(
+            return PRThreadFeedbackService(
                 moniker, CxOneFlowConfig.__server_base_url, PullRequestWorkflow(),
                 CxOneFlowConfig._default_amqp_url,
                 None,
@@ -326,7 +327,7 @@ class CxOneFlowConfig(CommonConfig):
                 ),
             )
 
-            return PRFeedbackService(
+            return PRThreadFeedbackService(
                 moniker, CxOneFlowConfig.__server_base_url, pr_workflow,
                 *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
             )

@@ -2,7 +2,7 @@ import aio_pika, logging, pamqp.commands, asyncio
 from datetime import timedelta
 from workflows.messaging import ScanAwaitMessage
 from workflows.base_service import CxOneFlowAbstractWorkflowService
-from workflows import ScanStates
+from workflows.enums import ScanStates
 from cxone_service import CxOneService
 from cxone_api.exceptions import ResponseException
 from typing import List

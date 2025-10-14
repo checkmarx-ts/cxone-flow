@@ -1,9 +1,9 @@
 import logging, asyncio, aio_pika
 import cxoneflow_logging as cof_logging
 from config import ConfigurationException, get_config_path
-from config.server import CxOneFlowConfig
 from workflows.scan_polling_service import ScanPollingService
-from workflows.feedback_services import PushFeedbackService, AbstractPRFeedbackService
+from workflows.feedback_services.push import PushFeedbackService
+from workflows.feedback_services.pr import PRQueueConstants
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.messaging import (
     ScanAwaitMessage,
@@ -12,6 +12,7 @@ from workflows.messaging import (
 )
 from agent.resolver import ResolverResultsAgent, ResolverTimeoutAgent
 from agent import mq_agent
+from config.server import CxOneFlowConfig
 
 cof_logging.bootstrap()
 
@@ -97,7 +98,7 @@ async def spawn_agents():
                     process_poll,
                     await services.pr.mq_client(),
                     moniker,
-                    AbstractPRFeedbackService.QUEUE_SCAN_POLLING_LEGACY,
+                    PRQueueConstants.QUEUE_SCAN_POLLING_LEGACY,
                 )
             )
             g.create_task(
@@ -113,7 +114,7 @@ async def spawn_agents():
                     process_pr_annotate,
                     await services.pr.mq_client(),
                     moniker,
-                    AbstractPRFeedbackService.QUEUE_ANNOTATE_PR,
+                    PRQueueConstants.QUEUE_ANNOTATE_PR,
                 )
             )
             g.create_task(
@@ -121,7 +122,7 @@ async def spawn_agents():
                     process_pr_feedback,
                     await services.pr.mq_client(),
                     moniker,
-                    AbstractPRFeedbackService.QUEUE_FEEDBACK_PR,
+                    PRQueueConstants.QUEUE_FEEDBACK_PR,
                 )
             )
             g.create_task(
