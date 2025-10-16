@@ -219,7 +219,8 @@ class PushFeedbackService(CxOneFlowAbstractWorkflowService):
 
 
     async def start_sarif_feedback(self, projectid : str, scanid : str, details : PushDetails) -> None:
-        await self.__workflow.workflow_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))
+        if await self.__workflow.is_enabled():
+            await self.__workflow.workflow_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))
 
     async def handle_completed_scan(self, msg : ScanAwaitMessage) -> None:
         if msg.workflow == ScanWorkflow.PUSH:
