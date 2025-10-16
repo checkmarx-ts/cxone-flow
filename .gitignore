@@ -12,6 +12,7 @@
 
 # Dynamic scripts
 scripts
+!.github/**/scripts
 
 # package builds
 agent_packages/**/*-package/etc/**
