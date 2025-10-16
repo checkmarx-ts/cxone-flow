@@ -120,18 +120,24 @@ class CxOneService:
         return list(set(existing_groups + await self.__group_service.resolve_groups(clone_url)))
 
     async def __create_or_retrieve_project(self, default_project_name : str, 
-                                           dynamic_project_name : str, clone_url : str) -> dict:
+                                           dynamic_project_name : str, clone_url : str, retry = True) -> dict:
         
         projects_response = CxOneService.__get_json_or_fail (await retrieve_list_of_projects(self.__client, 
             names=",".join([default_project_name, dynamic_project_name])))
 
 
         if int(projects_response['filteredTotalCount']) == 0:
-            project_json = CxOneService.__get_json_or_fail (await create_a_project (self.__client, \
+            create_response = await create_a_project (self.__client, \
                 groups = await self.__group_service.resolve_groups(clone_url),
                 name=dynamic_project_name, origin=__agent__, 
-                tags=self.__default_project_tags | {"cxone-flow" : __version__, "service" : self.moniker}))
-            project_id = project_json['id']
+                tags=self.__default_project_tags | {"cxone-flow" : __version__, "service" : self.moniker})
+
+            # 400 = project exists
+            if create_response.status_code != 400 or not retry:
+                project_json = CxOneService.__get_json_or_fail (create_response)
+                project_id = project_json['id']
+            elif retry:
+                return await self.__create_or_retrieve_project(default_project_name, dynamic_project_name, clone_url, False)
         else:
             dynamic_search = parser.parse(f"$.projects[?(@.name=='{dynamic_project_name}')]").find(projects_response)
             default_search = parser.parse(f"$.projects[?(@.name=='{default_project_name}')]").find(projects_response)

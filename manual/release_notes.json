@@ -2,6 +2,7 @@
   "2.3.0" : [
     "Integration with Checkmarx One policies for optional pull-request merge blocking.",
     "Optimized the SARIF log delivery feature to avoid unnecessary API calls.",
+    "Add better handling of project creation race condition",
     "Github releases now include this release note content in the release description."
     ],
   "2.2.0" : [
