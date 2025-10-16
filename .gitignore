@@ -5,6 +5,7 @@
 !.github/**/*.yml
 !agent_packages/**/*.yaml
 !manual/**/*.yaml
+!manual/release_notes.json
 *.zip
 *.tgz
 
