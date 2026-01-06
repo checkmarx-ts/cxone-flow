@@ -206,11 +206,14 @@ class CxOneService:
         return project_json
 
     async def __get_engine_config_for_scan(self, project_config : ProjectRepoConfig, commit_branch : str) -> dict:
-        enabled_scanners = await project_config.get_enabled_scanners(commit_branch)
+        project_default_cfg = await project_config.get_default_engine_configuration(commit_branch)
         return_engine_config = dict(self.__default_engine_config)
 
-        for missing_engine in [engine for engine in enabled_scanners if engine not in return_engine_config.keys()]:
-            return_engine_config[missing_engine] = {}
+        for cfg in project_default_cfg:
+            if cfg['type'] in return_engine_config.keys():
+                return_engine_config = return_engine_config | cfg['value']
+            else:
+                return_engine_config[cfg['type']] = cfg['value']
 
         scan__filter_cfg = await ScanFilterConfig.from_repo_config(self.__client, project_config)
         return_engine_config = scan__filter_cfg.compute_filters_with_defaults(return_engine_config)
