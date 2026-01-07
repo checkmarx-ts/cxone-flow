@@ -191,6 +191,19 @@ async def setup() -> None:
                 scan_annotate_exchange_pr, PRQueueConstants.ROUTEKEY_ANNOTATE_PR
             )
 
+            # Scan State: Failure
+            pr_failure_queue = await channel.declare_queue(
+                PRQueueConstants.QUEUE_FAILURE_PR,
+                durable=True,
+                arguments={"x-queue-type": "quorum"},
+            )
+            await pr_failure_queue.bind(
+                scan_feedback_exchange_pr, PRQueueConstants.ROUTEKEY_FAILURE_PR
+            )
+
+
+
+
         resolver_rmq = await services.resolver.mq_client()
         async with resolver_rmq.channel() as channel:
             # Resolver scan queue configuration
