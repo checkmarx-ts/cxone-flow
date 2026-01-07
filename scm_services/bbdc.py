@@ -1,9 +1,11 @@
 from .scm import SCMService
 from cxone_api.util import json_on_ok
 import json
-from workflows.pr import PullRequestAbstractMarkdownComment
+from workflows.pr_content import PullRequestAbstractMarkdownComment
 from api_utils.auth_factories import EventContext
 from api_utils import form_url
+from workflows.pr_content import PullRequestCommentContent, PullRequestStatusContent
+from workflows.messaging import PRDetails, ScanMessage
 
 class BBDCService(SCMService):
     __max_content_chars = 32000
@@ -55,11 +57,22 @@ class BBDCService(SCMService):
                                         return int(comment['id']), int(comment['version'])
         return None, None
 
-    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, 
-        summary_markdown : str, event_context : EventContext):
-        id, version = await self.__find_existing_comment(project, repo_slug, pr_number)
+    async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+        await self.__create_or_update_pr_comment(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id, 
+                                   content.get_content(BBDCService.__max_content_chars), pr_details.event_context)
 
-        content = full_markdown if len(full_markdown) <= BBDCService.__max_content_chars else summary_markdown
+    
+    async def exec_pr_scan_pending_decorate(self, pr_details : PRDetails, content: PullRequestCommentContent):
+        await self.exec_pr_scan_update_decorate(pr_details, content)
+
+    async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+        await self.exec_pr_scan_update_decorate(pr_details, content)
+
+    async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+        await self.exec_pr_scan_update_decorate(pr_details, content)
+
+    async def __create_or_update_pr_comment (self, organization : str, project : str, repo_slug : str, pr_number : str, content : str, event_context : EventContext):
+        id, version = await self.__find_existing_comment(project, repo_slug, pr_number)
 
         if id is None and version is None:
             id, version = await self.__add_comment(project, repo_slug, pr_number, content)

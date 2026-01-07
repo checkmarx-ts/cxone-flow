@@ -3,11 +3,20 @@ from api_utils.auth_factories import EventContext
 from api_utils.pagers import async_api_page_generator
 from api_utils import form_url
 from requests import Response
-from workflows.pr import PullRequestAbstractMarkdownComment
+from workflows.pr_content import PullRequestAbstractMarkdownComment
+from workflows.messaging import PRDetails, ScanMessage
 from cxone_api.util import json_on_ok
+from workflows.pr_content import PullRequestCommentContent, PullRequestStatusContent
 import json
+from typing import Dict
 
-class GHService(SCMService):
+
+class AbstractGHService(SCMService):
+    def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
+        return form_url(self.display_url, f"/{organization}/{repo_slug}/blob/{branch}{code_path}", f"L{code_line}")
+
+
+class GHServiceNoPRBlock(AbstractGHService):
     __max_content_chars = 65535
     __api_page_max = 100
 
@@ -15,21 +24,21 @@ class GHService(SCMService):
     def __comment_data_extractor(self, resp : Response):
         if resp.ok:
             json = resp.json()
-            return json, len(json) >= GHService.__api_page_max
+            return json, len(json) >= GHServiceNoPRBlock.__api_page_max
         return None
 
     def __comment_list_args_gen(self, path : str, event_context : EventContext, offset : int):
         return { 
             "method" : "GET",
             "path" : path,
-            "query" : {"per_page" : GHService.__api_page_max, "page" : offset + 1},
+            "query" : {"per_page" : GHServiceNoPRBlock.__api_page_max, "page" : offset + 1},
             "event_context" : event_context
         }
 
-    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, 
-        summary_markdown : str, event_context : EventContext):
+    async def __create_or_update_pr_comment(self, organization : str, repo_slug : str, pr_number : str, content : str, 
+        event_context : EventContext):
 
-        content = { "body" : full_markdown if len(full_markdown) <= GHService.__max_content_chars else summary_markdown}
+        content = { "body" : content}
 
         target_id = None
 
@@ -51,9 +60,23 @@ class GHService(SCMService):
                                               body=json.dumps(content), event_context = event_context))
             action = "Updated"
         
-        GHService.log().debug(f"{action} comment {target_id} in PR {pr_number}")
+        GHServiceNoPRBlock.log().debug(f"{action} comment {target_id} in PR {pr_number}")
 
-   
-    def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
-        return form_url(self.display_url, f"/{organization}/{repo_slug}/blob/{branch}{code_path}", f"L{code_line}")
+
+    async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+        await self.__create_or_update_pr_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, 
+                                                 content.get_content(self.__max_content_chars), pr_details.event_context)
+    
+    async def exec_pr_scan_pending_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+        return await self.exec_pr_scan_update_decorate(pr_details, content)
+
+    async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+        return await self.exec_pr_scan_update_decorate(pr_details, content)
+
+    async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+        return await self.exec_pr_scan_update_decorate(pr_details, content)
+    
+
+
+
 
