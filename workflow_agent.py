@@ -77,6 +77,22 @@ async def process_pr_feedback(msg: aio_pika.abc.AbstractIncomingMessage) -> None
         __log.exception(ex)
         await msg.nack(requeue=False)
 
+async def process_pr_feedback_error(msg: aio_pika.abc.AbstractIncomingMessage) -> None:
+    try:
+        __log.debug(
+            f"Received PR feedback failure message on channel {msg.channel.number}: {msg.info()}"
+        )
+        sm = ScanFeedbackMessage.from_binary(msg.body)
+        services = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
+        if await services.pr.process_pr_feedback(sm, services.cxone, services.scm):
+            await msg.ack()
+        else:
+            await msg.nack()
+    except BaseException as ex:
+        __log.exception(ex)
+        await msg.nack(requeue=False)
+
+
 
 async def spawn_agents():
 
@@ -123,6 +139,14 @@ async def spawn_agents():
                     await services.pr.mq_client(),
                     moniker,
                     PRQueueConstants.QUEUE_FEEDBACK_PR,
+                )
+            )
+            g.create_task(
+                mq_agent(
+                    process_pr_feedback_error,
+                    await services.pr.mq_client(),
+                    moniker,
+                    PRQueueConstants.QUEUE_FAILURE_PR,
                 )
             )
             g.create_task(
