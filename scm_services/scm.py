@@ -4,7 +4,8 @@ from scm_services.cloner import Cloner
 from typing import Dict, Any, final
 from requests import Response
 from api_utils.auth_factories import EventContext
-from workflows.messaging import PRDetails
+from workflows.messaging import PRDetails, ScanMessage
+from workflows.pr_content import PullRequestCommentContent, PullRequestStatusContent
 
 class BasicSCMService:
     @classmethod
@@ -46,22 +47,19 @@ class SCMService(BasicSCMService):
     @property
     def shared_secret(self) -> str:
         return self.__shared_secret
+
+    async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+        raise NotImplementedError("exec_pr_scan_update_decorate")
     
-    async def exec_pr_scan_pending_decorate(self, details : PRDetails, msg : str):
+    async def exec_pr_scan_pending_decorate(self, pr_details : PRDetails, content: PullRequestCommentContent):
         raise NotImplementedError("exec_pr_scan_pending_decorate")
 
-    async def exec_pr_scan_failure_decorate(self, details : PRDetails, scan_id : str, msg : str):
+    async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
         raise NotImplementedError("exec_pr_scan_failure_decorate")
 
-    async def exec_pr_scan_success_decorate(self, details : PRDetails, scan_id : str, scan_report : Dict):
+    async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
         raise NotImplementedError("exec_pr_scan_success_decorate")
 
-
-    # TODO: Deprecate
-    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, 
-        summary_markdown : str, event_context : EventContext):
-        raise NotImplementedError("exec_pr_decorate")
-   
 
     def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
         raise NotImplementedError("create_code_permalink")
