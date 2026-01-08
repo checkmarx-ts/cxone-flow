@@ -4,11 +4,10 @@ from api_utils.pagers import async_api_page_generator
 from api_utils import form_url
 from requests import Response
 from workflows.pr_content import PullRequestAbstractMarkdownComment
-from workflows.messaging import PRDetails, ScanMessage
+from workflows.messaging import PRDetails
 from cxone_api.util import json_on_ok
-from workflows.pr_content import PullRequestCommentContent, PullRequestStatusContent
+from workflows.pr_content import PullRequestCommentContent
 import json
-from typing import Dict
 
 
 class AbstractGHService(SCMService):

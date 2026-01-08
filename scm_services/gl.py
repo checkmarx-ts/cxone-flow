@@ -4,8 +4,8 @@ from cxone_api.util import json_on_ok
 from api_utils import form_url
 from workflows.pr_content import PullRequestAbstractMarkdownComment
 import urllib
-from workflows.pr_content import PullRequestCommentContent, PullRequestStatusContent
-from workflows.messaging import PRDetails, ScanMessage
+from workflows.pr_content import PullRequestCommentContent
+from workflows.messaging import PRDetails
 
 class GLService(SCMService):
     __max_content_chars = 1000000

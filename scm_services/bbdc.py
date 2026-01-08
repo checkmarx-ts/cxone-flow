@@ -4,8 +4,8 @@ import json
 from workflows.pr_content import PullRequestAbstractMarkdownComment
 from api_utils.auth_factories import EventContext
 from api_utils import form_url
-from workflows.pr_content import PullRequestCommentContent, PullRequestStatusContent
-from workflows.messaging import PRDetails, ScanMessage
+from workflows.pr_content import PullRequestCommentContent
+from workflows.messaging import PRDetails
 
 class BBDCService(SCMService):
     __max_content_chars = 32000
