@@ -3,3 +3,4 @@ from .v1.scan_feedback import ScanFeedbackMessage
 from .v1.scan_annotation import ScanAnnotationMessage
 from .v1.pr_details import PRDetails, PushDetails
 from .v1.delegated_scan import DelegatedScanMessage, DelegatedScanDetails, DelegatedScanResultMessage, DelegatedScanMessageBase
+from .scan_message import ScanMessage

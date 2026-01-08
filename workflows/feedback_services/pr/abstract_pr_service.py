@@ -31,7 +31,7 @@ class AbstractPRFeedbackService(CxOneFlowAbstractWorkflowService):
     def make_topic(state : ScanStates, workflow : FeedbackWorkflow, moniker : str):
         return f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{PRQueueConstants.PR_TOPIC_PREFIX}{state}.{workflow}.{moniker}"
     
-    async def start_pr_scan_workflow(self, projectid : str, scanid : str, details : PRDetails) -> None:
+    async def start_pr_scan_workflow(self, projectid : str, scanid : str, details : PRDetails, cxone_service : CxOneService, scm_service : SCMService) -> None:
         raise NotImplementedError("start_pr_scan_workflow")
     
     async def process_pr_notice(self, msg : ScanAnnotationMessage, cxone_service : CxOneService, scm_service : SCMService) -> bool:
