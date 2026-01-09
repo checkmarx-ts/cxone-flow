@@ -7,7 +7,7 @@ from typing import Dict
 from api_utils.auth_factories import EventContext
 from api_utils import form_url
 from workflows.pr_content import PullRequestCommentContent
-from workflows.messaging import PRDetails
+from workflows.messaging import PRDetails, ScanMessage
 
 class ADOEService(SCMService):
 
@@ -74,16 +74,16 @@ class ADOEService(SCMService):
             ADOEService.log().debug(f"PR thread {thread['id']} created on PR {pr_number}")
 
 
-    async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+    async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         await self.__create_or_update_pr_comment(pr_details, content)
     
     async def exec_pr_scan_pending_decorate(self, pr_details : PRDetails, content: PullRequestCommentContent):
         await self.__create_or_update_pr_comment(pr_details, content)
 
-    async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+    async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         await self.__create_or_update_pr_comment(pr_details, content)
 
-    async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+    async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         await self.__create_or_update_pr_comment(pr_details, content)
         
     async def __create_or_update_pr_comment(self, pr_details : PRDetails, content : PullRequestCommentContent):

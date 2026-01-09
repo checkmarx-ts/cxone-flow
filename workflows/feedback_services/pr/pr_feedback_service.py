@@ -1,6 +1,6 @@
 from cxone_service import CxOneService, CxOneException
 from scm_services.scm import SCMService
-from workflows.messaging import ScanAnnotationMessage, ScanFeedbackMessage, PRDetails, ScanAwaitMessage
+from workflows.messaging import ScanAnnotationMessage, ScanFeedbackMessage, PRDetails, ScanAwaitMessage, ScanMessage
 from workflows.enums import ScanWorkflow
 from workflows.exceptions import WorkflowException
 from workflows.pr_content import PullRequestMarkdownAnnotation, PullRequestMarkdownFeedback
@@ -13,7 +13,7 @@ class PRFeedbackService(AbstractPRFeedbackService):
         try:
             if await self.workflow.is_enabled():
                 annotation = PullRequestMarkdownAnnotation(cxone_service.display_link, msg.projectid, msg.scanid, msg.annotation, pr_details.source_branch, self.server_base_url)
-                await scm_service.exec_pr_scan_update_decorate(pr_details, annotation)
+                await scm_service.exec_pr_scan_update_decorate(pr_details, annotation, msg)
                 self.log().info(f"{msg.moniker}: PR {pr_details.pr_id}@{pr_details.clone_url}: Annotation complete")
 
             return True
@@ -32,16 +32,16 @@ class PRFeedbackService(AbstractPRFeedbackService):
                 if report is None:
                     raise WorkflowException.missing_report(msg.projectid, msg.scanid)
                 else:
-                    status_msg = f"Scan {msg.scanid}: " + msg.error_msg if msg.is_error else "completed."
+                    status_msg = f"Scan {msg.scanid}: " + (msg.error_msg if msg.is_error else "completed")
 
                     feedback = PullRequestMarkdownFeedback(self.workflow.excluded_severities, 
                         self.workflow.excluded_states, cxone_service.display_link, msg.projectid, msg.scanid, report, 
                         scm_service.create_code_permalink, pr_details, self.server_base_url, status_msg)
                     
                     if not msg.is_error:
-                        await scm_service.exec_pr_scan_success_decorate(pr_details, feedback)
+                        await scm_service.exec_pr_scan_success_decorate(pr_details, feedback, msg)
                     else:
-                        await scm_service.exec_pr_scan_failure_decorate(pr_details, feedback)
+                        await scm_service.exec_pr_scan_failure_decorate(pr_details, feedback, msg)
 
                     self.log().info(f"{msg.moniker}: PR {pr_details.pr_id}@{pr_details.clone_url}: Feedback complete")
 
@@ -57,7 +57,7 @@ class PRFeedbackService(AbstractPRFeedbackService):
 
     async def start_pr_scan_workflow(self, projectid : str, scanid : str, details : PRDetails, cxone_service : CxOneService, scm_service : SCMService) -> None:
         await self.workflow.workflow_start(await self.mq_client(), self.moniker, projectid, scanid, **(details.as_dict()))
-        await self.workflow.annotation_start(await self.mq_client(), self.moniker, projectid, scanid, "Scan Started", **(details.as_dict()))
+        await self.workflow.annotation_start(await self.mq_client(), self.moniker, projectid, scanid, "CheckmarxOne scan started", **(details.as_dict()))
 
     async def handle_completed_scan(self, msg : ScanAwaitMessage) -> None:
         if msg.workflow == ScanWorkflow.PR:

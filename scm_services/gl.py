@@ -5,7 +5,7 @@ from api_utils import form_url
 from workflows.pr_content import PullRequestAbstractMarkdownComment
 import urllib
 from workflows.pr_content import PullRequestCommentContent
-from workflows.messaging import PRDetails
+from workflows.messaging import PRDetails, ScanMessage
 
 class GLService(SCMService):
     __max_content_chars = 1000000
@@ -13,16 +13,16 @@ class GLService(SCMService):
     __notes_api_path = "/projects/:id/merge_requests/:merge_request_iid/notes"
     __note_update_api_path = "/projects/:id/merge_requests/:merge_request_iid/notes/:note_id"
 
-    async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+    async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         await self.__create_or_update_pr_comment(pr_details, content)
     
     async def exec_pr_scan_pending_decorate(self, pr_details : PRDetails, content: PullRequestCommentContent):
         await self.__create_or_update_pr_comment(pr_details, content)
 
-    async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+    async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         await self.__create_or_update_pr_comment(pr_details, content)
 
-    async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+    async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         await self.__create_or_update_pr_comment(pr_details, content)
     
     async def __create_or_update_pr_comment(self, pr_details : PRDetails, content : PullRequestCommentContent):

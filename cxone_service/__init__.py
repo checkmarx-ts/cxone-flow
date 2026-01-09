@@ -210,8 +210,8 @@ class CxOneService:
         return_engine_config = dict(self.__default_engine_config)
 
         for cfg in project_default_cfg:
-            if cfg['type'] in return_engine_config.keys():
-                return_engine_config = return_engine_config | cfg['value']
+            if cfg['type'] in return_engine_config.keys() and return_engine_config[cfg['type']] is not None:
+                return_engine_config[cfg['type']] = return_engine_config[cfg['type']] | cfg['value']
             else:
                 return_engine_config[cfg['type']] = cfg['value']
 

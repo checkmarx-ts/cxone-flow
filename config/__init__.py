@@ -82,35 +82,7 @@ class ConfigurationException(Exception):
 class RouteNotFoundException(Exception):
     pass
 
-
-class CommonConfig:
-
-    @classmethod
-    def log(clazz):
-        return logging.getLogger(clazz.__name__)
-    
-    @staticmethod
-    def load_yaml(file_path : str):
-        with open(file_path, "rt") as cfg:
-            return yaml.safe_load(cfg)
-
-    @staticmethod
-    def get_default_ssl_verify_value():
-        if 'REQUESTS_CA_BUNDLE' in os.environ.keys():
-            return os.environ['REQUESTS_CA_BUNDLE']
-        
-        default_paths = [
-            "/etc/pki/tls/certs/ca-bundle.crt",
-            "/etc/ssl/certs/ca-certificates.crt"
-        ]
-        for bundle in default_paths:
-            if os.path.exists(bundle):
-                return bundle
-
-        CommonConfig.log().warning("************SSL verification is turned OFF************")
-        CommonConfig.log().warning("A path to the default CA bundle could not be determined.  Please set the REQUESTS_CA_BUNDLE environment variable.")
-        return False
-
+class ConfigDictionaryReader:
     @staticmethod
     def _get_value_for_key_or_fail(config_path, key, config_dict):
         if not key in config_dict.keys():
@@ -165,7 +137,41 @@ class CommonConfig:
             return config_dict[key]
         
         return default
+
+class CommonConfig(ConfigDictionaryReader):
+
+    DEFAULT_MAX_POLL_INT_SECS = 600
+    DEFAULT_POLL_INTERVAL_SECS = 60
+    DEFAULT_POLL_BACKOFF_SCALAR = 2
+    DEFAULT_SCAN_TIMEOUT_HOURS = 48
+
+    _secret_root = None
+
+    @classmethod
+    def log(clazz):
+        return logging.getLogger(clazz.__name__)
     
+    @staticmethod
+    def load_yaml(file_path : str):
+        with open(file_path, "rt") as cfg:
+            return yaml.safe_load(cfg)
+
+    @staticmethod
+    def get_default_ssl_verify_value():
+        if 'REQUESTS_CA_BUNDLE' in os.environ.keys():
+            return os.environ['REQUESTS_CA_BUNDLE']
+        
+        default_paths = [
+            "/etc/pki/tls/certs/ca-bundle.crt",
+            "/etc/ssl/certs/ca-certificates.crt"
+        ]
+        for bundle in default_paths:
+            if os.path.exists(bundle):
+                return bundle
+
+        CommonConfig.log().warning("************SSL verification is turned OFF************")
+        CommonConfig.log().warning("A path to the default CA bundle could not be determined.  Please set the REQUESTS_CA_BUNDLE environment variable.")
+        return False
 
 
     _default_amqp_url = "amqp://localhost:5672"

@@ -48,16 +48,16 @@ class SCMService(BasicSCMService):
     def shared_secret(self) -> str:
         return self.__shared_secret
 
-    async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+    async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         raise NotImplementedError("exec_pr_scan_update_decorate")
     
     async def exec_pr_scan_pending_decorate(self, pr_details : PRDetails, content: PullRequestCommentContent):
         raise NotImplementedError("exec_pr_scan_pending_decorate")
 
-    async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+    async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         raise NotImplementedError("exec_pr_scan_failure_decorate")
 
-    async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent):
+    async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         raise NotImplementedError("exec_pr_scan_success_decorate")
 
 

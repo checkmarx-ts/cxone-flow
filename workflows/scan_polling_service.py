@@ -44,6 +44,7 @@ class ScanPollingService(CxOneFlowAbstractWorkflowService):
                     try:
                         requeue_on_finally = False
                         
+                        # TODO: Check for policy violations here
                         if inspector.successful:
                             ScanPollingService.log().info(f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow.")
                             await asyncio.gather(*[svc.handle_completed_scan(swm) for svc in self.__services])

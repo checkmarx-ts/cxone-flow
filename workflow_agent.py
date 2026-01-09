@@ -56,7 +56,7 @@ async def process_pr_annotate(msg: aio_pika.abc.AbstractIncomingMessage) -> None
         if await services.pr.process_pr_notice(sm, services.cxone, services.scm):
             await msg.ack()
         else:
-            await msg.nack()
+            await msg.nack(requeue=False)
     except BaseException as ex:
         __log.exception(ex)
         await msg.nack(requeue=False)
@@ -72,7 +72,7 @@ async def process_pr_feedback(msg: aio_pika.abc.AbstractIncomingMessage) -> None
         if await services.pr.process_pr_feedback(sm, services.cxone, services.scm):
             await msg.ack()
         else:
-            await msg.nack()
+            await msg.nack(requeue=False)
     except BaseException as ex:
         __log.exception(ex)
         await msg.nack(requeue=False)
@@ -87,7 +87,7 @@ async def process_pr_feedback_error(msg: aio_pika.abc.AbstractIncomingMessage) -
         if await services.pr.process_pr_feedback(sm, services.cxone, services.scm):
             await msg.ack()
         else:
-            await msg.nack()
+            await msg.nack(requeue=False)
     except BaseException as ex:
         __log.exception(ex)
         await msg.nack(requeue=False)
