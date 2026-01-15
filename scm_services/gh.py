@@ -32,13 +32,20 @@ class GHServiceChecks(AbstractGHService):
 
     __max_content_chars = 65535
     __check_name = "CheckmarxOne Scan"
+    __summary_text = "[CheckmarxOne](https://docs.checkmarx.com/) scans are orchestrated by [CxOneFlow](https://github.com/checkmarx-ts/cxone-flow)"
 
     __pr_head_sha_query = parse("$.pull_request.head.sha")
+    __check_req_action_pr_head_sha_query = parse("$.check_run.check_suite.pull_requests[0].head.sha")
 
     __run_response_query = parse("$.id")
 
     def __get_head_sha(self, pr_details : PRDetails) -> str:
-        return GHServiceChecks.__pr_head_sha_query.find(pr_details.event_context.message).pop().value
+        found = GHServiceChecks.__pr_head_sha_query.find(pr_details.event_context.message)
+
+        if found is not None and len(found) == 0:
+            found = GHServiceChecks.__check_req_action_pr_head_sha_query.find(pr_details.event_context.message)
+
+        return found.pop().value
 
     async def __find_running_check(self, pr_details : PRDetails, status : str) -> Union[None, int]:
         head_sha = self.__get_head_sha(pr_details)
@@ -100,7 +107,7 @@ class GHServiceChecks(AbstractGHService):
             "status" : "in_progress",
             "output" : {
                 "title" : content.get_status_msg(GHServiceChecks.__max_content_chars),
-                "summary" : "",
+                "summary" : GHServiceChecks.__summary_text,
                 "text" : content.get_content(GHServiceChecks.__max_content_chars)
                 },
             "actions" : [
@@ -135,7 +142,7 @@ class GHServiceChecks(AbstractGHService):
             "status" : "queued",
             "output" : {
                 "title" : content.get_status_msg(GHServiceChecks.__max_content_chars),
-                "summary" : "",
+                "summary" : GHServiceChecks.__summary_text,
                 "text" : content.get_content(GHServiceChecks.__max_content_chars)
                 }
         }
@@ -163,7 +170,7 @@ class GHServiceChecks(AbstractGHService):
                 "conclusion" : "failure",
                 "output" : {
                     "title" : content.get_status_msg(GHServiceChecks.__max_content_chars),
-                    "summary" : "",
+                    "summary" : GHServiceChecks.__summary_text,
                     "text" : content.get_content(GHServiceChecks.__max_content_chars)
                     },
                 "actions" : [
@@ -192,7 +199,7 @@ class GHServiceChecks(AbstractGHService):
                 "conclusion" : "success",
                 "output" : {
                     "title" : content.get_status_msg(GHServiceChecks.__max_content_chars),
-                    "summary" : "",
+                    "summary" : GHServiceChecks.__summary_text,
                     "text" : content.get_content(GHServiceChecks.__max_content_chars)
                     }
             }

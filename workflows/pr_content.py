@@ -58,9 +58,12 @@ class PullRequestCommentContent(PullRequestStatusContent):
 
 class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
 
+    _success_unicode = "&#x2705;"
+    _failure_unicode = "&#x274C;"
+
     class PolicyViolationDetailRows(SortedDetailRows):
         def __init__(self):
-            super().__init__(["severity_image_link","policy_name", "policy_rule_name"], lambda x: x.severity_rank_key + x['policy_name'] + x['policy_rule_name'])
+            super().__init__(["break_build_indicator","policy_name", "policy_rule_name"], lambda x: x.severity_rank_key + x['policy_name'] + x['policy_rule_name'])
 
 
     class SastDetailRows(SortedDetailRows):
@@ -195,9 +198,10 @@ class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
         self.__elements[PullRequestAbstractMarkdownComment.__annotation_begin].append(line)
 
 
-    def add_policy_violation_detail(self, policy_name : str, policy_rule_name : str):
-        self.__policy_detail_rows.add_row(ResultSeverity(ResultSeverity.INFO), 
-                                          severity_image_link=PullRequestAbstractMarkdownComment.make_md_severity_indicator
+    def add_policy_violation_detail(self, policy_name : str, break_build : bool, policy_rule_name : str):
+        self.__policy_detail_rows.add_row(ResultSeverity(ResultSeverity.INFO),
+                                          break_build_indicator = PullRequestAbstractMarkdownComment._failure_unicode \
+                                          if break_build else PullRequestAbstractMarkdownComment.make_md_severity_indicator
                                           (self.server_base_url, str(ResultSeverity.INFO)), policy_name=policy_name, policy_rule_name=policy_rule_name)
 
     def add_sast_detail(self, severity : ResultSeverity, severity_image_link : str, issue : str, source_permalink : str, viewer_link : str):
@@ -210,7 +214,7 @@ class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
     def start_policy_violation_detail_section(self):
         self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append("\n")
         self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append("# Policy Violations")
-        self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append("| * | Policy Name | Policy Rule |")
+        self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append("| Breaking | Policy Name | Policy Rule |")
         self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append("| :-: | - | - |")
         self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append(self.__policy_detail_rows)
 
@@ -357,6 +361,7 @@ class PullRequestMarkdownAnnotation(PullRequestAbstractMarkdownComment):
         return self.__status_msg[0:char_limit]
 
 class PullRequestMarkdownFeedback(PullRequestAbstractMarkdownComment):
+    
     __sast_results_query = parse("$.scanResults.resultsList[*]")
 
     __sca_results_query = parse("$.scaScanResults.packages[*]")
@@ -480,8 +485,8 @@ class PullRequestMarkdownFeedback(PullRequestAbstractMarkdownComment):
             self.start_policy_violation_detail_section()
 
             for policy in self.__policy_violations:
-                for rule_name in policy.ViolatedPolicies:
-                    self.add_policy_violation_detail(policy.PolicyName, rule_name)
+                for rule_name in policy.ViolatedRules:
+                    self.add_policy_violation_detail(policy.PolicyName, policy.BreakBuild, rule_name)
 
 
     def __add_sast_details(self, pr_details):
@@ -510,10 +515,10 @@ class PullRequestMarkdownFeedback(PullRequestAbstractMarkdownComment):
     def __translate_engine_status(status_string : str) -> str:
         match status_string:
             case "Completed":
-                return "&#x2705;"
+                return PullRequestMarkdownFeedback._success_unicode
 
             case _:
-                return "&#x274c;"
+                return PullRequestMarkdownFeedback._failure_unicode
 
     def __add_annotation_section(self, display_url : str, project_id : str, scanid : str, pr_details : PRDetails):
         self.add_to_annotation(f"**Results for Scan ID {PullRequestAbstractMarkdownComment.make_cxone_md_scan_link(display_url, project_id, scanid, pr_details.source_branch)}**")
