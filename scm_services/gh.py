@@ -12,6 +12,8 @@ import json
 from jsonpath_ng.ext import parser
 from jsonpath_ng import parse
 from typing import Union, Dict
+from enum import Enum
+
 
 
 class AbstractGHService(SCMService):
@@ -19,6 +21,15 @@ class AbstractGHService(SCMService):
         return form_url(self.display_url, f"/{organization}/{repo_slug}/blob/{branch}{code_path}", f"L{code_line}")
 
 class GHServiceChecks(AbstractGHService):
+
+    class CheckActionEnum(Enum):
+        def __str__(self):
+            return str(self.value)
+        SCAN = "RERUNSCAN"
+        CANCEL="CANCELSCAN"
+
+    
+
     __max_content_chars = 65535
     __check_name = "CheckmarxOne Scan"
 
@@ -96,7 +107,7 @@ class GHServiceChecks(AbstractGHService):
                 {
                     "label" : "Cancel scan",
                     "description" : "Cancels the running scan",
-                    "identifier" : "CANCEL"
+                    "identifier" : str(GHServiceChecks.CheckActionEnum.CANCEL)
                 }
             ]
             
@@ -159,7 +170,7 @@ class GHServiceChecks(AbstractGHService):
                     {
                         "label" : "Re-run scan",
                         "description" : "Runs the scan again",
-                        "identifier" : "RERUN"
+                        "identifier" : str(GHServiceChecks.CheckActionEnum.SCAN)
                     }]
             }
 
