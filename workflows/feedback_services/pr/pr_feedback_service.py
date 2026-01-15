@@ -36,7 +36,9 @@ class PRFeedbackService(AbstractPRFeedbackService):
 
                     feedback = PullRequestMarkdownFeedback(self.workflow.excluded_severities, 
                         self.workflow.excluded_states, cxone_service.display_link, msg.projectid, msg.scanid, report, 
-                        scm_service.create_code_permalink, pr_details, self.server_base_url, status_msg)
+                        scm_service.create_code_permalink, pr_details, 
+                        await (cxone_service.get_policy_violation_inspector(msg.projectid, msg.scanid)).policy_violations, 
+                        self.server_base_url, status_msg)
                     
                     if not msg.is_error:
                         await scm_service.exec_pr_scan_success_decorate(pr_details, feedback, msg)

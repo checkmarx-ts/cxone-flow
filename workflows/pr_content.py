@@ -5,6 +5,7 @@ from workflows.messaging import PRDetails
 from typing import Callable, List, Type, Dict
 from workflows.enums import ResultSeverity, ResultStates
 from sortedcontainers import SortedList
+from cxone_api.high.policies import PolicyViolationDescriptor
 import re, urllib
 
 
@@ -43,6 +44,9 @@ class SortedDetailRows:
     def __iter__(self):
         return iter(self.__details)
 
+    def __len__(self):
+        return len(self.__details)
+
 class PullRequestStatusContent:
     def get_status_msg(self, char_limit : int):
         raise NotImplementedError("get_status_msg")
@@ -53,6 +57,11 @@ class PullRequestCommentContent(PullRequestStatusContent):
 
 
 class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
+
+    class PolicyViolationDetailRows(SortedDetailRows):
+        def __init__(self):
+            super().__init__(["severity_image_link","policy_name", "policy_rule_name"], lambda x: x.severity_rank_key + x['policy_name'] + x['policy_rule_name'])
+
 
     class SastDetailRows(SortedDetailRows):
         def __init__(self):
@@ -141,6 +150,7 @@ class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
         self.__sca_detail_rows = PullRequestAbstractMarkdownComment.ScaDetailRows()
         self.__iac_detail_rows = PullRequestAbstractMarkdownComment.IacDetailRows()
         self.__resolved_detail_rows = PullRequestAbstractMarkdownComment.ResolvedDetailRows()
+        self.__policy_detail_rows = PullRequestAbstractMarkdownComment.PolicyViolationDetailRows()
 
     @property
     def server_base_url(self) -> str:
@@ -184,12 +194,26 @@ class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
     def add_to_annotation(self, line : str):
         self.__elements[PullRequestAbstractMarkdownComment.__annotation_begin].append(line)
 
+
+    def add_policy_violation_detail(self, policy_name : str, policy_rule_name : str):
+        self.__policy_detail_rows.add_row(ResultSeverity(ResultSeverity.INFO), 
+                                          severity_image_link=PullRequestAbstractMarkdownComment.make_md_severity_indicator
+                                          (self.server_base_url, str(ResultSeverity.INFO)), policy_name=policy_name, policy_rule_name=policy_rule_name)
+
     def add_sast_detail(self, severity : ResultSeverity, severity_image_link : str, issue : str, source_permalink : str, viewer_link : str):
         self.__sast_detail_rows.add_row(ResultSeverity(severity), 
                                         severity_image_link=severity_image_link,
                                         issue=issue,
                                         source_permalink=source_permalink,
                                         viewer_link=viewer_link)
+        
+    def start_policy_violation_detail_section(self):
+        self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append("\n")
+        self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append("# Policy Violations")
+        self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append("| * | Policy Name | Policy Rule |")
+        self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append("| :-: | - | - |")
+        self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append(self.__policy_detail_rows)
+
 
     def start_sast_detail_section(self):
         self.__elements[PullRequestAbstractMarkdownComment.__details_begin].append("\n")
@@ -247,6 +271,7 @@ class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
 
 
     def start_summary_section(self, included_severities : List[ResultSeverity]):
+
         sev_header = " | ".join([x.value for x in included_severities])
 
         self.__elements[PullRequestAbstractMarkdownComment.__summary_begin].append("\n")
@@ -254,7 +279,6 @@ class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
         self.__elements[PullRequestAbstractMarkdownComment.__summary_begin].append("\n")
         self.__elements[PullRequestAbstractMarkdownComment.__summary_begin].append(f"| Engine | {sev_header} |")
         self.__elements[PullRequestAbstractMarkdownComment.__summary_begin].append(f"|--{"| :-: " * len(included_severities)}|")
-        
 
     def add_summary_entry(self, engine: str, counts_by_sev : Dict[ResultSeverity, str], included_severities : List[ResultSeverity]):
         sev_part = "|".join([ str(counts_by_sev[sev]) for sev in included_severities])
@@ -355,6 +379,7 @@ class PullRequestMarkdownFeedback(PullRequestAbstractMarkdownComment):
 
     def __init__(self, excluded_severities : List[ResultSeverity], excluded_states : List[ResultStates], display_url : str,  
                  project_id : str, scanid : str, enhanced_report : dict, code_permalink_func : Callable, pr_details : PRDetails,
+                 policy_violations : List[PolicyViolationDescriptor],
                  server_base_url : str, status_msg : str):
         super().__init__(server_base_url,
                          "\n\n" + PullRequestAbstractMarkdownComment.make_cxone_md_scan_link(display_url, project_id, scanid, 
@@ -366,9 +391,11 @@ class PullRequestMarkdownFeedback(PullRequestAbstractMarkdownComment):
         self.__excluded_severities = excluded_severities
         self.__excluded_states = excluded_states
         self.__status_msg = status_msg
+        self.__policy_violations = policy_violations
 
         self.__add_annotation_section(display_url, project_id, scanid, pr_details)
         self.__add_summary_section()
+        self.__add_policy_violation_details()
         self.__add_sast_details(pr_details)
         self.__add_resolved_details(project_id)
         self.__add_sca_details(display_url, project_id, scanid)
@@ -446,6 +473,15 @@ class PullRequestMarkdownFeedback(PullRequestAbstractMarkdownComment):
                                             cat_result['cve'], x['packageName'], x['packageVersion'], 
                                             PullRequestAbstractMarkdownComment.make_cxone_md_sca_result_link(display_url, project_id, scanid, "Risk Details", 
                                                                                 cat_result['cve'], x['packageId']))
+
+
+    def __add_policy_violation_details(self):
+        if self.__policy_violations is not None and len(self.__policy_violations) > 0:
+            self.start_policy_violation_detail_section()
+
+            for policy in self.__policy_violations:
+                for rule_name in policy.ViolatedPolicies:
+                    self.add_policy_violation_detail(policy.PolicyName, rule_name)
 
 
     def __add_sast_details(self, pr_details):

@@ -1,6 +1,7 @@
 from _agent import __agent__
 from _version import __version__
 from cxone_api.high.scans import ScanInvoker, ScanInspector, ScanLoader, ScanFilterConfig
+from cxone_api.high.policies import PolicyViolationInspector
 from cxone_api.high.projects import ProjectRepoConfig
 from cxone_api.low.projects import retrieve_list_of_projects, create_a_project, update_a_project
 from cxone_api.low.reports import create_a_report, retrieve_report_status, download_a_report
@@ -249,6 +250,9 @@ class CxOneService:
     
     async def load_scan_inspector(self, scanid : str) -> ScanInspector:
         return await ScanLoader.load(self.__client, scanid)
+    
+    def get_policy_violation_inspector(self, projectid : str, scanid : str) -> PolicyViolationInspector:
+        return PolicyViolationInspector.from_project_and_scan_ids(self.__client, projectid, scanid)
     
     async def retrieve_report(self, projectid : str, scanid : str) -> dict:
 

@@ -138,10 +138,32 @@ class GHServiceChecks(AbstractGHService):
 
 
     async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
-        # actions:
-        # re-run scan
-        # refresh triaged results
-        raise NotImplementedError("exec_pr_scan_failure_decorate")
+
+        run_id = await self.__find_running_check(pr_details, "in_progress")
+
+        if run_id is None:
+            GHServiceChecks.log().warning("No running check found in PR#%s for scan %s, no check updated.", pr_details.pr_id, scan_details.scanid)
+        else:
+            payload = {
+                "name" : GHServiceChecks.__check_name,
+                "head_sha" : self.__get_head_sha(pr_details),
+                "external_id" : scan_details.scanid, 
+                "status" : "completed",
+                "conclusion" : "failure",
+                "output" : {
+                    "title" : content.get_status_msg(GHServiceChecks.__max_content_chars),
+                    "summary" : "",
+                    "text" : content.get_content(GHServiceChecks.__max_content_chars)
+                    },
+                "actions" : [
+                    {
+                        "label" : "Re-run scan",
+                        "description" : "Runs the scan again",
+                        "identifier" : "RERUN"
+                    }]
+            }
+
+            await self.__update_run(pr_details, payload, run_id)
 
     async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         # no actions are available after a successful scan
