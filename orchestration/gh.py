@@ -4,7 +4,7 @@ from api_utils.pagers import async_api_page_generator
 from api_utils.auth_factories import EventContext
 from jsonpath_ng import parse
 from scm_services import SCMService
-from scm_services.gh import GHServiceChecks
+from scm_services.gh.checks import GHServiceChecks
 from scm_services.cloner import CloneWorker
 from requests import Response
 from cxone_api.high.scans import ScanInspector
