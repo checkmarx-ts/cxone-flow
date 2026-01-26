@@ -28,8 +28,8 @@ class GHServiceChecks(AbstractGHService):
 
     __run_response_query = parse("$.id")
 
-    def __get_head_sha(self, pr_details : PRDetails) -> str:
-        found = GHServiceChecks.__pr_head_sha_query.find(pr_details.event_context.message)
+    def _get_head_sha(self, pr_details : PRDetails) -> str:
+        found = self._get_head_sha(pr_details)
 
         if found is not None and len(found) == 0:
             found = GHServiceChecks.__check_req_action_pr_head_sha_query.find(pr_details.event_context.message)
@@ -37,7 +37,7 @@ class GHServiceChecks(AbstractGHService):
         return found.pop().value
 
     async def __find_running_check(self, pr_details : PRDetails, status : str) -> Union[None, int]:
-        head_sha = self.__get_head_sha(pr_details)
+        head_sha = self._get_head_sha(pr_details)
 
         id_query = parser.parse(f"$.check_runs[?(@.head_sha == \"{head_sha}\")].id")
 
@@ -91,7 +91,7 @@ class GHServiceChecks(AbstractGHService):
 
         payload = {
             "name" : GHServiceChecks.__check_name,
-            "head_sha" : self.__get_head_sha(pr_details),
+            "head_sha" : self._get_head_sha(pr_details),
             "external_id" : scan_details.scanid, 
             "status" : "in_progress",
             "output" : {
@@ -127,7 +127,7 @@ class GHServiceChecks(AbstractGHService):
         # No actions available for pending scans.
         payload = {
             "name" : GHServiceChecks.__check_name,
-            "head_sha" : self.__get_head_sha(pr_details), 
+            "head_sha" : self._get_head_sha(pr_details), 
             "status" : "queued",
             "output" : {
                 "title" : content.get_status_msg(GHServiceChecks.__max_content_chars),
@@ -153,7 +153,7 @@ class GHServiceChecks(AbstractGHService):
         else:
             payload = {
                 "name" : GHServiceChecks.__check_name,
-                "head_sha" : self.__get_head_sha(pr_details),
+                "head_sha" : self._get_head_sha(pr_details),
                 "external_id" : scan_details.scanid, 
                 "status" : "completed",
                 "conclusion" : "failure",
@@ -182,7 +182,7 @@ class GHServiceChecks(AbstractGHService):
         else:
             payload = {
                 "name" : GHServiceChecks.__check_name,
-                "head_sha" : self.__get_head_sha(pr_details),
+                "head_sha" : self._get_head_sha(pr_details),
                 "external_id" : scan_details.scanid, 
                 "status" : "completed",
                 "conclusion" : "success",

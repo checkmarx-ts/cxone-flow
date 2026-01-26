@@ -51,6 +51,10 @@ class PullRequestStatusContent:
     def get_status_msg(self, char_limit : int):
         raise NotImplementedError("get_status_msg")
 
+    @property
+    def scan_url(self):
+        raise NotImplementedError("scan_url")
+
 class PullRequestCommentContent(PullRequestStatusContent):
     def get_content(self, char_limit):
         raise NotImplementedError("get_content")
@@ -132,10 +136,14 @@ class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
     def comment_matches_identifier(comment_text : str):
         return PullRequestAbstractMarkdownComment.__comment_match.match(comment_text.replace("\n", ""))
     
+    @property
+    def scan_url(self):
+        return self.__scan_url
 
-    def __init__(self, server_base_url : str, overflow_link : str):
+    def __init__(self, server_base_url : str, overflow_link : str, scan_url : str):
         self.__server_base_url = server_base_url
         self.__overflow_link = overflow_link
+        self.__scan_url = scan_url
 
         self.__elements = {
             PullRequestAbstractMarkdownComment.__identifier : [PullRequestAbstractMarkdownComment.__identifier],
@@ -159,12 +167,14 @@ class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
     def server_base_url(self) -> str:
         return self.__server_base_url
     
-
+    @staticmethod
+    def make_cxone_scan_url(cxone_display_url : str, project_id : str, scanid : str, branch : str):
+        path = Path("projects") / Path(project_id) / Path(f"scans?id={scanid}&filter_by_Scan_Id={scanid}&branch={urllib.parse.quote_plus(branch)}")
+        return f"{cxone_display_url}{path}"
+        
     @staticmethod
     def make_cxone_md_scan_link(cxone_display_url : str, project_id : str, scanid : str, branch : str, link_text : str = None):
-        return f"[{scanid if link_text is None else link_text}]({cxone_display_url}{Path("projects") / 
-                                          Path(project_id) / 
-                                          Path(f"scans?id={scanid}&filter_by_Scan_Id={scanid}&branch={urllib.parse.quote_plus(branch)}")})"
+        return f"[{scanid if link_text is None else link_text}]({PullRequestAbstractMarkdownComment.make_cxone_scan_url(cxone_display_url, project_id, scanid, branch)})"
 
     @staticmethod
     def make_cxone_md_sca_result_link(cxone_display_url : str, project_id : str, scanid : str, title : str, cve : str, package_id : str):
@@ -353,7 +363,8 @@ class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
 class PullRequestMarkdownAnnotation(PullRequestAbstractMarkdownComment):
     def __init__(self, cxone_display_url : str, project_id : str, scanid : str, annotation : str, branch : str, server_base_url : str):
         scan_link = PullRequestAbstractMarkdownComment.make_cxone_md_scan_link(cxone_display_url, project_id, scanid, branch)
-        super().__init__(server_base_url, scan_link)
+        scan_url = PullRequestAbstractMarkdownComment.make_cxone_scan_url(cxone_display_url, project_id, scanid, branch)
+        super().__init__(server_base_url, scan_link, scan_url)
         self.__status_msg = annotation
         self.add_to_annotation(f"{annotation}: {scan_link}")
 
@@ -386,10 +397,10 @@ class PullRequestMarkdownFeedback(PullRequestAbstractMarkdownComment):
                  project_id : str, scanid : str, enhanced_report : dict, code_permalink_func : Callable, pr_details : PRDetails,
                  policy_violations : List[PolicyViolationDescriptor],
                  server_base_url : str, status_msg : str):
-        super().__init__(server_base_url,
-                         "\n\n" + PullRequestAbstractMarkdownComment.make_cxone_md_scan_link(display_url, project_id, scanid, 
-                        pr_details.source_branch, 
-                        "More results..."))
+        scan_link = PullRequestAbstractMarkdownComment.make_cxone_md_scan_link(display_url, project_id, scanid, pr_details.source_branch, 
+                        "More results...")
+        scan_url = PullRequestAbstractMarkdownComment.make_cxone_scan_url(display_url, project_id, scanid, pr_details.source_branch)
+        super().__init__(server_base_url, "\n\n" + scan_link, scan_url)
         
         self.__enhanced_report = enhanced_report
         self.__permalink = code_permalink_func
