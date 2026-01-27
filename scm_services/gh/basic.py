@@ -66,7 +66,9 @@ class GHServiceBasic(AbstractGHService):
                                                  content.get_content(self.__max_content_chars), pr_details.event_context)
 
     async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
-        return await self.exec_pr_scan_update_decorate(pr_details, content, scan_details)
+        await self.__create_or_update_pr_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, 
+                                                 content.get_content(self.__max_content_chars), pr_details.event_context)
 
     async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
-        return await self.exec_pr_scan_update_decorate(pr_details, content, scan_details)
+        await self.__create_or_update_pr_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, 
+                                                 content.get_content(self.__max_content_chars), pr_details.event_context)

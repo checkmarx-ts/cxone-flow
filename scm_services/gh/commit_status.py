@@ -1,64 +1,50 @@
-from scm_services.gh.abstract import AbstractGHService
+from scm_services.gh.basic import GHServiceBasic
 from workflows.pr_content import PullRequestCommentContent
 from workflows.messaging import PRDetails, ScanMessage
+from cxone_api.util import json_on_ok
+from typing import Dict
 import json
 
-class GHServiceCommitStatus(AbstractGHService):
+class GHServiceCommitStatus(GHServiceBasic):
 
     __status_msg_max = 64
+    __context = "CheckmarxOne Scan"
+
+    def __make_payload(self, state : str, content : PullRequestCommentContent) -> Dict:
+        return {
+            "state" : state,
+            "target_url" : content.scan_url,
+            "description" : content.get_status_msg(GHServiceCommitStatus.__status_msg_max),
+            "context" : GHServiceCommitStatus.__context
+        }
+    
+    def __make_api_url(self, pr_details : PRDetails) -> str:
+        return f"/repos/{pr_details.organization}/{pr_details.repo_slug}/statuses/{self._get_head_sha(pr_details)}"
+    
+    async def __update_status(self, state : str,  pr_details : PRDetails, content : PullRequestCommentContent) -> None:
+        api_url = self.__make_api_url(pr_details)
+        resp = await self.exec("POST", api_url, 
+                            body = json.dumps(self.__make_payload(state, content)),
+                            extra_headers={"accept" : "application/vnd.github+json", "Content-Type" : "application/json"}, 
+                            event_context=pr_details.event_context)
+        if not resp.ok:
+            GHServiceCommitStatus.log().error("Commit status update failed: %s returned %d:%s", api_url, resp.status_code, resp.text)
+        else:
+            GHServiceCommitStatus.log().debug("Commit status updated: %s: %s", api_url, json_on_ok(resp))
 
     async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
-        # pending status
-
-        head_sha = self._get_head_sha(pr_details)
-        url = f"/repos/{pr_details.organization}/{pr_details.repo_slug}/statuses/{head_sha}"
-
-        body = {
-            "state" : "pending",
-            "target_url" : content.scan_url,
-            "description" : content.get_status_msg(GHServiceCommitStatus.__status_msg_max),
-            "context" : "checkmarx"
-        }
-
-        # TODO: error handling
-        r = await self.exec("POST", url, body = json.dumps(body),
-                                extra_headers={"accept" : "application/vnd.github+json", "Content-Type" : "application/json"}, 
-                                event_context=pr_details.event_context)
-
+        await self.__update_status("pending", pr_details, content)
+        await super().exec_pr_scan_update_decorate(pr_details, content, scan_details)
     
     async def exec_pr_scan_pending_decorate(self, pr_details : PRDetails, content: PullRequestCommentContent):
-        return await self.exec_pr_scan_update_decorate(pr_details, content, None)
+        await self.__update_status("pending", pr_details, content)
+        await super().exec_pr_scan_pending_decorate(pr_details, content)
 
     async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
-        head_sha = self._get_head_sha(pr_details)
-        url = f"/repos/{pr_details.organization}/{pr_details.repo_slug}/statuses/{head_sha}"
-
-        body = {
-            "state" : "error",
-            "target_url" : content.scan_url,
-            "description" : content.get_status_msg(GHServiceCommitStatus.__status_msg_max),
-            "context" : "checkmarx"
-        }
-
-        # TODO: error handling
-        r = await self.exec("POST", url, body = json.dumps(body),
-                                extra_headers={"accept" : "application/vnd.github+json", "Content-Type" : "application/json"}, 
-                                event_context=pr_details.event_context)
-        
+        await self.__update_status("error", pr_details, content)
+        await super().exec_pr_scan_failure_decorate(pr_details, content, scan_details)
 
     async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
-        head_sha = self._get_head_sha(pr_details)
-        url = f"/repos/{pr_details.organization}/{pr_details.repo_slug}/statuses/{head_sha}"
-
-        body = {
-            "state" : "success",
-            "target_url" : content.scan_url,
-            "description" : content.get_status_msg(GHServiceCommitStatus.__status_msg_max),
-            "context" : "checkmarx"
-        }
-
-        # TODO: error handling
-        r = await self.exec("POST", url, body = json.dumps(body),
-                                extra_headers={"accept" : "application/vnd.github+json", "Content-Type" : "application/json"}, 
-                                event_context=pr_details.event_context)
+        await self.__update_status("success", pr_details, content)
+        await super().exec_pr_scan_success_decorate(pr_details, content, scan_details)
 
