@@ -1,6 +1,6 @@
 {
   "2.3.0" : [
-    "Integration with Checkmarx One policies for optional pull-request merge blocking.  Check documentation for compatibility with your SCM type.",
+    "Integration with Checkmarx One policies for Github pull-request Checks (when using Github app authentication) and Commit Status. New permissions may be required to enabled policy integrations.",
     "Optimized the SARIF log delivery feature to avoid unnecessary API calls.",
     "Add better handling of project creation race condition.",
     "Pull request feedback will now fit as much of the report as is allowed by the SCM comment character length limits.  A link to the scan results will terminate the comment if there are additional results.",
