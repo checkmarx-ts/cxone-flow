@@ -12,7 +12,8 @@ class BasicSCMService:
     def log(clazz):
         return logging.getLogger(clazz.__name__)
 
-    def __init__(self, api_session : APISession):
+    def __init__(self, api_session : APISession, **kwargs):
+        super().__init__(**kwargs)
         self.__session = api_session
 
     @final
@@ -25,8 +26,8 @@ class BasicSCMService:
 
 class SCMService(BasicSCMService):
 
-    def __init__(self, display_url : str, moniker : str, api_session : APISession, shared_secret : str, cloner : Cloner):
-        super().__init__(api_session)
+    def __init__(self, display_url : str, moniker : str, api_session : APISession, shared_secret : str, cloner : Cloner, **kwargs):
+        super().__init__(api_session=api_session, **kwargs)
         self.__shared_secret = shared_secret
         self.__cloner = cloner
         self.__moniker = moniker

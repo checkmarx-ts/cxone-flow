@@ -181,9 +181,23 @@ class GHSCMServiceFactory(AbstractSCMServiceFactory):
         props = AbstractSCMServiceFactory.RepoConfigProps(repo_config, config_path)
         api_sess = AbstractSCMServiceFactory.APISession_factory(api_auth_factory, props)
 
+        additional_args = {}
+
         if not GHSCMServiceFactory.use_policies(repo_config):
             service_clazz = GHServiceBasic
         else:
+            pr_dict = AbstractSCMServiceFactory.get_pr_config_dict(repo_config)
+
+            custom_check_name = None
+
+            if pr_dict is not None:
+                gh_pr_opts = AbstractSCMServiceFactory._get_value_for_key_or_default("gh-pr-opts", pr_dict, None)
+
+                if gh_pr_opts is not None:
+                    custom_check_name = AbstractSCMServiceFactory._get_value_for_key_or_default("check-name", gh_pr_opts, None)
+
+            additional_args = {'check_name' : custom_check_name}
+
             if "app-private-key" in GHSCMServiceFactory._get_value_for_key_or_fail(config_path, 
                                                                                    "api-auth", props.connection_config_dict).keys():
                 # Github app, so use Checks
@@ -192,11 +206,11 @@ class GHSCMServiceFactory(AbstractSCMServiceFactory):
                 # Not a Github app, so use Commit Statuses
                 service_clazz = GHServiceCommitStatus
             
-        return service_clazz(props.display_url, 
-                            props.service_moniker, 
-                            api_sess, 
-                            props.scm_shared_secret, 
-                            AbstractSCMServiceFactory.Cloner_factory(api_sess,
+        return service_clazz(**additional_args, display_url=props.display_url, 
+                            moniker=props.service_moniker, 
+                            api_session=api_sess, 
+                            shared_secret=props.scm_shared_secret,
+                            cloner=AbstractSCMServiceFactory.Cloner_factory(api_sess,
                                                                         cloner_factory, 
                                                                         props.clone_auth_config_dict, 
                                                                         props.clone_config_path, 

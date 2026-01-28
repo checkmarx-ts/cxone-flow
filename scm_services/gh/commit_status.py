@@ -1,21 +1,24 @@
 from scm_services.gh.basic import GHServiceBasic
+from scm_services.policy import PolicyProperties
 from workflows.pr_content import PullRequestCommentContent
 from workflows.messaging import PRDetails, ScanMessage
 from cxone_api.util import json_on_ok
 from typing import Dict
 import json
 
-class GHServiceCommitStatus(GHServiceBasic):
+class GHServiceCommitStatus(GHServiceBasic, PolicyProperties):
 
     __status_msg_max = 64
-    __context = "CheckmarxOne Scan"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def __make_payload(self, state : str, content : PullRequestCommentContent) -> Dict:
         return {
             "state" : state,
             "target_url" : content.scan_url,
             "description" : content.get_status_msg(GHServiceCommitStatus.__status_msg_max),
-            "context" : GHServiceCommitStatus.__context
+            "context" : self.check_name
         }
     
     def __make_api_url(self, pr_details : PRDetails) -> str:

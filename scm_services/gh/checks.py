@@ -1,4 +1,5 @@
 from scm_services.gh.abstract import AbstractGHService
+from scm_services.policy import PolicyProperties
 from workflows.pr_content import PullRequestCommentContent
 from workflows.messaging import PRDetails, ScanMessage
 from cxone_api.util import json_on_ok
@@ -9,7 +10,7 @@ from jsonpath_ng.ext import parser
 from jsonpath_ng import parse
 import json
 
-class GHServiceChecks(AbstractGHService):
+class GHServiceChecks(AbstractGHService, PolicyProperties):
 
     class CheckActionEnum(Enum):
         def __str__(self):
@@ -17,33 +18,36 @@ class GHServiceChecks(AbstractGHService):
         SCAN = "RERUNSCAN"
         CANCEL="CANCELSCAN"
 
-    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     __max_content_chars = 65535
-    __check_name = "CheckmarxOne Scan"
     __summary_text = "[CheckmarxOne](https://docs.checkmarx.com/) scans are orchestrated by [CxOneFlow](https://github.com/checkmarx-ts/cxone-flow)"
 
-    __pr_head_sha_query = parse("$.pull_request.head.sha")
     __check_req_action_pr_head_sha_query = parse("$.check_run.check_suite.pull_requests[0].head.sha")
 
     __run_response_query = parse("$.id")
 
-    def _get_head_sha(self, pr_details : PRDetails) -> str:
-        found = self._get_head_sha(pr_details)
+    def _get_head_sha(self, pr_details : PRDetails) -> Union[str, None]:
+        found = GHServiceChecks.__check_req_action_pr_head_sha_query.find(pr_details.event_context.message)
 
-        if found is not None and len(found) == 0:
-            found = GHServiceChecks.__check_req_action_pr_head_sha_query.find(pr_details.event_context.message)
-
-        return found.pop().value
+        if found is not None and len(found) > 0:
+            return found.pop().value
+        else:
+            return AbstractGHService._get_head_sha(self, pr_details)
+        
 
     async def __find_running_check(self, pr_details : PRDetails, status : str) -> Union[None, int]:
         head_sha = self._get_head_sha(pr_details)
+
+        if head_sha is None:
+            return None
 
         id_query = parser.parse(f"$.check_runs[?(@.head_sha == \"{head_sha}\")].id")
 
         url = f"/repos/{pr_details.organization}/{pr_details.repo_slug}/commits/{head_sha}/check-runs"
         query = {
-            "check_name" : GHServiceChecks.__check_name,
+            "check_name" : self.check_name,
             "status" : status
         }
 
@@ -90,7 +94,7 @@ class GHServiceChecks(AbstractGHService):
         run_id = await self.__find_running_check(pr_details, "queued")
 
         payload = {
-            "name" : GHServiceChecks.__check_name,
+            "name" : self.check_name,
             "head_sha" : self._get_head_sha(pr_details),
             "external_id" : scan_details.scanid, 
             "status" : "in_progress",
@@ -126,7 +130,7 @@ class GHServiceChecks(AbstractGHService):
         
         # No actions available for pending scans.
         payload = {
-            "name" : GHServiceChecks.__check_name,
+            "name" : self.check_name,
             "head_sha" : self._get_head_sha(pr_details), 
             "status" : "queued",
             "output" : {
@@ -152,7 +156,7 @@ class GHServiceChecks(AbstractGHService):
             GHServiceChecks.log().warning("No running check found in PR#%s for scan %s, no check updated.", pr_details.pr_id, scan_details.scanid)
         else:
             payload = {
-                "name" : GHServiceChecks.__check_name,
+                "name" : self.check_name,
                 "head_sha" : self._get_head_sha(pr_details),
                 "external_id" : scan_details.scanid, 
                 "status" : "completed",
@@ -181,7 +185,7 @@ class GHServiceChecks(AbstractGHService):
             GHServiceChecks.log().warning("No running check found in PR#%s for scan %s, no check updated.", pr_details.pr_id, scan_details.scanid)
         else:
             payload = {
-                "name" : GHServiceChecks.__check_name,
+                "name" : self.check_name,
                 "head_sha" : self._get_head_sha(pr_details),
                 "external_id" : scan_details.scanid, 
                 "status" : "completed",
