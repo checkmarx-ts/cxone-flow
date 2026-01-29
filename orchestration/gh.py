@@ -248,18 +248,17 @@ class GithubOrchestrator(AbstractOrchestrator):
 
     async def _execute_check_cancel_scan(self, services : CxOneFlowServices):
 
-        check_run_id = GithubOrchestrator.__check_run_id_query.find().pop().value
-        pr_id = GithubOrchestrator.__check_run_pull_id_query.find().pop().value
+        check_run_id = GithubOrchestrator.__check_run_id_query.find(self.event_context.message).pop().value
+        pr_id = GithubOrchestrator.__check_run_pull_id_query.find(self.event_context.message).pop().value
         scan_id_query_result = GithubOrchestrator.__check_run_external_id_query.find(self.event_context.message)
 
         if scan_id_query_result is not None and len(scan_id_query_result) == 0:
             GithubOrchestrator.log().error(f"No scan id was located in the request to cancel a scan from run id {check_run_id} on pr {pr_id}, ignored.")
         else:
             scan_id = scan_id_query_result.pop().value
-            GithubOrchestrator.log().debug(f"Request to cancel scan id {scan_id} from run id {check_run_id} on pr {pr_id}.")
-
-        pass
-        
+            result = await services.cxone.cancel_scan(scan_id)
+            GithubOrchestrator.log().debug(f"Request to cancel scan id {scan_id} from run id {check_run_id} on pr {pr_id}: {result}.")
+    
 
     def __get_pr_assignees(self):
         ret = []

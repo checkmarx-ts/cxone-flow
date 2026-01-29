@@ -5,7 +5,7 @@ from cxone_api.high.policies import PolicyViolationInspector
 from cxone_api.high.projects import ProjectRepoConfig
 from cxone_api.low.projects import retrieve_list_of_projects, create_a_project, update_a_project
 from cxone_api.low.reports import create_a_report, retrieve_report_status, download_a_report
-from cxone_api.low.scans import retrieve_list_of_scans, update_scan_tags
+from cxone_api.low.scans import retrieve_list_of_scans, update_scan_tags, cancel_a_scan
 from cxone_api.util import page_generator
 from cxone_api import CxOneClient
 from typing import Dict, List
@@ -286,3 +286,8 @@ class CxOneService:
                 else:
                     if 'completed' == gen_status['status']:
                         return CxOneService.__get_json_or_fail(await download_a_report(self.__client, reportid))
+
+
+    async def cancel_scan(self, scanid : str) -> bool:
+        resp = await cancel_a_scan(self.__client, scanid)
+        return resp.ok
