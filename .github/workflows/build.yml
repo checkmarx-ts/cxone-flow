@@ -280,7 +280,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: |
-            rnmd--${{ github.run_number }}
+            rnmd-${{ github.run_number }}
             release-notes-${{ github.run_number }}
             manual-${{ github.run_number }}
             deb-amd64-${{ github.run_number }}
