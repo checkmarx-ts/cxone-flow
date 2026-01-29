@@ -24,9 +24,14 @@ if __name__ == "__main__":
     rn_json = json.load(json_in)
 
   if len(sys.argv) > 2:
-    if sys.argv[2] in rn_json.keys():
-      output_items(rn_json[sys.argv[2]])
-    else:
+    found = False
+    for k in rn_json.keys():
+      if sys.argv[2].startswith(k):
+        found = True 
+        output_items(rn_json[k])
+        break
+  
+    if not found:
       sys.stdout.write("**No release notes available**")
   else:
     output_dict(rn_json)
