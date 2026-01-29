@@ -6,10 +6,10 @@ RUN openssl genrsa -out /tmp/key.private.pem 2048 && \
 
 
 FROM ubuntu:25.10
-LABEL org.opencontainers.image.source https://github.com/checkmarx-ts/cxone-flow
-LABEL org.opencontainers.image.vendor Checkmarx Professional Services
-LABEL org.opencontainers.image.title Checkmarx One Flow
-LABEL org.opencontainers.image.description Orchestrates scans for Checkmarx One
+LABEL org.opencontainers.image.source="https://github.com/checkmarx-ts/cxone-flow"
+LABEL org.opencontainers.image.vendor="Checkmarx Professional Services"
+LABEL org.opencontainers.image.title="Checkmarx One Flow"
+LABEL org.opencontainers.image.description="Orchestrates scans for Checkmarx One"
 
 USER root
 WORKDIR /opt/cxone
