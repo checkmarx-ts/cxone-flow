@@ -4,7 +4,9 @@
     "Optimized the SARIF log delivery feature to avoid unnecessary API calls.",
     "Add better handling of project creation race condition.",
     "Pull request feedback will now fit as much of the report as is allowed by the SCM comment character length limits.  A link to the scan results will terminate the comment if there are additional results.",
-    "Github releases now include this release note content in the release description."
+    "Github releases now include this release note content in the release description.",
+    "Fixed an issue where the Kickoff API JWT was being leaked in debug logging output.",
+    "Kickoff was broken by some of the code changes for SARIF delivery, this is now fixed."
     ],
   "2.2.0" : [
     "Optional SARIF logs are generated for push events to protected or default branches.  Delivery options include POSTing the log to an HTTP endpoint or delivery to an AMQP exchange.",
