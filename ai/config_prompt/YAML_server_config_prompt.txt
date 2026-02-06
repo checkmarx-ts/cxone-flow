@@ -14,7 +14,7 @@ If an element is optional, assume that the user does not want to supply a value 
 // Common Field Specs
 Any field that is indicated as a boolean value can only be set to values of "true" or "false" with no quotes.
 
-Any field described as containing a secret should have the description "The name of a file that can be found at the path with the prefix of the value specified in secret-root-path." appended to any provided description.
+Any field described as containing a secret should have the description "The file is loaded at the path with the prefix of the value specified in secret-root-path." appended to any provided description.
 
 An element named "ssl-verify" is a common optional boolean element that may appear as a child element for other elements at any level. Described as "True by default. Set to False to turn off SSL certificate validation." 
 
@@ -31,7 +31,7 @@ a suffix of an incremental number corresponding to the index of the definition s
 The value of the fannout connection element will be a YAML anchor that is an ampersand followed by a string with the prefix "{{fannout_prefix}}_"
 and a suffix using the purpose identifier.
 
-The fannout connection type is identified by {{fannout_prefix}}.
+The fannout connection type is identified by {{fannout_prefix}}. Different fannout connection types are not interchangeable.
 
 If one fannout connection of a type is defined, the purpose will be considered the default purpose for the type of connection.
 
@@ -43,9 +43,9 @@ The user should be informed that an AMQP configuration for an external AQMP endp
 
 The container's internal AMQP endpoint is used if no AMQP connection is defined.
 
-Each AMQP connection configuration configuration has the element "amqp" at level 1.
+Each AMQP connection configuration has the element "amqp" at level 1.
 
-Each AMQP connection configuration configuration has the following elements at level 2 under the "amqp" element:
+Each AMQP connection configuration has the following elements at level 2 under the "amqp" element:
 1. The element "amqp-url" is a required element. Described as "An AMQP/AMQPS endpoint URL." It can be one of the following values:
 * An AMQP/AMQPS URL for an AMQP endpoint.
 * A secret that contains and AMQP/AMQPS URL with connection credentials.
