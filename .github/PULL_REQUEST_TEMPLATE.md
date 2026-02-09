@@ -44,6 +44,8 @@ Testing Scope
   - [ ] Scan Agent delegated scans
   - [ ] Project grouping
   - [ ] Project custom naming
+  - [ ] Policy integration - checks
+  - [ ] Policy integration - commit status
 - [ ] BitBucket Data Center Self-Hosted
   - [ ] Pull Request decorations
   - [ ] Push on protected/default branches
