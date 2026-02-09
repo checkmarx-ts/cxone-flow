@@ -85,6 +85,14 @@ class ADOEService(SCMService):
 
     async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         await self.__create_or_update_pr_comment(pr_details, content)
+
+    async def exec_pr_unrecoverable_error(self, pr_details : PRDetails, scan_details : ScanMessage, fail_msg : str):
+        existing_thread = await self.__get_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id)
+        if existing_thread is not None:
+            await self.__update_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id, 
+                                          existing_thread, fail_msg)
+        else:
+            ADOEService.log().warning("Unrecoverable error could locate thread for scanid %s", scan_details.scanid)
         
     async def __create_or_update_pr_comment(self, pr_details : PRDetails, content : PullRequestCommentContent):
         existing_thread = await self.__get_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id)

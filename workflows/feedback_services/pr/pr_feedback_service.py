@@ -50,9 +50,11 @@ class PRFeedbackService(AbstractPRFeedbackService):
             return True
         except CxOneException as ex:
             PRFeedbackService.log().exception(ex)
+            await scm_service.exec_pr_unrecoverable_error(pr_details, msg, "CxOneFlow: " + str(ex))
         except BaseException as bex:
             PRFeedbackService.log().error("Unrecoverable exception, aborting PR feedback.")
             PRFeedbackService.log().exception(bex)
+            await scm_service.exec_pr_unrecoverable_error(pr_details, msg, "CxOneFlow: " + str(bex))
             
         return False
 

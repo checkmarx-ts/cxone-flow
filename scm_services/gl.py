@@ -6,6 +6,7 @@ from workflows.pr_content import PullRequestAbstractMarkdownComment
 import urllib
 from workflows.pr_content import PullRequestCommentContent
 from workflows.messaging import PRDetails, ScanMessage
+from typing import Union
 
 class GLService(SCMService):
     __max_content_chars = 1000000
@@ -25,7 +26,10 @@ class GLService(SCMService):
     async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         await self.__create_or_update_pr_comment(pr_details, content)
     
-    async def __create_or_update_pr_comment(self, pr_details : PRDetails, content : PullRequestCommentContent):
+    async def exec_pr_unrecoverable_error(self, pr_details : PRDetails, scan_details : ScanMessage, fail_msg : str):
+        await self.__create_or_update_pr_comment(pr_details, fail_msg)
+
+    async def __create_or_update_pr_comment(self, pr_details : PRDetails, content : Union[PullRequestCommentContent, str]):
         pr_api_params = {
             "id" : urllib.parse.quote_plus(pr_details.repo_slug), 
             "merge_request_iid" : str(pr_details.pr_id)
@@ -44,9 +48,15 @@ class GLService(SCMService):
               pr_api_params['note_id'] = str(comment['id'])
               self.log().info(f"Updating comment {comment['id']} for PR#{pr_details.pr_id} on {pr_details.repo_slug}")
 
+        if isinstance(content, PullRequestCommentContent):
+            content_to_send = content.get_content(GLService.__max_content_chars)
+        else:
+            assert(isinstance(content, str))
+            content_to_send = PullRequestAbstractMarkdownComment.append_comment_identifier(content)
+
 
         posted = json_on_ok(await self.exec(method, note_url, url_vars=pr_api_params, body={
-            "body" : content.get_content(GLService.__max_content_chars)}))
+            "body" : content_to_send}))
 
         self.log().debug(f"Comment posted on PR#{pr_details.pr_id}: {posted}")
 

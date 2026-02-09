@@ -198,3 +198,31 @@ class GHServiceChecks(AbstractGHService, PolicyProperties):
             }
 
             await self.__update_run(pr_details, payload, run_id)
+
+    async def exec_pr_unrecoverable_error(self, pr_details : PRDetails, scan_details : ScanMessage, fail_msg : str):
+        run_id = await self.__find_running_check(pr_details, "in_progress")
+
+        if run_id is None:
+            GHServiceChecks.log().warning("No running check found in PR#%s for scan %s, no check updated.", pr_details.pr_id, scan_details.scanid)
+        else:
+            payload = {
+                "name" : self.check_name,
+                "head_sha" : self._get_head_sha(pr_details),
+                "external_id" : scan_details.scanid, 
+                "status" : "completed",
+                "conclusion" : "failure",
+                "output" : {
+                    "title" : "Unrecoverable Error",
+                    "summary" : GHServiceChecks.__summary_text,
+                    "text" : fail_msg
+                    },
+                "actions" : [
+                    {
+                        "label" : "Re-run scan",
+                        "description" : "Runs the scan again",
+                        "identifier" : str(GHServiceChecks.CheckActionEnum.SCAN)
+                    }]
+            }
+
+            await self.__update_run(pr_details, payload, run_id)
+

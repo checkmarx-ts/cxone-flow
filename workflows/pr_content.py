@@ -135,6 +135,10 @@ class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
     @staticmethod
     def comment_matches_identifier(comment_text : str):
         return PullRequestAbstractMarkdownComment.__comment_match.match(comment_text.replace("\n", ""))
+
+    @staticmethod
+    def append_comment_identifier(comment_text : str):
+        return PullRequestAbstractMarkdownComment.__identifier + "\n" + comment_text
     
     @property
     def scan_url(self):

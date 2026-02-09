@@ -5,7 +5,7 @@ from typing import Dict, Any, final
 from requests import Response
 from api_utils.auth_factories import EventContext
 from workflows.messaging import PRDetails, ScanMessage
-from workflows.pr_content import PullRequestCommentContent, PullRequestStatusContent
+from workflows.pr_content import PullRequestCommentContent
 
 class BasicSCMService:
     @classmethod
@@ -61,6 +61,8 @@ class SCMService(BasicSCMService):
     async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         raise NotImplementedError("exec_pr_scan_success_decorate")
 
+    async def exec_pr_unrecoverable_error(self, pr_details : PRDetails, scan_details : ScanMessage, fail_msg : str):
+        raise NotImplementedError("exec_pr_unrecoverable_error")
 
     def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
         raise NotImplementedError("create_code_permalink")
