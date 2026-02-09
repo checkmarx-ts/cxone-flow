@@ -26,18 +26,26 @@ Testing Scope
   - [ ] Scan Agent delegated scans
   - [ ] Project grouping
   - [ ] Project custom naming
+  - [ ] SARIF - AMQP
+  - [ ] SARIF - HTTP
 - [ ] Azure DevOps Self-Hosted
   - [ ] Pull Request decorations
   - [ ] Push on protected/default branches
   - [ ] Scan Agent delegated scans
   - [ ] Project grouping
   - [ ] Project custom naming
+  - [ ] SARIF - AMQP
+  - [ ] SARIF - HTTP
 - [ ] GitHub Cloud
   - [ ] Pull Request decorations
   - [ ] Push on protected/default branches
   - [ ] Scan Agent delegated scans
   - [ ] Project grouping
   - [ ] Project custom naming
+  - [ ] Policy integration - checks
+  - [ ] Policy integration - commit status
+  - [ ] SARIF - AMQP
+  - [ ] SARIF - HTTP
 - [ ] GitHub Enterprise Self-Hosted
   - [ ] Pull Request decorations
   - [ ] Push on protected/default branches
@@ -46,22 +54,30 @@ Testing Scope
   - [ ] Project custom naming
   - [ ] Policy integration - checks
   - [ ] Policy integration - commit status
+  - [ ] SARIF - AMQP
+  - [ ] SARIF - HTTP
 - [ ] BitBucket Data Center Self-Hosted
   - [ ] Pull Request decorations
   - [ ] Push on protected/default branches
   - [ ] Scan Agent delegated scans
   - [ ] Project grouping
   - [ ] Project custom naming
+  - [ ] SARIF - AMQP
+  - [ ] SARIF - HTTP
 - [ ] Gitlab Cloud
   - [ ] Pull Request decorations
   - [ ] Push on protected/default branches
   - [ ] Scan Agent delegated scans
   - [ ] Project grouping
   - [ ] Project custom naming
+  - [ ] SARIF - AMQP
+  - [ ] SARIF - HTTP
 - [ ] Gitlab Self-Hosted
   - [ ] Pull Request decorations
   - [ ] Push on protected/default branches
   - [ ] Scan Agent delegated scans
   - [ ] Project grouping
   - [ ] Project custom naming
+  - [ ] SARIF - AMQP
+  - [ ] SARIF - HTTP
 
