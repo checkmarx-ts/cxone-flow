@@ -1,6 +1,6 @@
 from scm_services.gh.basic import GHServiceBasic
 from scm_services.policy import PolicyProperties
-from workflows.pr_content import PullRequestCommentContent
+from workflows.pr_content import PullRequestCommentContent, PullRequestAbstractMarkdownComment
 from workflows.messaging import PRDetails, ScanMessage
 from cxone_api.util import json_on_ok
 from typing import Dict
@@ -65,4 +65,8 @@ class GHServiceCommitStatus(GHServiceBasic, PolicyProperties):
         await super().exec_pr_scan_success_decorate(pr_details, content, scan_details)
 
     async def exec_pr_unrecoverable_error(self, pr_details : PRDetails, scan_details : ScanMessage, fail_msg : str):
+        await self.__post_update(pr_details, self.__make_plaintext_payload("error", fail_msg))
+        await super().exec_pr_unrecoverable_error(pr_details, scan_details, fail_msg)
+
+    async def exec_pr_prescan_failure(self, pr_details : PRDetails, fail_msg : str):
         await self.__post_update(pr_details, self.__make_plaintext_payload("error", fail_msg))

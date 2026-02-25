@@ -47,7 +47,18 @@ class OrchestrationDispatch:
 
             return await orchestrator.handle_delegated_scan(services, scan_id)
         except RouteNotFoundException as ex:
-            OrchestrationDispatch.log().warning(f"Deferred scan for [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
+            OrchestrationDispatch.log().warning(f"Delegated scan for [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
+
+    @staticmethod
+    async def dispatch_delegated_pr_scan_hard_failure_workflow(orchestrator : AbstractOrchestrator):
+        try:
+            OrchestrationDispatch.log().debug(f"Service lookup: {orchestrator.route_urls}")
+            services = CxOneFlowConfig.retrieve_services_by_route(orchestrator.route_urls, orchestrator.config_key)
+            OrchestrationDispatch.log().debug(f"Service lookup success: {orchestrator.route_urls}")
+
+            return await orchestrator.handle_delegated_pr_scan_hard_fail(services, f"The prescan operation failed to execute properly.")
+        except RouteNotFoundException as ex:
+            OrchestrationDispatch.log().warning(f"Delegated scan for [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
 
     @staticmethod
     async def execute_kickoff(orchestrator : KickoffOrchestrator) -> bool:

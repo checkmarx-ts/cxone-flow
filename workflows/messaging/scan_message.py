@@ -9,8 +9,11 @@ class ScanHeader(StampedMessage):
     workflow: ScanWorkflow
 
 @dataclass(frozen=True)
-class ScanMessage(ScanHeader):
+class ScanWorkflowHeader(ScanHeader):
+    workflow_details : dict
+    
+@dataclass(frozen=True)
+class ScanMessage(ScanWorkflowHeader):
     scanid: str
     projectid : str
-    workflow_details : dict
 

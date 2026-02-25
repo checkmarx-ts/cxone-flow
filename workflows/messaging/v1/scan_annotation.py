@@ -1,4 +1,4 @@
-from workflows.messaging.scan_message import ScanMessage
+from workflows.messaging.scan_message import ScanMessage, ScanWorkflowHeader
 from dataclasses import dataclass
 
 
@@ -6,3 +6,6 @@ from dataclasses import dataclass
 class ScanAnnotationMessage(ScanMessage):
     annotation : str
 
+@dataclass(frozen=True)
+class PreScanAnnotationMessage(ScanWorkflowHeader):
+    annotation : str

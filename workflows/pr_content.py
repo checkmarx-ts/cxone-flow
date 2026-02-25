@@ -363,6 +363,21 @@ class PullRequestAbstractMarkdownComment(PullRequestCommentContent):
     def get_content(self, char_limit):
         return self.__get_content(self.__elements.keys(), char_limit)
 
+class PrescanPullRequestMarkdownAnnotation(PullRequestCommentContent):
+    def __init__(self, annotation : str):
+        self.__status_msg = annotation
+    
+    def get_status_msg(self, char_limit : int):
+        return self.__status_msg[0:char_limit]
+
+    def get_content(self, char_limit):
+        md_content = PullRequestAbstractMarkdownComment.append_comment_identifier(f"*{self.__status_msg}*")
+        return md_content[0:char_limit]
+
+    @property
+    def scan_url(self):
+        return None
+    
 
 class PullRequestMarkdownAnnotation(PullRequestAbstractMarkdownComment):
     def __init__(self, cxone_display_url : str, project_id : str, scanid : str, annotation : str, branch : str, server_base_url : str):

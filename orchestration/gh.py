@@ -190,6 +190,10 @@ class GithubOrchestrator(AbstractOrchestrator):
         else:
             return await GithubOrchestrator.__delegate_scan_handler_map[self.__dispatch_event](self, services, scan_id)
 
+    async def handle_delegated_pr_scan_hard_fail(self, services : CxOneFlowServices, fail_msg : str):
+        self.__populate_common_pr_data_from_pr_event()
+        await services.scm.exec_pr_prescan_failure(await self._make_prdetails(services), fail_msg)
+
     async def _get_target_branch_and_hash(self) -> tuple:
         return self.__target_branch, self.__target_hash
 

@@ -9,6 +9,7 @@ from workflows.messaging import (
     ScanAwaitMessage,
     ScanAnnotationMessage,
     ScanFeedbackMessage,
+    PreScanAnnotationMessage
 )
 from agent.resolver import ResolverResultsAgent, ResolverTimeoutAgent
 from agent import mq_agent
@@ -41,6 +42,21 @@ async def process_poll(msg: aio_pika.abc.AbstractIncomingMessage) -> None:
         sm = ScanAwaitMessage.from_binary(msg.body)
         services = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
         await services.poll.execute_poll_scan_workflow(msg, services.cxone)
+    except BaseException as ex:
+        __log.exception(ex)
+        await msg.nack(requeue=False)
+
+async def process_prescan_pr_annotate(msg: aio_pika.abc.AbstractIncomingMessage) -> None:
+    try:
+        __log.debug(
+            f"Received prescan PR annotation message on channel {msg.channel.number}: {msg.info()}"
+        )
+        sm = PreScanAnnotationMessage.from_binary(msg.body)
+        services = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
+        if await services.pr.process_prescan_pr_notice(sm, services.cxone, services.scm):
+            await msg.ack()
+        else:
+            await msg.nack(requeue=False)
     except BaseException as ex:
         __log.exception(ex)
         await msg.nack(requeue=False)
@@ -123,6 +139,14 @@ async def spawn_agents():
                     await services.pr.mq_client(),
                     moniker,
                     ScanPollingService.QUEUE_SCAN_POLLING,
+                )
+            )
+            g.create_task(
+                mq_agent(
+                    process_prescan_pr_annotate,
+                    await services.pr.mq_client(),
+                    moniker,
+                    PRQueueConstants.QUEUE_PRESCAN_ANNOTATE_PR,
                 )
             )
             g.create_task(

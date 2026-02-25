@@ -3,7 +3,7 @@ from datetime import timedelta
 from workflows.feedback_services.pr import PRFeedbackService
 from workflows.enums import ScanWorkflow, ScanStates, ResultSeverity, ResultStates
 from workflows.feedback_workflow_base import AbstractPRFeedbackWorkflow
-from workflows.messaging import ScanAwaitMessage, ScanFeedbackMessage, ScanAnnotationMessage
+from workflows.messaging import ScanAwaitMessage, ScanFeedbackMessage, ScanAnnotationMessage, PreScanAnnotationMessage
 from workflows.messaging.util import compute_drop_by_timestamp
 from workflows.base_service import CxOneFlowAbstractWorkflowService
 from typing import List
@@ -77,6 +77,22 @@ class PullRequestWorkflow(AbstractPRFeedbackWorkflow):
             delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
         )
 
+    def __prescan_annotation_msg_factory(
+        self, moniker: str, annotation: str, **kwargs
+    ) -> aio_pika.Message:
+        return aio_pika.Message(
+            PreScanAnnotationMessage.factory(
+                moniker=moniker,
+                annotation=annotation,
+                state=ScanStates.PRESCAN,
+                workflow=ScanWorkflow.PR,
+                workflow_details=kwargs,
+            ).to_binary(),
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+        )
+
+
+
     def __await_msg_factory(
         self, projectid: str, scanid: str, moniker: str, **kwargs
     ) -> aio_pika.Message:
@@ -117,3 +133,8 @@ class PullRequestWorkflow(AbstractPRFeedbackWorkflow):
         topic = PRFeedbackService.make_topic(ScanStates.ANNOTATE, ScanWorkflow.PR, moniker)
         await self._publish(mq_client, topic, self.__annotation_msg_factory(projectid, scanid, moniker, annotation, **kwargs), 
                             f"{topic} for scan id {scanid} on service {moniker}", CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_INPUT)
+
+    async def prescan_annotation_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, annotation : str, **kwargs):
+        topic = PRFeedbackService.make_topic(ScanStates.PRESCAN, ScanWorkflow.PR, moniker)
+        await self._publish(mq_client, topic, self.__prescan_annotation_msg_factory(moniker, annotation, **kwargs), 
+                            f"{topic} on service {moniker}", CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_INPUT)

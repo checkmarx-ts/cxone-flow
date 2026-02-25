@@ -33,5 +33,7 @@ class AbstractPRFeedbackWorkflow(AbstractFeedbackWorkflow):
     async def annotation_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, projectid : str, scanid : str, annotation : str, **kwargs):
         raise NotImplementedError("annotation_start")
     
+    async def prescan_annotation_start(self, mq_client : aio_pika.abc.AbstractRobustConnection, moniker : str, annotation : str, **kwargs):
+        raise NotImplementedError("prescan_annotation_start")
 
 

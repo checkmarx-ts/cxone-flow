@@ -226,3 +226,22 @@ class GHServiceChecks(AbstractGHService, PolicyProperties):
 
             await self.__update_run(pr_details, payload, run_id)
 
+    async def exec_pr_prescan_failure(self, pr_details : PRDetails, fail_msg : str):
+        run_id = await self.__find_running_check(pr_details, "queued")
+
+        if run_id is None:
+            GHServiceChecks.log().warning("No queued prescan check found in PR#%s, no check updated.", pr_details.pr_id)
+        else:
+            payload = {
+                "name" : self.check_name,
+                "head_sha" : self._get_head_sha(pr_details),
+                "status" : "completed",
+                "conclusion" : "failure",
+                "output" : {
+                    "title" : "Prescan failure",
+                    "summary" : GHServiceChecks.__summary_text,
+                    "text" : fail_msg
+                    }
+            }
+
+            await self.__update_run(pr_details, payload, run_id)

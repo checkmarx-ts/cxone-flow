@@ -1,7 +1,7 @@
 from workflows import AbstractPRFeedbackWorkflow, CxOneFlowAbstractWorkflowService
 from workflows.feedback_services.pr.queue_constants import PRQueueConstants
 from workflows.enums import ScanStates, FeedbackWorkflow
-from workflows.messaging import PRDetails, ScanAnnotationMessage, ScanFeedbackMessage
+from workflows.messaging import PRDetails, ScanAnnotationMessage, ScanFeedbackMessage, PreScanAnnotationMessage
 from cxone_service import CxOneService
 from scm_services.scm import SCMService
 
@@ -33,9 +33,15 @@ class AbstractPRFeedbackService(CxOneFlowAbstractWorkflowService):
     
     async def start_pr_scan_workflow(self, projectid : str, scanid : str, details : PRDetails, cxone_service : CxOneService, scm_service : SCMService) -> None:
         raise NotImplementedError("start_pr_scan_workflow")
+
+    async def start_delegated_pr_scan_workflow(self, details : PRDetails, cxone_service : CxOneService, scm_service : SCMService) -> None:
+        raise NotImplementedError("start_delegated_pr_scan_workflow")
     
     async def process_pr_notice(self, msg : ScanAnnotationMessage, cxone_service : CxOneService, scm_service : SCMService) -> bool:
         raise NotImplementedError("process_pr_notice")
+
+    async def process_prescan_pr_notice(self, msg : PreScanAnnotationMessage, cxone_service : CxOneService, scm_service : SCMService) -> bool:
+        raise NotImplementedError("process_prescan_pr_notice")
     
     async def process_pr_feedback(self, msg : ScanFeedbackMessage, cxone_service : CxOneService, scm_service : SCMService) -> bool:
         raise NotImplementedError("process_pr_feedback")

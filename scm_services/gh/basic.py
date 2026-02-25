@@ -72,3 +72,13 @@ class GHServiceBasic(AbstractGHService):
     async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
         await self.__create_or_update_pr_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, 
                                                  content.get_content(self.__max_content_chars), pr_details.event_context)
+
+    async def exec_pr_unrecoverable_error(self, pr_details : PRDetails, scan_details : ScanMessage, fail_msg : str):
+        await self.__create_or_update_pr_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, 
+                                                 PullRequestAbstractMarkdownComment.append_comment_identifier("An unrecoverable error was encountered while processing the pull-request."), 
+                                                 pr_details.event_context)
+
+    async def exec_pr_prescan_failure(self, pr_details : PRDetails, fail_msg : str):
+        await self.__create_or_update_pr_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, 
+                                                 PullRequestAbstractMarkdownComment.append_comment_identifier("Unrecoverable PR prescan failure."), 
+                                                 pr_details.event_context)

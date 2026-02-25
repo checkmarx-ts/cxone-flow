@@ -64,6 +64,9 @@ class SCMService(BasicSCMService):
     async def exec_pr_unrecoverable_error(self, pr_details : PRDetails, scan_details : ScanMessage, fail_msg : str):
         raise NotImplementedError("exec_pr_unrecoverable_error")
 
+    async def exec_pr_prescan_failure(self, pr_details : PRDetails, fail_msg : str):
+        raise NotImplementedError("exec_pr_prescan_failure")
+
     def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
         raise NotImplementedError("create_code_permalink")
    

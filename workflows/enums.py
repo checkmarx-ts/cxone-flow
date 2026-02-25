@@ -22,6 +22,7 @@ class ScanStates(__base_enum):
     EXECUTE = "exec"
     DONE = "finished"
     FAILURE = "failed"
+    PRESCAN = "prescan"
 
 class ExecTypes(__base_enum):
     RESOLVER = "sca-resolver"

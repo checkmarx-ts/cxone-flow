@@ -1,5 +1,5 @@
-from ..scan_message import ScanHeader
-from ..base_message import BaseMessage
+from workflows.messaging.scan_message import ScanHeader
+from workflows.messaging.base_message import BaseMessage
 from dataclasses import dataclass
 from api_utils.auth_factories import EventContext
 from typing import Optional

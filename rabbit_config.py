@@ -59,7 +59,12 @@ async def setup() -> None:
                 internal=True,
             )
 
-
+            prescan_annotate_exchange_pr = await channel.declare_exchange(
+                PRQueueConstants.EXCHANGE_PRESCAN_ANNOTATE,
+                aio_pika.ExchangeType.TOPIC,
+                durable=True,
+                internal=True,
+            )
             scan_annotate_exchange_pr = await channel.declare_exchange(
                 PRQueueConstants.EXCHANGE_SCAN_ANNOTATE,
                 aio_pika.ExchangeType.TOPIC,
@@ -91,6 +96,9 @@ async def setup() -> None:
 
             await scan_annotate_exchange_pr.bind(scan_in_exchange_legacy)
             await scan_annotate_exchange_pr.bind(scan_in_exchange)
+
+            await prescan_annotate_exchange_pr.bind(scan_in_exchange_legacy)
+            await prescan_annotate_exchange_pr.bind(scan_in_exchange)
 
             # The awaited scans allows scans to soak until a timeout, then they go to the polling exchange where the
             # scan is polled to see the state or times out.
@@ -182,6 +190,14 @@ async def setup() -> None:
             )
 
             # Scan State: Annotation
+            prescan_pr_annotate_queue = await channel.declare_queue(
+                PRQueueConstants.QUEUE_PRESCAN_ANNOTATE_PR,
+                durable=True,
+                arguments={"x-queue-type": "quorum"},
+            )
+            await prescan_pr_annotate_queue.bind(
+                prescan_annotate_exchange_pr, PRQueueConstants.ROUTEKEY_PRESCAN_ANNOTATE_PR
+            )
             pr_annotate_queue = await channel.declare_queue(
                 PRQueueConstants.QUEUE_ANNOTATE_PR,
                 durable=True,
@@ -200,8 +216,6 @@ async def setup() -> None:
             await pr_failure_queue.bind(
                 scan_feedback_exchange_pr, PRQueueConstants.ROUTEKEY_FAILURE_PR
             )
-
-
 
 
         resolver_rmq = await services.resolver.mq_client()
