@@ -138,7 +138,7 @@ class ResolverExecutionContext(AbstractExecutionContext):
             + exclude_opts
             + [
                 "--logs-path",
-                self.work_root.name,
+                "/sandbox/scalogs",
                 "--scan-path",
                 self.execution_clone_path,
                 "--containers-result-path",
