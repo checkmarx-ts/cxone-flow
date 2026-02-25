@@ -6,6 +6,7 @@ from config import RouteNotFoundException
 from config.server import CxOneFlowConfig
 from typing import List, Dict, Tuple, Union
 from cxoneflow_kickoff_api import KickoffResponseMsg
+from cxone_service import CxOneException
 
 
 class OrchestrationDispatch:
@@ -35,8 +36,11 @@ class OrchestrationDispatch:
                 return await orchestrator.execute(services)
             else:
                 OrchestrationDispatch.log().warning(f"Payload signature validation failed, webhook payload ignored.")
-        except RouteNotFoundException as ex:
+        except RouteNotFoundException:
             OrchestrationDispatch.log().warning(f"Event [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
+        except CxOneException as ex:
+            OrchestrationDispatch.log().warning(f"Event [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}] due to Checkmarx One error: {ex}")
+
 
     @staticmethod
     async def dispatch_delegated_scan_workflow(orchestrator : AbstractOrchestrator, scan_id : str):

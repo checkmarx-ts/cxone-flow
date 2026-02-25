@@ -18,6 +18,9 @@ from cxone_service.grouping import GroupingService
 class CxOneException(Exception):
     pass
 
+class CxOnePermissionException(CxOneException):
+    pass
+
 class CxOneService:
 
     COMMIT_TAG = "commit"
@@ -134,9 +137,11 @@ class CxOneService:
                 tags=self.__default_project_tags | {"cxone-flow" : __version__, "service" : self.moniker})
 
             # 400 = project exists
-            if create_response.status_code != 400 or not retry:
+            if create_response.status_code not in [400,403] or not retry:
                 project_json = CxOneService.__get_json_or_fail (create_response)
                 project_id = project_json['id']
+            elif create_response.status_code == 403:
+                raise CxOnePermissionException("Response indicates the Checkmarx One account does not have permission to create a project.")
             elif retry:
                 return await self.__create_or_retrieve_project(default_project_name, dynamic_project_name, clone_url, False)
         else:
