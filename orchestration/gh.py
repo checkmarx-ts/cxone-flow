@@ -249,6 +249,10 @@ class GithubOrchestrator(AbstractOrchestrator):
         self.__populate_common_pr_data_from_check_run_event()
         return await AbstractOrchestrator._execute_pr_scan_workflow(self, services)
 
+    async def _execute_delegated_action_request_workflow(self, services : CxOneFlowServices, scan_id : str):
+        self.__populate_common_pr_data_from_check_run_event()
+        return await AbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
+
 
     async def _execute_check_cancel_scan(self, services : CxOneFlowServices):
 
@@ -426,7 +430,9 @@ class GithubOrchestrator(AbstractOrchestrator):
         "pull_request:opened" : _execute_delegated_pr_scan_workflow,
         "pull_request:synchronize" : _execute_delegated_pr_scan_workflow,
         "pull_request:ready_for_review" : _execute_delegated_pr_scan_workflow,
-        "pull_request:reopened" : _execute_delegated_pr_scan_workflow
+        "pull_request:reopened" : _execute_delegated_pr_scan_workflow,
+        "check_run:requested_action" : _execute_delegated_action_request_workflow,
+        "check_run:rerequested" : _execute_delegated_action_request_workflow
     }
 
     __route_url_parser_dispatch_map = {
