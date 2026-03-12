@@ -2,7 +2,7 @@ from _agent import __agent__
 from requests import Response
 from requests import request
 from typing import Dict, Union, Any
-import logging, sys, asyncio
+import logging, asyncio
 from api_utils import AuthFactory
 from api_utils.auth_factories import EventContext
 from . import form_url

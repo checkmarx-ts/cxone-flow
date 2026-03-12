@@ -4,21 +4,37 @@ from orchestration.naming.gl import GitlabProjectNaming
 
 class GitlabKickoffOrchestrator(KickoffOrchestrator):
 
-  def __init__(self, msg : GitlabKickoffMsg, *args, **kwargs):
-     self.__msg = msg
-     super().__init__(*args, **kwargs)
+    def __init__(self, msg : GitlabKickoffMsg, *args, **kwargs):
+        self.__msg = msg
+        super().__init__(*args, **kwargs)
 
-  @property
-  def config_key(self):
-      return "gl"
+    @property
+    def config_key(self):
+        return "gl"
 
-  @property
-  def route_urls(self) -> list:
-      return self.kickoff_msg.clone_urls
+    @property
+    def route_urls(self) -> list:
+        return self.kickoff_msg.clone_urls
 
-  @property
-  def kickoff_msg(self) -> GitlabKickoffMsg:
-     return self.__msg
+    @property
+    def kickoff_msg(self) -> GitlabKickoffMsg:
+        return self.__msg
+    
+    @property
+    def _repo_project_key(self) -> str:
+        return self.__msg.repo_path_with_namespace
 
-  async def get_default_cxone_project_name(self) -> str:
-    return GitlabProjectNaming.create_project_name(self.kickoff_msg.repo_path_with_namespace)
+    @property
+    def _repo_organization(self) -> str:
+        return "/".join(self._repo_project_key.split("/")[:-1])
+
+    @property
+    def _repo_slug(self) -> str:
+        return self._repo_project_key
+
+    @property
+    def _repo_name(self) -> str:
+        return self._repo_project_key.split("/")[-1:].pop()
+
+    async def get_default_cxone_project_name(self) -> str:
+        return GitlabProjectNaming.create_project_name(self.kickoff_msg.repo_path_with_namespace)

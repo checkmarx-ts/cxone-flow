@@ -6,6 +6,21 @@ Defaults to \texttt{False}.  If set to \texttt{True}, the feedback workflow for 
 a Pull Request. See Section \ref{sec:pull-request-workflow} for details about the Pull Request feedback workflow.
 
 
+\subsubsection{YAML Element: <scm moniker>.feedback.pull-request.use-policies}\label{sec:yaml-pull-request-use-policies}
+Defaults to \texttt{False}.  If set to \texttt{True} and 
+\intlink{sec:yaml-pull-request-enabled}{<scm moniker>.feedback.pull-request.enabled} is also set to \texttt{True},
+pull-request feedback operations will operate to block merges as described in Section \ref{sec:pr-policy-management-common}.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.pull-request.gh-pr-opts}\label{sec:yaml-pull-request-gh-pr-opts}
+An optional element where the sub-elements provide options for handling pull-requests that apply to Github only.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.pull-request.gh-pr-opts.check-name}\label{sec:yaml-pull-request-gh-pr-opts-check-name}
+Defaults to "CheckmarxOne Scan".  This is the name of the check step when using 
+\extlink{https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/about-status-checks\#checks}{Github Checks}
+or
+\extlink{https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28\#about-commit-statuses}{Github Commit Statuses}.
+This name is displayed in the pull-request and can be referenced in branch protection rules as a required check.
+
 \subsubsection{YAML Element: <scm moniker>.feedback.push}\label{sec:yaml-feedback-push}
 The configuration parameters for Sarif delivery as push feedback.
 

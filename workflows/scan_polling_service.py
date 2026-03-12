@@ -2,7 +2,7 @@ import aio_pika, logging, pamqp.commands, asyncio
 from datetime import timedelta
 from workflows.messaging import ScanAwaitMessage
 from workflows.base_service import CxOneFlowAbstractWorkflowService
-from workflows import ScanStates
+from workflows.enums import ScanStates
 from cxone_service import CxOneService
 from cxone_api.exceptions import ResponseException
 from typing import List
@@ -38,21 +38,31 @@ class ScanPollingService(CxOneFlowAbstractWorkflowService):
             write_channel = None
             try:
                 write_channel = await (await self.mq_client()).channel()
-                inspector = await cxone_service.load_scan_inspector(swm.scanid)
+                scan_inspector = await cxone_service.load_scan_inspector(swm.scanid)
 
-                if not inspector.executing:
+                if not scan_inspector.executing:
                     try:
-                        requeue_on_finally = False
                         
-                        if inspector.successful:
+                        policy_inspector = cxone_service.get_policy_violation_inspector(scan_inspector.project_id, scan_inspector.scan_id)
+
+                        if scan_inspector.successful and not await policy_inspector.break_build:
                             ScanPollingService.log().info(f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow.")
                             await asyncio.gather(*[svc.handle_completed_scan(swm) for svc in self.__services])
+                        elif not scan_inspector.successful:
+                            ScanPollingService.log().info(f"Checkmarx One workflow failure for scan id {swm.scanid}, enqueuing feedback error workflow.")
+                            await asyncio.gather(*[svc.handle_awaited_scan_error(swm, "Scan workflow failure") for svc in self.__services])
+                        elif await policy_inspector.break_build:
+                            ScanPollingService.log().info(f"Break build policy violation for scan id {swm.scanid}, enqueuing feedback error workflow.")
+                            await asyncio.gather(*[svc.handle_awaited_scan_error(swm, "Policy violation") for svc in self.__services])
                         else:
-                            ScanPollingService.log().info(f"Scan failure for scan id {swm.scanid}, enqueuing feedback error workflow.")
-                            await asyncio.gather(*[svc.handle_awaited_scan_error(swm, inspector.state_msg) for svc in self.__services])
+                            ScanPollingService.log().info(f"Unspecified scan failure for scan id {swm.scanid}, enqueuing feedback error workflow.")
+                            await asyncio.gather(*[svc.handle_awaited_scan_error(swm, scan_inspector.state_msg) for svc in self.__services])
+
+                        requeue_on_finally = False
                     except BaseException as bex:
                         ScanPollingService.log().exception(bex)
                     finally:
+                        if not requeue_on_finally:
                             await msg.ack()
 
             except ResponseException as ex:

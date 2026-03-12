@@ -5,26 +5,25 @@ from config import ConfigurationException, RouteNotFoundException, CommonConfig
 import re, uuid, sys, dataclasses_json
 from dataclasses import make_dataclass, asdict
 from importlib import import_module
-from scm_services import SCMService, ADOEService, BBDCService, GHService, GLService
+from scm_services import SCMService
 from scm_services.cloner import Cloner
 from api_utils import auth_basic, auth_bearer
 from api_utils.apisession import APISession
 from api_utils.auth_factories import AuthFactory, GithubAppAuthFactory
 from cxone_service import CxOneService
 from cxone_service.grouping import GroupingService
-from password_strength import PasswordPolicy
-from workflows.pr_feedback_service import PRFeedbackService
-from workflows.push_feedback_service import PushFeedbackService
+from workflows.feedback_services.pr import AbstractPRFeedbackService, PRFeedbackService
+from workflows.feedback_services.push import PushFeedbackService
 from workflows.scan_polling_service import ScanPollingService
 from workflows.resolver_scan_service import ResolverScanService
-from workflows.pull_request import PullRequestWorkflow
+from workflows.pull_request_workflow import PullRequestWorkflow
 from workflows.push import PushWorkflow
 from workflows.base_service import CxOneFlowAbstractWorkflowService
 from workflows.resolver_workflow import (
     DummyResolverScanningWorkflow,
     ResolverScanningWorkflow,
 )
-from workflows import ResultSeverity, ResultStates
+from workflows.enums import ResultSeverity, ResultStates
 from services import CxOneFlowServices
 from typing import List, Dict, Union, Tuple
 from cxone_api import CxOneClient
@@ -32,18 +31,10 @@ from kickoff_services import DummyKickoffService, KickoffService
 from naming_services import ProjectNamingService
 from cxone_sarif import get_sarif_v210_log_for_scan
 from cxone_sarif.opts import DEFAULT as SARIF_DEFAULT_OPTS, ReportOpts
+from .scmservice_factories import *
 
 
 class CxOneFlowConfig(CommonConfig):
-
-    DEFAULT_MAX_POLL_INT_SECS = 600
-    DEFAULT_POLL_INTERVAL_SECS = 60
-    DEFAULT_POLL_BACKOFF_SCALAR = 2
-    DEFAULT_SCAN_TIMEOUT_HOURS = 48
-
-    __shared_secret_policy = PasswordPolicy.from_names(
-        length=20, uppercase=3, numbers=3, special=2
-    )
 
     @staticmethod
     def get_service_monikers():
@@ -121,10 +112,11 @@ class CxOneFlowConfig(CommonConfig):
                     index = 0
                     for repo_config_dict in raw_yaml[scm]:
 
+                        # TODO: __setup_scm should be __services_factory or something
                         services = CxOneFlowConfig.__setup_scm(
-                            CxOneFlowConfig.__cloner_factories[scm],
-                            CxOneFlowConfig.__api_auth_factories[scm],
-                            CxOneFlowConfig.__scm_factories[scm],
+                            CxOneFlowConfig.__scm_service_factories[scm].factory(repo_config_dict, f"/{scm}[{index}]", 
+                                                                                 CxOneFlowConfig.__cloner_factories[scm], 
+                                                                                 CxOneFlowConfig.__api_auth_factories[scm]),
                             repo_config_dict,
                             f"/{scm}[{index}]",
                         )
@@ -262,7 +254,7 @@ class CxOneFlowConfig(CommonConfig):
     @staticmethod
     def __pr_feedback_service_factory(
         config_path, moniker, **kwargs
-    ) -> PRFeedbackService:
+    ) -> AbstractPRFeedbackService:
         if kwargs is None or len(kwargs.keys()) == 0:
             return PRFeedbackService(
                 moniker, CxOneFlowConfig.__server_base_url, PullRequestWorkflow(),
@@ -317,12 +309,12 @@ class CxOneFlowConfig(CommonConfig):
                 ),
                 int(
                     CxOneFlowConfig._get_value_for_key_or_default(
-                        "poll-interval-seconds", scan_monitor_dict, CxOneFlowConfig.DEFAULT_POLL_INTERVAL_SECS
+                        "poll-interval-seconds", scan_monitor_dict, CommonConfig.DEFAULT_POLL_INTERVAL_SECS
                     )
                 ),
                 int(
                     CxOneFlowConfig._get_value_for_key_or_default(
-                        "scan-timeout-hours", scan_monitor_dict, CxOneFlowConfig.DEFAULT_SCAN_TIMEOUT_HOURS
+                        "scan-timeout-hours", scan_monitor_dict, CommonConfig.DEFAULT_SCAN_TIMEOUT_HOURS
                     )
                 ),
             )
@@ -438,45 +430,6 @@ class CxOneFlowConfig(CommonConfig):
     __ordered_scm_services_config = {}
     __scm_services_config_by_service_moniker = {}
 
-    @staticmethod
-    def __scm_api_auth_factory(
-        api_url: str, api_auth_factory, config_dict, config_path
-    ):
-        retval = None
-
-        if config_dict is not None and len(config_dict.keys()) > 0:
-
-            retval = api_auth_factory(api_url, config_path, config_dict)
-
-        if retval is None:
-            raise ConfigurationException(
-                f"{config_path} SCM API authorization configuration is invalid!"
-            )
-
-        return retval
-
-    @staticmethod
-    def __cloner_factory(
-        api_session: APISession,
-        scm_cloner_factory,
-        clone_auth_dict,
-        config_path,
-        ssl_no_verify: bool,
-    ):
-
-        retval = scm_cloner_factory(
-            api_session,
-            Path(CxOneFlowConfig._secret_root),
-            clone_auth_dict,
-            ssl_no_verify,
-        )
-
-        if retval is None:
-            raise ConfigurationException(
-                f"{config_path} SCM clone authorization configuration is invalid!"
-            )
-
-        return retval
 
     @staticmethod
     def __kickoff_service_factory(cxone_client, config_dict, config_path, moniker):
@@ -528,9 +481,7 @@ class CxOneFlowConfig(CommonConfig):
         return grouping, update_flag
 
     @staticmethod
-    def __setup_scm(
-        cloner_factory, api_auth_factory, scm_class, config_dict, config_path
-    ) -> CxOneFlowServices:
+    def __setup_scm(scm_service, config_dict, config_path) -> CxOneFlowServices:
         repo_matcher = re.compile(
             CxOneFlowConfig._get_value_for_key_or_fail(
                 config_path, "repo-match", config_dict
@@ -616,94 +567,6 @@ class CxOneFlowConfig(CommonConfig):
             naming_update_flag,
             group_update_flag,
             grouping_service
-        )
-
-        connection_config_dict = CxOneFlowConfig._get_value_for_key_or_fail(
-            config_path, "connection", config_dict
-        )
-
-        api_auth_dict = CxOneFlowConfig._get_value_for_key_or_fail(
-            f"{config_path}/connection", "api-auth", connection_config_dict
-        )
-
-        api_base_url = CxOneFlowConfig._get_value_for_key_or_fail(
-            f"{config_path}/connection", "base-url", connection_config_dict
-        )
-
-        display_url = CxOneFlowConfig._get_value_for_key_or_default(
-            "base-display-url", connection_config_dict, api_base_url
-        )
-
-        api_url = APISession.form_api_endpoint(
-            api_base_url,
-            CxOneFlowConfig._get_value_for_key_or_default(
-                "api-url-suffix", connection_config_dict, None
-            ),
-        )
-
-        ssl_verify = CxOneFlowConfig._get_value_for_key_or_default(
-            "ssl-verify",
-            connection_config_dict,
-            CxOneFlowConfig.get_default_ssl_verify_value(),
-        )
-
-        ssl_no_verify_git = (
-            not ssl_verify
-            if isinstance(ssl_verify, bool)
-            else True if ssl_verify.lower() == "false" else False
-        )
-
-        api_session = APISession(
-            api_url,
-            CxOneFlowConfig.__scm_api_auth_factory(
-                api_url,
-                api_auth_factory,
-                api_auth_dict,
-                f"{config_path}/connection/api-auth",
-            ),
-            CxOneFlowConfig._get_value_for_key_or_default(
-                "timeout-seconds", connection_config_dict, 60
-            ),
-            CxOneFlowConfig._get_value_for_key_or_default(
-                "retries", connection_config_dict, 3
-            ),
-            CxOneFlowConfig._get_value_for_key_or_default(
-                "proxies", connection_config_dict, None
-            ),
-            ssl_verify,
-        )
-
-        scm_shared_secret = CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
-            f"{config_path}/connection", "shared-secret", connection_config_dict
-        )
-        secret_test_result = CxOneFlowConfig.__shared_secret_policy.test(
-            scm_shared_secret
-        )
-        if not len(secret_test_result) == 0:
-            raise ConfigurationException(
-                f"{config_path}/connection/shared-secret fails some complexity requirements: {secret_test_result}"
-            )
-
-        clone_auth_dict = CxOneFlowConfig._get_value_for_key_or_default(
-            "clone-auth", connection_config_dict, None
-        )
-        clone_config_path = f"{config_path}/connection/clone-auth"
-        if clone_auth_dict is None:
-            clone_auth_dict = api_auth_dict
-            clone_config_path = f"{config_path}/connection/api-auth"
-
-        scm_service = scm_class(
-            display_url,
-            service_moniker,
-            api_session,
-            scm_shared_secret,
-            CxOneFlowConfig.__cloner_factory(
-                api_session,
-                cloner_factory,
-                clone_auth_dict,
-                clone_config_path,
-                ssl_no_verify_git,
-            ),
         )
 
         return CxOneFlowServices(
@@ -979,6 +842,7 @@ class CxOneFlowConfig(CommonConfig):
                 api_url,
             )
         return common
+    
 
     __cloner_factories = {
         "bbdc": __bbdc_cloner_factory,
@@ -994,9 +858,10 @@ class CxOneFlowConfig(CommonConfig):
         "gl": __common_api_auth_factory,
     }
 
-    __scm_factories = {
-        "bbdc": BBDCService,
-        "adoe": ADOEService,
-        "gh": GHService,
-        "gl": GLService,
+    __scm_service_factories = {
+        "gh" : GHSCMServiceFactory,
+        "bbdc": BBDCServiceFactory,
+        "adoe": ADOEServiceFactory,
+        "gl": GLServiceFactory
+
     }

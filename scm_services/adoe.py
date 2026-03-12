@@ -3,10 +3,11 @@ from .scm import SCMService
 from cxone_api.util import json_on_ok
 from typing import Union, Dict
 from datetime import datetime, UTC
-import markdown as md
 from typing import Dict
 from api_utils.auth_factories import EventContext
 from api_utils import form_url
+from workflows.pr_content import PullRequestCommentContent
+from workflows.messaging import PRDetails, ScanMessage
 
 class ADOEService(SCMService):
 
@@ -15,10 +16,10 @@ class ADOEService(SCMService):
     __thread_prop_key = "cxoneflow"
 
     @staticmethod
-    def __create_thread_props(scanid : str) -> dict:
+    def __create_thread_props(status_msg : str) -> dict:
         return json.dumps({
             "timestamp" : datetime.now(UTC).isoformat(),
-            "scanid" : scanid
+            "status" : status_msg
         })
 
 
@@ -49,7 +50,7 @@ class ADOEService(SCMService):
             ADOEService.log().debug(f"PR thread {thread_id} updated on PR {pr_number}")
     
 
-    async def __create_pr_thread(self, organization : str, project : str, repo_slug : str, pr_number : str, annotation : str, scanid : str):
+    async def __create_pr_thread(self, organization : str, project : str, repo_slug : str, pr_number : str, annotation : str, status_msg : str):
         payload = {
             "comments" : [
                 {
@@ -60,7 +61,7 @@ class ADOEService(SCMService):
             ],
             "status" : 1,
             "properties" : {
-              ADOEService.__thread_prop_key : ADOEService.__create_thread_props(scanid)
+              ADOEService.__thread_prop_key : ADOEService.__create_thread_props(status_msg)
             }
         }
 
@@ -68,28 +69,41 @@ class ADOEService(SCMService):
                                             query = {"api-version": "7.0"}, body=json.dumps(payload), extra_headers={"Content-Type" : "application/json"}))
         
         if thread is None:
-            ADOEService.log().error(f"Unable to create PR thread for scan id {scanid}")
+            ADOEService.log().error(f"Unable to create PR thread for PR id {pr_number}")
         else:
-            ADOEService.log().debug(f"PR thread {thread['id']} created on PR {pr_number} for scan id {scanid}")
+            ADOEService.log().debug(f"PR thread {thread['id']} created on PR {pr_number}")
 
+
+    async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
+        await self.__create_or_update_pr_comment(pr_details, content)
+    
+    async def exec_pr_scan_pending_decorate(self, pr_details : PRDetails, content: PullRequestCommentContent):
+        await self.__create_or_update_pr_comment(pr_details, content)
+
+    async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
+        await self.__create_or_update_pr_comment(pr_details, content)
+
+    async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
+        await self.__create_or_update_pr_comment(pr_details, content)
+
+    async def exec_pr_unrecoverable_error(self, pr_details : PRDetails, scan_details : ScanMessage, fail_msg : str):
+        existing_thread = await self.__get_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id)
+        if existing_thread is not None:
+            await self.__update_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id, 
+                                          existing_thread, fail_msg)
+        else:
+            ADOEService.log().warning("Unrecoverable error could locate thread for scanid %s", scan_details.scanid)
         
-
-
-
-    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, 
-                               scanid : str, full_markdown : str, summary_markdown : str, event_context : EventContext):
-        existing_thread = await self.__get_pr_thread(organization, project, repo_slug, pr_number)
-
-        content = md.markdown(full_markdown, extensions=['tables'])
-
-        if len(content) > ADOEService.__max_content_chars:
-            content = md.markdown(summary_markdown, extensions=['tables'])
+    async def __create_or_update_pr_comment(self, pr_details : PRDetails, content : PullRequestCommentContent):
+        existing_thread = await self.__get_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id)
 
         if existing_thread is None:
-            await self.__create_pr_thread(organization, project, repo_slug, pr_number, content, scanid)
+            await self.__create_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id, 
+                                          content.get_content(ADOEService.__max_content_chars), 
+                                          content.get_status_msg(ADOEService.__max_content_chars))
         else:
-            await self.__update_pr_thread(organization, project, repo_slug, pr_number, existing_thread, content)
-
+            await self.__update_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id, 
+                                          existing_thread, content.get_content(ADOEService.__max_content_chars))
 
     def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
         return form_url(self.display_url, f"{organization}/{project}/_git/{repo_slug}", path=code_path, version=f"GB{branch}", 

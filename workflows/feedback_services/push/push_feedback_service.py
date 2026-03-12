@@ -1,18 +1,15 @@
 import aio_pika, gzip, asyncio, json, requests, logging
 from time import perf_counter_ns
 from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
-from workflows import ScanStates, ScanWorkflow, FeedbackWorkflow
+from workflows.enums import ScanStates, ScanWorkflow, FeedbackWorkflow
 from workflows.base_service import AMQPClient, CxOneFlowAbstractWorkflowService
 from workflows.messaging import PushDetails, ScanAwaitMessage, ScanFeedbackMessage
-from workflows.messaging.base_message import StampedMessage
 from cxone_api import CxOneClient
 from cxone_service import CxOneException
 from cxone_sarif.opts import ReportOpts
 from cxone_sarif import get_sarif_v210_log_for_scan
 from sarif_om import SarifLog
 from api_utils import gen_signature_header
-from dataclasses import dataclass, asdict, make_dataclass
-from dataclasses_json import dataclass_json
 from typing import List, Dict, Union, Any, Tuple
 
 class PushFeedbackService(CxOneFlowAbstractWorkflowService):
@@ -222,7 +219,8 @@ class PushFeedbackService(CxOneFlowAbstractWorkflowService):
 
 
     async def start_sarif_feedback(self, projectid : str, scanid : str, details : PushDetails) -> None:
-        await self.__workflow.workflow_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))
+        if await self.__workflow.is_enabled():
+            await self.__workflow.workflow_start(await self.mq_client(), self.__service_moniker, projectid, scanid, **(details.as_dict()))
 
     async def handle_completed_scan(self, msg : ScanAwaitMessage) -> None:
         if msg.workflow == ScanWorkflow.PUSH:

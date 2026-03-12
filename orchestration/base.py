@@ -9,7 +9,7 @@ from cxone_service import CxOneService
 from scm_services.cloner import Cloner, CloneWorker, CloneAuthException
 from workflows.exceptions import WorkflowException
 from workflows.messaging import PRDetails, PushDetails
-from workflows import ScanWorkflow
+from workflows.enums import ScanWorkflow
 from api_utils.auth_factories import EventContext
 from enum import Enum
 from typing import Tuple, List, Dict, Any
@@ -92,8 +92,9 @@ class AbstractOrchestrator:
 
     async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
         raise NotImplementedError("handle_delegated_scan")
-    
 
+    async def handle_delegated_pr_scan_hard_fail(self, services : CxOneFlowServices, fail_msg : str):
+        raise NotImplementedError("handle_delegated_pr_scan_hard_fail")
 
     @staticmethod
     def __zip_write_delegate(zip_entries : Dict, zipfile : zipfile.ZipFile):
@@ -209,8 +210,6 @@ class AbstractOrchestrator:
             return None, AbstractOrchestrator.ScanAction.SKIPPED
 
     async def _execute_delegated_push_scan_workflow(self, services : CxOneFlowServices, scan_id : str) -> Tuple[ScanInspector, ScanAction]:
-        
-
         AbstractOrchestrator.log().debug(f"_execute_delegated_push_scan_workflow")
         inspector =  await services.cxone.load_scan_inspector(scan_id)
         status = AbstractOrchestrator.ScanAction.COMPLETE
@@ -265,17 +264,24 @@ class AbstractOrchestrator:
         return inspector, action
 
 
-    async def __start_pr_workflow(self, services : CxOneFlowServices, inspector : ScanInspector):
-
+    async def _make_prdetails(self, services : CxOneFlowServices) -> PRDetails:
         source_branch, _ = await self._get_source_branch_and_hash()
         target_branch, _ = await self._get_target_branch_and_hash()
 
+        return PRDetails.factory(event_context=self.event_context, 
+            clone_url=self._repo_clone_url(services.scm.cloner), 
+            repo_project=self._repo_project_key, repo_slug=self._repo_slug, 
+            organization=self._repo_organization, pr_id=self._pr_id,
+            source_branch=source_branch, target_branch=target_branch)
+    
+    async def __start_pr_workflow(self, services : CxOneFlowServices, inspector : ScanInspector):
         await services.pr.start_pr_scan_workflow(inspector.project_id, inspector.scan_id, 
-                                                    PRDetails.factory(event_context=self.event_context, 
-                                                    clone_url=self._repo_clone_url(services.scm.cloner), 
-                                                    repo_project=self._repo_project_key, repo_slug=self._repo_slug, 
-                                                    organization=self._repo_organization, pr_id=self._pr_id,
-                                                    source_branch=source_branch, target_branch=target_branch))
+                                                    await self._make_prdetails(services), 
+                                                    services.cxone, services.scm)
+
+    async def __start_delegated_pr_workflow(self, services : CxOneFlowServices):
+        await services.pr.start_delegated_pr_scan_workflow(await self._make_prdetails(services), 
+                                                    services.cxone, services.scm)
 
     async def _execute_delegated_pr_scan_workflow(self, services : CxOneFlowServices, scan_id : str) -> ScanAction:
         AbstractOrchestrator.log().debug("_execute_delegated_pr_scan_workflow")
@@ -306,6 +312,7 @@ class AbstractOrchestrator:
         if inspector is not None and scan_action == AbstractOrchestrator.ScanAction.EXECUTING:
             await self.__start_pr_workflow(services, inspector)
         elif scan_action is AbstractOrchestrator.ScanAction.DELEGATED:
+            await self.__start_delegated_pr_workflow(services)
             AbstractOrchestrator.log().info(f"PR workflow delegated for PR {self._pr_id}.")
         else:
             AbstractOrchestrator.log().warning(f"No scan returned, PR workflow not started for PR {self._pr_id}.")

@@ -4,6 +4,7 @@ from api_utils.pagers import async_api_page_generator
 from api_utils.auth_factories import EventContext
 from jsonpath_ng import parse
 from scm_services import SCMService
+from scm_services.gh.checks import GHServiceChecks
 from scm_services.cloner import CloneWorker
 from requests import Response
 from cxone_api.high.scans import ScanInspector
@@ -33,18 +34,27 @@ class GithubOrchestrator(AbstractOrchestrator):
 
 
     __pull_target_branch_query = parse("$.pull_request.base.ref")
+    __check_run_pull_target_branch_query = parse("$.check_run.check_suite.pull_requests[0].base.ref")
     __pull_target_hash_query = parse("$.pull_request.base.sha")
+    __check_run_pull_target_hash_query = parse("$.check_run.check_suite.pull_requests[0].base.sha")
     __pull_source_branch_query = parse("$.pull_request.head.ref")
+    __check_run_pull_source_branch_query = parse("$.check_run.check_suite.pull_requests[0].head.ref")
     __pull_source_hash_query = parse("$.pull_request.head.sha")
+    __check_run_pull_source_hash_query = parse("$.check_run.check_suite.pull_requests[0].head.sha")
     __pull_id_query = parse("$.number")
+    __check_run_pull_id_query = parse("$.check_run.check_suite.pull_requests[0].number")
     __pull_state_query = parse("$.pull_request.state")
     __pull_draft_query = parse("$.pull_request.draft")
     __pull_html_url = parse("$.pull_request.html_url")
+    __check_run_pull_html_url = parse("$.check_run.check_suite.pull_requests[0].url")
     __pull_project_key_query = parse("$.repository.name")
     __pull_org_key_query = parse("$.repository.owner.login")
     __pull_assignee_query = parse("$.pull_request.assignee")
     __pull_assignees_query = parse("$.pull_request.assignees")
     __pull_requested_reviewers_query = parse("$.pull_request[requested_teams,requested_reviewers][*]")
+
+    __check_run_external_id_query = parse("$.check_run.external_id")
+    __check_run_id_query = parse("$.check_run.id")
 
     __code_event_route_url_query = parse("$.repository[clone_url,ssh_url]")
     __code_event_ssh_clone_url_query = parse("$.repository.ssh_url")
@@ -52,6 +62,8 @@ class GithubOrchestrator(AbstractOrchestrator):
     __code_event_default_branch_name_extract = parse("$.repository.default_branch")
     
     __branch_names_extract = parse("$.[*].name")
+
+    __requested_action_extract = parse("$.requested_action.identifier")
 
     __expected_events = ['pull_request', 'pull_request_review', 'push']
     __expected_permissions = {
@@ -128,8 +140,8 @@ class GithubOrchestrator(AbstractOrchestrator):
         return [GithubOrchestrator.__install_route_url_query.find(self.event_context.message)[0].value]
     
     def __code_event_route_urls(self):
-        return [GithubOrchestrator.__code_event_route_url_query.find(self.event_context.message)[0].value]
-
+        return [x.value for x in GithubOrchestrator.__code_event_route_url_query.find(self.event_context.message)]
+    
     def __code_event_clone_urls(self):
         return {
             "ssh" : GithubOrchestrator.__code_event_ssh_clone_url_query.find(self.event_context.message)[0].value,
@@ -178,6 +190,10 @@ class GithubOrchestrator(AbstractOrchestrator):
         else:
             return await GithubOrchestrator.__delegate_scan_handler_map[self.__dispatch_event](self, services, scan_id)
 
+    async def handle_delegated_pr_scan_hard_fail(self, services : CxOneFlowServices, fail_msg : str):
+        self.__populate_common_pr_data_from_pr_event()
+        await services.scm.exec_pr_prescan_failure(await self._make_prdetails(services), fail_msg)
+
     async def _get_target_branch_and_hash(self) -> tuple:
         return self.__target_branch, self.__target_hash
 
@@ -215,7 +231,42 @@ class GithubOrchestrator(AbstractOrchestrator):
     async def _execute_push_scan_workflow(self, services : CxOneFlowServices):
         self.__init_state_on_push()
         return await AbstractOrchestrator._execute_push_scan_workflow(self, services)
+    
+    async def _execute_check_requested_action_workflow(self, services : CxOneFlowServices):
+        action = GithubOrchestrator.__requested_action_extract.find(self.event_context.message)[0].value
+        if action not in GithubOrchestrator.__check_action_dispatch_map.keys():
+            GithubOrchestrator.log().error(f"It is not known how to handle requested check action {action}")
+        else:
+            return await GithubOrchestrator.__check_action_dispatch_map[action](self, services)
 
+    async def _execute_check_rerequest_workflow(self, services : CxOneFlowServices):
+        # This does the same as rescan but the rerequest payload doesn't
+        # have a "requested_action" element.
+        return await self._execute_check_rescan(services)
+
+    async def _execute_check_rescan(self, services : CxOneFlowServices):
+        # This is a PR scan workflow with a different event payload.
+        self.__populate_common_pr_data_from_check_run_event()
+        return await AbstractOrchestrator._execute_pr_scan_workflow(self, services)
+
+    async def _execute_delegated_action_request_workflow(self, services : CxOneFlowServices, scan_id : str):
+        self.__populate_common_pr_data_from_check_run_event()
+        return await AbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
+
+
+    async def _execute_check_cancel_scan(self, services : CxOneFlowServices):
+
+        check_run_id = GithubOrchestrator.__check_run_id_query.find(self.event_context.message).pop().value
+        pr_id = GithubOrchestrator.__check_run_pull_id_query.find(self.event_context.message).pop().value
+        scan_id_query_result = GithubOrchestrator.__check_run_external_id_query.find(self.event_context.message)
+
+        if scan_id_query_result is not None and len(scan_id_query_result) == 0:
+            GithubOrchestrator.log().error(f"No scan id was located in the request to cancel a scan from run id {check_run_id} on pr {pr_id}, ignored.")
+        else:
+            scan_id = scan_id_query_result.pop().value
+            result = await services.cxone.cancel_scan(scan_id)
+            GithubOrchestrator.log().debug(f"Request to cancel scan id {scan_id} from run id {check_run_id} on pr {pr_id}: {result}.")
+    
 
     def __get_pr_assignees(self):
         ret = []
@@ -236,12 +287,28 @@ class GithubOrchestrator(AbstractOrchestrator):
             return reviewers[0].value
         
         return []
-
-    def __populate_common_pr_data(self):
-        self.__pr_html_url = GithubOrchestrator.__pull_html_url.find(self.event_context.message)[0].value
-        self.__pr_id = GithubOrchestrator.__pull_id_query.find(self.event_context.message)[0].value
+    
+    def __populate_common_pr_data_from_any_event(self):
         self.__project_key = GithubOrchestrator.__pull_project_key_query.find(self.event_context.message)[0].value
         self.__org = GithubOrchestrator.__pull_org_key_query.find(self.event_context.message)[0].value
+
+    def __populate_common_pr_data_from_check_run_event(self):
+        self.__populate_common_pr_data_from_any_event()
+        self.__pr_html_url = GithubOrchestrator.__check_run_pull_html_url.find(self.event_context.message)[0].value
+        self.__pr_id = GithubOrchestrator.__check_run_pull_id_query.find(self.event_context.message)[0].value
+        self.__target_branch = GithubOrchestrator.__check_run_pull_target_branch_query.find(self.event_context.message)[0].value
+        self.__source_branch = GithubOrchestrator.__check_run_pull_source_branch_query.find(self.event_context.message)[0].value
+        self.__target_hash = GithubOrchestrator.__check_run_pull_target_hash_query.find(self.event_context.message)[0].value
+        self.__source_hash = GithubOrchestrator.__check_run_pull_source_hash_query.find(self.event_context.message)[0].value
+        self.__is_draft = False
+        self.__pr_status = "REREQUESTED"
+        self.__pr_state = "open"
+
+    def __populate_common_pr_data_from_pr_event(self):
+        self.__populate_common_pr_data_from_any_event()
+
+        self.__pr_html_url = GithubOrchestrator.__pull_html_url.find(self.event_context.message)[0].value
+        self.__pr_id = GithubOrchestrator.__pull_id_query.find(self.event_context.message)[0].value
         self.__target_branch = GithubOrchestrator.__pull_target_branch_query.find(self.event_context.message)[0].value
         self.__source_branch = GithubOrchestrator.__pull_source_branch_query.find(self.event_context.message)[0].value
         self.__target_hash = GithubOrchestrator.__pull_target_hash_query.find(self.event_context.message)[0].value
@@ -257,11 +324,11 @@ class GithubOrchestrator(AbstractOrchestrator):
             self.__pr_status = "NO_REVIEWERS"
 
     async def _execute_delegated_pr_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
-        self.__populate_common_pr_data()
+        self.__populate_common_pr_data_from_pr_event()
         return await AbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
 
     async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
-        self.__populate_common_pr_data()
+        self.__populate_common_pr_data_from_pr_event()
 
         if self.__is_draft:
             GithubOrchestrator.log().info(f"Skipping draft PR {self.__pr_id}: {self.__pr_html_url}")
@@ -270,7 +337,7 @@ class GithubOrchestrator(AbstractOrchestrator):
         return await AbstractOrchestrator._execute_pr_scan_workflow(self, services)
 
     async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices):
-        self.__populate_common_pr_data()
+        self.__populate_common_pr_data_from_pr_event()
         return await AbstractOrchestrator._execute_pr_tag_update_workflow(self, services)
 
     @property
@@ -353,7 +420,9 @@ class GithubOrchestrator(AbstractOrchestrator):
         "pull_request:review_request_removed" : _execute_pr_tag_update_workflow,
         "pull_request:review_requested" : _execute_pr_tag_update_workflow,
         "pull_request:closed" : _execute_pr_tag_update_workflow,
-        "pull_request:converted_to_draft" : _execute_pr_tag_update_workflow
+        "pull_request:converted_to_draft" : _execute_pr_tag_update_workflow,
+        "check_run:requested_action" : _execute_check_requested_action_workflow,
+        "check_run:rerequested" : _execute_check_rerequest_workflow
     }
 
     __delegate_scan_handler_map = {
@@ -361,19 +430,27 @@ class GithubOrchestrator(AbstractOrchestrator):
         "pull_request:opened" : _execute_delegated_pr_scan_workflow,
         "pull_request:synchronize" : _execute_delegated_pr_scan_workflow,
         "pull_request:ready_for_review" : _execute_delegated_pr_scan_workflow,
-        "pull_request:reopened" : _execute_delegated_pr_scan_workflow
+        "pull_request:reopened" : _execute_delegated_pr_scan_workflow,
+        "check_run:requested_action" : _execute_delegated_action_request_workflow,
+        "check_run:rerequested" : _execute_delegated_action_request_workflow
     }
 
     __route_url_parser_dispatch_map = {
         "installation" : __installation_route_urls,
         "installation_repositories" : __installation_route_urls,
         "push" : __code_event_route_urls,
-        "pull_request" : __code_event_route_urls
+        "pull_request" : __code_event_route_urls,
+        "check_run" : __code_event_route_urls
 
     }
 
     __clone_url_parser_dispatch_map = {
         "push" : __code_event_clone_urls,
-        "pull_request" : __code_event_clone_urls
+        "pull_request" : __code_event_clone_urls,
+        "check_run" : __code_event_clone_urls
     }
 
+    __check_action_dispatch_map = {
+        str(GHServiceChecks.CheckActionEnum.CANCEL) : _execute_check_cancel_scan,
+        str(GHServiceChecks.CheckActionEnum.SCAN) : _execute_check_rescan
+    }

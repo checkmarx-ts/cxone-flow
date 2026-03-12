@@ -6,6 +6,7 @@ from config import RouteNotFoundException
 from config.server import CxOneFlowConfig
 from typing import List, Dict, Tuple, Union
 from cxoneflow_kickoff_api import KickoffResponseMsg
+from cxone_service import CxOneException
 
 
 class OrchestrationDispatch:
@@ -35,8 +36,11 @@ class OrchestrationDispatch:
                 return await orchestrator.execute(services)
             else:
                 OrchestrationDispatch.log().warning(f"Payload signature validation failed, webhook payload ignored.")
-        except RouteNotFoundException as ex:
+        except RouteNotFoundException:
             OrchestrationDispatch.log().warning(f"Event [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
+        except CxOneException as ex:
+            OrchestrationDispatch.log().warning(f"Event [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}] due to Checkmarx One error: {ex}")
+
 
     @staticmethod
     async def dispatch_delegated_scan_workflow(orchestrator : AbstractOrchestrator, scan_id : str):
@@ -47,7 +51,18 @@ class OrchestrationDispatch:
 
             return await orchestrator.handle_delegated_scan(services, scan_id)
         except RouteNotFoundException as ex:
-            OrchestrationDispatch.log().warning(f"Deferred scan for [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
+            OrchestrationDispatch.log().warning(f"Delegated scan for [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
+
+    @staticmethod
+    async def dispatch_delegated_pr_scan_hard_failure_workflow(orchestrator : AbstractOrchestrator):
+        try:
+            OrchestrationDispatch.log().debug(f"Service lookup: {orchestrator.route_urls}")
+            services = CxOneFlowConfig.retrieve_services_by_route(orchestrator.route_urls, orchestrator.config_key)
+            OrchestrationDispatch.log().debug(f"Service lookup success: {orchestrator.route_urls}")
+
+            return await orchestrator.handle_delegated_pr_scan_hard_fail(services, f"The prescan operation failed to execute properly.")
+        except RouteNotFoundException as ex:
+            OrchestrationDispatch.log().warning(f"Delegated scan for [{orchestrator.event_name}] not handled for SCM [{orchestrator.config_key}]")
 
     @staticmethod
     async def execute_kickoff(orchestrator : KickoffOrchestrator) -> bool:

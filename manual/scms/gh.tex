@@ -49,6 +49,7 @@ The following steps can be followed to configure the \cxoneflow GitHub App:
     \item Scroll the the \textbf{Permissions} section and expand the \textbf{Repository Permissions} as shown in
     Figure \ref{fig:gh-app-cfg-3}.  The following permissions are required:
     \begin{itemize}
+        \item Checks: Read and write\footnote{This is a new permission for supporting \cxone policy integration.  Existing app installs will need org-owner approval to add the new permission.}
         \item Contents: Read-only
         \item Pull requests: Read and write
     \end{itemize}
@@ -162,6 +163,157 @@ definition page. The following steps can be followed to deploy the \cxoneflow Gi
 
 \FloatBarrier
 
+
+\subsection{Policy Integrations with Checks}\ref{sec:gh-app-policy-integration}
+
+\cxone policies are integrated into the pull request with 
+\extlink{https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/about-status-checks\#checks}{Github Checks}
+when using the Github App.  The status of Checks are indicated at the bottom of the pull-request
+conversation.  The "Checks" tab on the pull-request page will allow review of
+details related to the check execution.
+
+The operational logic of the policy management integration
+is described in Section \ref{sec:pr-policy-management-common}.  The \cxoneflow configuration elements
+required to enable the policy management integration can be found in the section
+titled \intlink{sec:pull-request-elements}{YAML \texttt{pull-request} Elements}.
+
+
+\subsubsection{Branch Rules: Required Checks}
+
+The repository branch rules can optionally be configured in Github to require the scan check to report a successful
+status before allowing the pull-request to merge to the target branch. Figure \ref{fig:gh-required-check-app}
+shows an example of a required check configuration for the check named "CheckmarxOne Scan" with
+the source of the check originating from the Github app named "CxOneFlow".  The check name
+"CheckmarxOne Scan" is the default name; please see Section \ref{sec:yaml-pull-request-gh-pr-opts-check-name}
+for information about how to set the check name to a custom value.
+
+When there are no branch rules configured, the pull-request will have a short span of time where it can be
+merged without a successful scan.  This is due to a small time delay between the time when 
+the pull-request is opened and the event is handled by \cxoneflow to update the running check status.
+Github will block the merge once the check status is updated.
+
+Using branch protection rules and specifying
+a required check yields a pull-request status shown in Figure \ref{fig:gh-required-check-app-waiting}.
+The Github pull-request logic automatically blocks the pull-request merge while waiting for
+the expected check to report the status.  
+
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/gh-required-check-by-app.png}
+    \caption{Required Check from \cxoneflow Github App}
+    \label{fig:gh-required-check-app}
+\end{figure}
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/gh-required-check-by-app-waiting.png}
+    \caption{Pull-request merge blocked waiting for check}
+    \label{fig:gh-required-check-app-waiting}
+\end{figure}
+
+
+
+\subsection{Scan Execution with Checks}
+
+When a scan executes with policy management integration enabled, the "Checks" tab on the pull-request
+can be consulted for the status of the executing scan.  Figure \ref{fig:gh-check-running-scan}
+shows the details of the \cxoneflow scan as the the scan is executing.  The "Cancel scan"
+button will send a request to \cxone to cancel the scan in progress.
+
+Cancelling a scan will generate a feedback report showing any results or policy evaluations
+that occurred before the scan was cancelled.  A scan that is cancelled is typically assessed
+as a failed scan.  The scan failure will be reported as a check failure which will
+leave the pull-request merge blocked.
+
+The details of a \cxoneflow orchestrated check will contain the result summary report for the
+scan regardless of if the scan was successful or it failed.  The result summary for a failed
+scan may have partial results if some engines completed before the scan ended.  The summary will
+indicate specific engines that failed but details on failures can be retrieved from the \cxone
+web portal.
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/gh-check-running-scan.png}
+    \caption{Check details for a running scan}
+    \label{fig:gh-check-running-scan}
+\end{figure}
+
+\subsubsection{Successful Scans}
+
+Figure \ref{fig:gh-check-scan-success} shows the check details when a scan is
+completed successfully.  The status indicates that the scan is successful and
+details of the check show the results summary report.  Figure \ref{fig:gh-check-scan-success2}
+shows the pull-request summary of executing checks.  The successful scan check shows the
+success status and the merge is no longer blocked.
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/gh-check-scan-success.png}
+    \caption{Check details for a successful scan}
+    \label{fig:gh-check-scan-success}
+\end{figure}
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/gh-check-scan-success2.png}
+    \caption{Pull-request check summary for a successful scan}
+    \label{fig:gh-check-scan-success2}
+\end{figure}
+
+
+\subsubsection{Scan Policy Violations}
+
+Figure \ref{fig:gh-check-policy-violated-scan} shows the check details when the check has failed
+due to policy violations.  Policy violations can be due to results that are in need of remediation
+or to be triaged as Not Exploitable.  Changes to the code in the source branch of the pull request
+will automatically execute a new scan.  If the policy violations can be cleared by triaging the results,
+the "Re-run scan" button will start the scan again.  The policy evaluation of the next completed scan
+will reflect the triaged results and potentially clear the policy violations.
+
+Figure \ref{fig:feedback-policy-violations} shows the feedback entry that explains the policy and policy
+rules that are in violation.  The table entries with the red X indicate policies that have
+"break-build" configured.  The non-breaking policy violations are included in the table as informational
+entries.  
+
+Figure \ref{fig:gh-check-policy-violated2-scan} shows the failed check status in the pull-request
+summary.  The text indicates the reason for failure is policy violations.  The "details" link will
+open the check details for the check as shown in Figure \ref{fig:gh-check-policy-violated-scan}.
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/gh-check-policy-violated-scan.png}
+    \caption{Check details for a scan with policy violations}
+    \label{fig:gh-check-policy-violated-scan}
+\end{figure}
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/feedback-policy-violations.png}
+    \caption{Pull-request feedback showing policy violations}
+    \label{fig:feedback-policy-violations}
+\end{figure}
+
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/gh-check-policy-violated2-scan.png}
+    \caption{Pull-request check summary for a scan with policy violations}
+    \label{fig:gh-check-policy-violated2-scan}
+\end{figure}
+
+\subsubsection{Scan Failures}
+Policy violations are similar to scan failures only in that both will report the check
+as failed.  Figure \ref{fig:gh-check-failed-scan} shows the check details when encountering
+as scan failure.  The "Re-run scan" button is available to execute the scan again without
+the need to change a source file in the pull-request source branch.  Figure \ref{fig:gh-check-failed2-scan}
+shows the check failure in the pull-request summary.
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/gh-check-failed-scan.png}
+    \caption{Check details for a failed scan}
+    \label{fig:gh-check-failed-scan}
+\end{figure}
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/gh-check-failed2-scan.png}
+    \caption{Pull-request check summary for a failed scan}
+    \label{fig:gh-check-failed2-scan}
+\end{figure}
+
+
 \subsection{GitHub App Management Recommendations}
 
 \subsubsection{Repository Scope}
@@ -198,6 +350,8 @@ organization or repository scope.  When using webhooks instead of a GitHub App, 
 
 \begin{itemize}
     \item A user token (PAT) with appropriate permissions to all repositories in the scope of install must be used for API access.
+    \item Policy integrations use \extlink{https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28\#about-commit-statuses}{Github Commit Statuses}
+    to block pull-request merges.  
     \item If cloning must be performed with an SSH key, the user that owns the SSH key must also have appropriate permissions for
     all repositories in scope.
     \item The webhook integration settings must be performed multiple times:
@@ -240,6 +394,20 @@ GitHub Enterprise and \textbf{Webhooks} in GitHub Cloud.  Webhook integration ca
     \label{fig:gh-webhook-1}
 \end{figure}
 
+\subsection{Policy Integration with Commit Statuses}
+The \extlink{https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28\#about-commit-statuses}{Github Commit Statuses}
+policy integration works similarly to the \intlink{sec:gh-app-policy-integration}{Github Checks} policy integration
+with the exception that the "Checks" tab on the pull-request does not have execution details of the scan. Instead,
+the pull-request summary will show the status of the running scan and the feedback will be updated as a
+comment in the pull-request discussion.  Github "Checks" are only available when \cxoneflow is using
+a Github app for authentication with Github.  The Github APIs for Checks require authentication via
+a Github app.
+
+The name of the commit status is configured the same way the name of the check is configured.  It defaults to
+"CheckmarxOne Scan" but can be set to a custom name in the \cxoneflow configuration.  Branch rules to require
+the commit status with the configured check name can be configured with the name as it is when using checks.
+The source of the check confgured in the branch rules, if not using the Github app, will likely need
+to be set to "Any Source".
 
 
 \FloatBarrier

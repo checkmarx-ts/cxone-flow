@@ -4,7 +4,7 @@ from services import CxOneFlowServices
 from api_utils.auth_factories import EventContext
 from orchestration.base import AbstractOrchestrator
 from orchestration import OrchestrationDispatch
-from workflows import ScanStates
+from workflows.enums import ScanStates, ScanWorkflow
 import aio_pika, gzip, importlib
 from typing import List
 
@@ -33,6 +33,9 @@ class ResolverResultsAgent(CxOneFlowAbstractWorkflowService):
                         ResolverResultsAgent.log().warning(f"Delegated scan correlation_id {result_msg.correlation_id} indicated a soft failure with exit code {result_msg.resolver_exit_code}, scanning anyway.")
                     else:
                         ResolverResultsAgent.log().error(f"Delegated scan correlation_id {result_msg.correlation_id} indicated a hard failure with exit code {result_msg.resolver_exit_code}, no scan executed.")
+                        if result_msg.workflow == ScanWorkflow.PR:
+                            await OrchestrationDispatch.dispatch_delegated_pr_scan_hard_failure_workflow(
+                                ResolverResultsAgent.__orchestrator_factory(result_msg.details.orchestrator, result_msg.details.event_context))
                 
                 self.__services.resolver.capture_logs(result_msg.logs)
 

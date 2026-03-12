@@ -4,23 +4,39 @@ from orchestration.naming.adoe import AzureDevOpsProjectNaming
 
 class AzureDevOpsKickoffOrchestrator(KickoffOrchestrator):
 
-  def __init__(self, msg : AdoKickoffMsg, *args, **kwargs):
-     self.__msg = msg
-     super().__init__(*args, **kwargs)
+    def __init__(self, msg : AdoKickoffMsg, *args, **kwargs):
+        self.__msg = msg
+        super().__init__(*args, **kwargs)
 
-  @property
-  def config_key(self):
-      return "adoe"
+    @property
+    def config_key(self):
+        return "adoe"
 
-  @property
-  def route_urls(self) -> list:
-      return self.kickoff_msg.clone_urls
+    @property
+    def route_urls(self) -> list:
+        return self.kickoff_msg.clone_urls
 
-  @property
-  def kickoff_msg(self) -> AdoKickoffMsg:
-     return self.__msg
+    @property
+    def kickoff_msg(self) -> AdoKickoffMsg:
+        return self.__msg
 
-  async def get_default_cxone_project_name(self) -> str:
-    return AzureDevOpsProjectNaming.create_project_name(self.kickoff_msg.collection_name,
+    @property
+    def _repo_project_key(self) -> str:
+        return self.__msg.project_name
+
+    @property
+    def _repo_organization(self) -> str:
+        return self.__msg.collection_name
+
+    @property
+    def _repo_slug(self) -> str:
+        return self._repo_name
+
+    @property
+    def _repo_name(self) -> str:
+        return self.__msg.repo_name
+
+    async def get_default_cxone_project_name(self) -> str:
+        return AzureDevOpsProjectNaming.create_project_name(self.kickoff_msg.collection_name,
                                                         self.kickoff_msg.project_name, self.kickoff_msg.repo_name)
-  
+

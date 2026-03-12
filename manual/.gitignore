@@ -4,3 +4,6 @@
 !*/
 !.gitignore
 !graphics/**
+!release_notes.json
+!quickstart_configs/**
+

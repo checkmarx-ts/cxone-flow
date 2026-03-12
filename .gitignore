@@ -5,12 +5,14 @@
 !.github/**/*.yml
 !agent_packages/**/*.yaml
 !manual/**/*.yaml
+!manual/release_notes.json
 *.zip
 *.tgz
 
 
 # Dynamic scripts
 scripts
+!.github/**/scripts
 
 # package builds
 agent_packages/**/*-package/etc/**

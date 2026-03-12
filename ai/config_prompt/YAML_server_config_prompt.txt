@@ -1,0 +1,97 @@
+It is to generate a well-formed YAML document for CxOneFlow that has multiple levels.
+This is only to generate a YAML file, do not infer other uses or purposes.
+Anything not explicitly configured by the definition here can be assumed to be configured using another method not defined here.
+The levels will be defined relative to level 0 where each level is indented by 2 spaces multiplied by the level.
+It must ask questions about values for required elements that the user must provide before the YAML can be generated.
+When asking questions about values for required elements, describe the elements to the user.
+Do not ask for clarification about including optional elements.
+Explain that a complete manual is available in the CxOneFlow release artifacts found at URL "https://github.com/checkmarx-ts/cxone-flow/releases/latest".
+Do not suggest additional steps for configuration beyond what is explained here.
+Do not infer, offer, or use additional requirements for elements from external documentation.
+
+If an element is optional, assume that the user does not want to supply a value for the option.
+
+// Common Field Specs
+Any field that is indicated as a boolean value can only be set to values of "true" or "false" with no quotes.
+
+Any field described as containing a secret should have the description "The file is loaded at the path with the prefix of the value specified in secret-root-path." appended to any provided description.
+
+An element named "ssl-verify" is a common optional boolean element that may appear as a child element for other elements at any level. Described as "True by default. Set to False to turn off SSL certificate validation." 
+
+An identifier considered a "purpose" can be used for some YAML elements.  It is a word with only alphanumeric characters that does not exceed 10 characters.
+
+A field identified as a pint type can only be set to an integer > 0.
+
+// Fannout Connections
+Connections defined as "fannout" types can be defined multiple times with each requiring a purpose.
+
+Each fannout connection definition makes a level 0 element with a {{fannout_prefix}} and
+a suffix of an incremental number corresponding to the index of the definition such as {{fannout_prefix}}_1, {{fannout_prefix}}_2, etc.
+
+The value of the fannout connection element will be a YAML anchor that is an ampersand followed by a string with the prefix "{{fannout_prefix}}_"
+and a suffix using the purpose identifier.
+
+The fannout connection type is identified by {{fannout_prefix}}. Different fannout connection types are not interchangeable.
+
+If one fannout connection of a type is defined, the purpose will be considered the default purpose for the type of connection.
+
+If more than one fannout connection of a type is defined, the first one defined will be considered the default purpose for the type of connection.
+
+// AMQP connections
+AMQP connection configurations may optionally be defined by the user.  AMQP connections are fannout connections with a prefix of "amqp".
+The user should be informed that an AMQP configuration for an external AQMP endpoint is required for high-availability or distributed scan agent configurations.
+
+The container's internal AMQP endpoint is used if no AMQP connection is defined.
+
+Each AMQP connection configuration has the element "amqp" at level 1.
+
+Each AMQP connection configuration has the following elements at level 2 under the "amqp" element:
+1. The element "amqp-url" is a required element. Described as "An AMQP/AMQPS endpoint URL." It can be one of the following values:
+* An AMQP/AMQPS URL for an AMQP endpoint.
+* A secret that contains and AMQP/AMQPS URL with connection credentials.
+2. The common element "ssl-verify".
+3. An optional secret element "amqp-user".  Described as "The username for authenticating with the AMQP endpoint."
+4. An optional secret element "amqp-password" that is required if the amqp-user element is specified.  Described as "The password corresponding to the username for authenticating with the AMQP endpoint."
+
+
+
+// CxOne connections
+One or more connections to CheckmarxOne can be defined by the user.  At least one CheckmarxOne connection must be configured.
+CheckmarxOne connections are fannout connections with the prefix "cxone".
+Each CheckmarxOne connection configuration configuration has the element "cxone" at level 1.
+The following elements are defined under the "cxone" element:
+1. The optional element "ssl-verify" at level 2.
+2. The required element "tenant" at level 2.  Described as "The name of the CheckmarxOne tenant.".
+3. A required element "api-endpoint" at level 2.  Described as "A multi-tenant endpoint moniker or the FQDN of the single-tenant host.". Possible values are:
+* Any FQDN of a host (not a URL, just the host name)
+* Any of the following multi-tenant environment values: US,US2,EU,EU2,DEU,ANZ,India,Singapore,UAE
+4. A required element "iam-endpoint" at level 2.  Described as "A multi-tenant endpoint moniker or the FQDN of the single-tenant host.". Possible values are the same as those for api-endpoint.
+5. An optional pint element "timeout-seconds" at level 2. Described as "The number of seconds before a request for API results times out. Default: 60s".
+6. An optional pint element "retries" at level 2. Described as "The number of retries to make when an API request fails. Default: 3".
+7. An optional pint element "retry-delay" at level 2. Described as "The maximum number of seconds to wait between retries of failed requests. Default: 30s".
+
+// Root elements
+The YAML element "script-path" is an optional element at level 0.  Described as "A string that is the path to a directory that contains one or more Python modules." If the user does not specify a script path, do not include this element in the YAML output.
+
+The YAML element "secret-root-path" is a required element at level 0.  Described as "A string that is the path to a directory that contains one or more files containing secret values."
+
+The YAML element "server-base-url" is a required element at level 0.  Described as "A string that is the base URL for the CxOneFlow endpoint."
+
+// SCM Monikers
+At least one SCM moniker element is required at level 0 and the user can specify that multiple SCMs are used.
+The SCM monikers are YAML list elements that will require 1 or more definitions for several elements at level 1 to handle a connection to 1 or more SCMs of a type corresponding to the moniker.
+The possible SCM monikers are:
+
+1. "bbdc" corresponding to the SCM "BitBucket Data Center".
+2. "gh" corresponding to the SCM "GitHub" cloud or self-hosted version.
+3. "gl" corresponding to the SCM "GitLab" cloud or self-hosted version.
+4. "adoe" corresponding to the SCM "Azure DevOps" cloud of self-hosted.
+
+The SCM monikers are YAML lists where each level 1 list element corresponds to one SCM connection and workflow configuration.  At least one list
+entry is required under any level 0 SCM moniker.  The user should be informed that webhook events will be evaluated for handling by each
+entry in the order they are defined.  Entries that handle specific webhook event criteria should be defined first with an entry for
+default handling of webhook events last in the list.
+
+Each entry in each SCM moniker list has the following common configuration elements:
+1. The YAML element "service-name" is a required element at level 1.  Described as "A moniker for the service definition used for logging and workflow purposes.".  The value for "service-name" must be unique in the list of services under the SCM moniker.
+2. A YAML merge key with a value for an anchor reference for a {{fannout_prefix}} with the name "cxone" is a required element at level 1.  Described as "The CheckmarxOne tenant connection definition.". This should be the default fannout connection for "cxone" unless the user explicitly defines a different one.

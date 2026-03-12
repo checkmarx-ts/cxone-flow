@@ -104,3 +104,53 @@ tags that can be observed for scans invoked by a Pull-Request event.
         \bottomrule
     \end{tabularx}
 \end{table}
+
+
+\section{Policy Management with Pull-Requests}\label{sec:pr-policy-management-common}
+
+The pull-request feedback text will now show policy violations for any projects that have
+at least one assigned policy.  The 
+\cxone \extlink{https://docs.checkmarx.com/en/34965-135219-policy-management-overview.html\#UUID-3a013b60-2c57-c933-bb2a-3f46f116f5c5}{policy management}
+integration with pull-requests does not need to be enabled for this data to appear in the feedback.  If you are
+not using the \cxone policy management feature, there will be no policy failures reported.
+
+The use of the policy management integration enables blocking pull-request merges that can be enforced by
+both SCM "required checks"\footnote{The use of the term "checks" is intended to be
+generic in this context to mean "do this step before allowing a merge".  Some SCMs may refer to this concept
+using different terms.} rules and \cxone policies that are configured as "break-build" policies.  It is
+not strictly required to define or assign policies to \cxone projects; scan status for projects without assigned policies
+is reported as part of the SCM pull-request. If the repository has been configured to require the scan
+"check" to execute successfully before allowing merge, enabling the policy integration will report
+the scan status for the SCM to use to ensure a successful scan is completed before the pull-request merge is allowed.
+
+The policy management integration is disabled by default and must be configured in the YAML configuration
+described in Section \ref{sec:op-config}.  Pull-request feedback also must be enabled
+for the policy integration to communicate scan status to the SCM.  
+
+When policy management is not configured for integration with pull-requests,
+pull-request comments with the scan summary are managed by \cxoneflow
+with no policy enforcement.  When the \cxoneflow configuration enables policy management,
+the pull-requests work differently:
+
+\begin{itemize}
+    \item The execution of the scan is updated in the SCM using a "check name" that can be configured
+    as "required" by many SCMs, thus blocking the PR merge until a successful scan is completed.
+    \item On scan failure (including partial scans), the PR merge is
+    blocked since the check step failed.
+    \item On scan success, policies are evaluated:
+    \begin{itemize}
+        \item If no policies are configured for the project under scan, the
+        successful scan results in a success state for the check thus allowing the PR to merge.
+        \item If none of the failing policies for the project under scan are
+        configured with "build-break", a success state for the check is reported thus allowing the PR merge.
+        \item If any of the failing policies for the project under
+        scan are configured with "build-break", the PR merge is blocked when the check state is reported
+        as a failure.
+
+    \end{itemize}
+\end{itemize}
+
+The implementation of the policy integration varies with each type of SCM.
+Refer to the section in this manual corresponding to your SCM for details
+about the policy enforcement implementation.
+

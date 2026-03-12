@@ -1,6 +1,6 @@
-from ..scan_message import ScanMessage
+from workflows.messaging.scan_message import ScanMessage
 from dataclasses import dataclass
-from ..util import is_expired
+from workflows.messaging.util import is_expired
 
 
 @dataclass(frozen=True)

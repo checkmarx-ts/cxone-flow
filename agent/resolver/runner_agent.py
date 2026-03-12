@@ -5,7 +5,7 @@ from workflows.messaging import (
     DelegatedScanMessage,
     DelegatedScanResultMessage,
 )
-from workflows import ScanStates
+from workflows.enums import ScanStates
 from scm_services import SCMService
 from cxone_service import CxOneService
 from orchestration import AbstractOrchestrator

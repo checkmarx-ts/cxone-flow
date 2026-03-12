@@ -1,9 +1,9 @@
 import aio_pika
 from datetime import timedelta
 from workflows.feedback_workflow_base import AbstractFeedbackWorkflow
-from workflows.push_feedback_service import PushFeedbackService
+from workflows.feedback_services.push import PushFeedbackService
 from workflows.base_service import CxOneFlowAbstractWorkflowService
-from workflows import ScanStates, ScanWorkflow, FeedbackWorkflow
+from workflows.enums import ScanStates, ScanWorkflow, FeedbackWorkflow
 from workflows.messaging.util import compute_drop_by_timestamp
 from workflows.messaging import ScanAwaitMessage, ScanFeedbackMessage
 

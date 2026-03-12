@@ -213,6 +213,7 @@ elsewhere in this document.\\\\
     .4 \intlink{sec:yaml-cxone-oauth}{oauth} \DTcomment{[Required without api-key]}.
     .4 \intlink{sec:yaml-generic-proxies}{proxies} \DTcomment{[Optional]}.
     .4 \intlink{sec:yaml-generic-retries}{retries} \DTcomment{[Optional] Default: 3}.
+    .4 \intlink{sec:yaml-generic-retry-delay}{retry-delay} \DTcomment{[Optional] Default: 30s}.
     .4 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
     .4 \intlink{sec:yaml-cxone-tenant}{tenant} \DTcomment{[Required]}.
     .4 \intlink{sec:yaml-generic-timeout-seconds}{timeout-seconds}\DTcomment{[Optional] Default: 60s}.
@@ -234,7 +235,7 @@ elsewhere in this document.\\\\
     .5 \intlink{sec:yaml-generic-amqp-amqp-user}{amqp-user} \DTcomment{[Optional]}.
     .5 \intlink{sec:yaml-generic-ssl-verify}{ssl-verify} \DTcomment{[Optional] Default: True}.
     .4 \intlink{sec:yaml-feedback-pull-request}{pull-request} \DTcomment{[Optional]}.
-    .5 \intlink{sec:yaml-pull-request-enabled}{enabled} \DTcomment{[Optional] Default: False}.
+    .5 \intlink{sec:pull-request-elements}{...see "YAML \texttt{pull-request} Elements"}.
     .4 \intlink{sec:yaml-feedback-push}{push} \DTcomment{[Optional]}.
     .5 \intlink{sec:yaml-push-enabled}{enabled} \DTcomment{[Optional] Default: False}.
     .5 \intlink{sec:yaml-push-sarif-opts}{sarif-opts} \DTcomment{[Optional]}.
@@ -314,6 +315,20 @@ is assigned.\\
     .4 \intlink{sec:yaml-project-naming-update-name}{update-name} \DTcomment{[Optional] Default: False}.
 }
 
+\pagebreak
+\paragraph{YAML \texttt{pull-request} Elements}\label{sec:pull-request-elements}
+\noindent\\
+
+\dirtree{%
+    .1 <root>.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .3 \intlink{sec:yaml-moniker-feedback}{feedback} \DTcomment{[Optional]}.
+    .4 \intlink{sec:yaml-feedback-pull-request}{pull-request} \DTcomment{[Optional]}.
+    .5 \intlink{sec:yaml-pull-request-enabled}{enabled} \DTcomment{[Optional] Default: False}.
+    .5 \intlink{sec:yaml-pull-request-use-policies}{use-policies} \DTcomment{[Optional] Default: False}.
+    .5 \intlink{sec:yaml-pull-request-gh-pr-opts}{gh-pr-opts} \DTcomment{[Optional]}.
+    .6 \intlink{sec:yaml-pull-request-gh-pr-opts-check-name}{check-name} \DTcomment{[Optional] Default: CheckmarxOne Scan}.
+}
 
 \pagebreak
 \paragraph{YAML \texttt{scan-agent} Elements}\label{sec:scan-agent-elements}

@@ -4,8 +4,8 @@ import logging
 import cxoneflow_logging as cof_logging
 from config import ConfigurationException, get_config_path
 from config.server import CxOneFlowConfig
-from workflows.pr_feedback_service import PRFeedbackService
-from workflows.push_feedback_service import PushFeedbackService
+from workflows.feedback_services.push import PushFeedbackService
+from workflows.feedback_services.pr import PRQueueConstants
 from workflows.resolver_scan_service import ResolverScanService
 from workflows.scan_polling_service import ScanPollingService
 from workflows.base_service import CxOneFlowAbstractWorkflowService
@@ -36,7 +36,7 @@ async def setup() -> None:
 
             # Legacy are names/routes for backwards compatibility when upgrading.
             scan_in_exchange_legacy = await channel.declare_exchange(
-                PRFeedbackService.EXCHANGE_SCAN_INPUT_LEGACY,
+                PRQueueConstants.EXCHANGE_SCAN_INPUT_LEGACY,
                 aio_pika.ExchangeType.FANOUT,
                 durable=True,
             )
@@ -47,7 +47,7 @@ async def setup() -> None:
             )
             
             scan_await_exchange_legacy = await channel.declare_exchange(
-                PRFeedbackService.EXCHANGE_SCAN_WAIT_LEGACY,
+                PRQueueConstants.EXCHANGE_SCAN_WAIT_LEGACY,
                 aio_pika.ExchangeType.TOPIC,
                 durable=True,
                 internal=True,
@@ -59,15 +59,20 @@ async def setup() -> None:
                 internal=True,
             )
 
-
+            prescan_annotate_exchange_pr = await channel.declare_exchange(
+                PRQueueConstants.EXCHANGE_PRESCAN_ANNOTATE,
+                aio_pika.ExchangeType.TOPIC,
+                durable=True,
+                internal=True,
+            )
             scan_annotate_exchange_pr = await channel.declare_exchange(
-                PRFeedbackService.EXCHANGE_SCAN_ANNOTATE,
+                PRQueueConstants.EXCHANGE_SCAN_ANNOTATE,
                 aio_pika.ExchangeType.TOPIC,
                 durable=True,
                 internal=True,
             )
             scan_feedback_exchange_pr = await channel.declare_exchange(
-                PRFeedbackService.EXCHANGE_SCAN_FEEDBACK,
+                PRQueueConstants.EXCHANGE_SCAN_FEEDBACK,
                 aio_pika.ExchangeType.TOPIC,
                 durable=True,
                 internal=True,
@@ -92,10 +97,13 @@ async def setup() -> None:
             await scan_annotate_exchange_pr.bind(scan_in_exchange_legacy)
             await scan_annotate_exchange_pr.bind(scan_in_exchange)
 
+            await prescan_annotate_exchange_pr.bind(scan_in_exchange_legacy)
+            await prescan_annotate_exchange_pr.bind(scan_in_exchange)
+
             # The awaited scans allows scans to soak until a timeout, then they go to the polling exchange where the
             # scan is polled to see the state or times out.
             polling_delivery_exchange_legacy = await channel.declare_exchange(
-                PRFeedbackService.EXCHANGE_SCAN_POLLING_LEGACY,
+                PRQueueConstants.EXCHANGE_SCAN_POLLING_LEGACY,
                 aio_pika.ExchangeType.TOPIC,
                 durable=True,
                 internal=True,
@@ -109,13 +117,13 @@ async def setup() -> None:
 
 
             awaited_scans_queue_legacy = await channel.declare_queue(
-                PRFeedbackService.QUEUE_SCAN_WAIT_LEGACY,
+                PRQueueConstants.QUEUE_SCAN_WAIT_LEGACY,
                 durable=True,
                 arguments={
                     "x-queue-type": "quorum",
                     "x-dead-letter-strategy": "at-least-once",
                     "x-overflow": "reject-publish",
-                    "x-dead-letter-exchange": PRFeedbackService.EXCHANGE_SCAN_POLLING_LEGACY,
+                    "x-dead-letter-exchange": PRQueueConstants.EXCHANGE_SCAN_POLLING_LEGACY,
                 },
             )
             awaited_scans_queue = await channel.declare_queue(
@@ -131,7 +139,7 @@ async def setup() -> None:
 
 
             await awaited_scans_queue_legacy.bind(
-                scan_await_exchange_legacy, PRFeedbackService.ROUTEKEY_POLL_BINDING_LEGACY
+                scan_await_exchange_legacy, PRQueueConstants.ROUTEKEY_POLL_BINDING_LEGACY
             )
             await awaited_scans_queue.bind(
                 scan_await_exchange, ScanPollingService.ROUTEKEY_POLL_BINDING
@@ -140,7 +148,7 @@ async def setup() -> None:
 
 
             polling_scans_queue_legacy = await channel.declare_queue(
-                PRFeedbackService.QUEUE_SCAN_POLLING_LEGACY,
+                PRQueueConstants.QUEUE_SCAN_POLLING_LEGACY,
                 durable=True,
                 arguments={"x-queue-type": "quorum"},
             )
@@ -153,7 +161,7 @@ async def setup() -> None:
 
             await polling_scans_queue_legacy.bind(
                 polling_delivery_exchange_legacy,
-                PRFeedbackService.ROUTEKEY_POLL_BINDING_LEGACY,
+                PRQueueConstants.ROUTEKEY_POLL_BINDING_LEGACY,
             )
             await polling_scans_queue.bind(
                 polling_delivery_exchange,
@@ -164,12 +172,12 @@ async def setup() -> None:
 
             # Scan state: Feedback
             pr_feedback_queue = await channel.declare_queue(
-                PRFeedbackService.QUEUE_FEEDBACK_PR,
+                PRQueueConstants.QUEUE_FEEDBACK_PR,
                 durable=True,
                 arguments={"x-queue-type": "quorum"},
             )
             await pr_feedback_queue.bind(
-                scan_feedback_exchange_pr, PRFeedbackService.ROUTEKEY_FEEDBACK_PR
+                scan_feedback_exchange_pr, PRQueueConstants.ROUTEKEY_FEEDBACK_PR
             )
 
             gen_sarif_queue = await channel.declare_queue(
@@ -182,14 +190,33 @@ async def setup() -> None:
             )
 
             # Scan State: Annotation
+            prescan_pr_annotate_queue = await channel.declare_queue(
+                PRQueueConstants.QUEUE_PRESCAN_ANNOTATE_PR,
+                durable=True,
+                arguments={"x-queue-type": "quorum"},
+            )
+            await prescan_pr_annotate_queue.bind(
+                prescan_annotate_exchange_pr, PRQueueConstants.ROUTEKEY_PRESCAN_ANNOTATE_PR
+            )
             pr_annotate_queue = await channel.declare_queue(
-                PRFeedbackService.QUEUE_ANNOTATE_PR,
+                PRQueueConstants.QUEUE_ANNOTATE_PR,
                 durable=True,
                 arguments={"x-queue-type": "quorum"},
             )
             await pr_annotate_queue.bind(
-                scan_annotate_exchange_pr, PRFeedbackService.ROUTEKEY_ANNOTATE_PR
+                scan_annotate_exchange_pr, PRQueueConstants.ROUTEKEY_ANNOTATE_PR
             )
+
+            # Scan State: Failure
+            pr_failure_queue = await channel.declare_queue(
+                PRQueueConstants.QUEUE_FAILURE_PR,
+                durable=True,
+                arguments={"x-queue-type": "quorum"},
+            )
+            await pr_failure_queue.bind(
+                scan_feedback_exchange_pr, PRQueueConstants.ROUTEKEY_FAILURE_PR
+            )
+
 
         resolver_rmq = await services.resolver.mq_client()
         async with resolver_rmq.channel() as channel:

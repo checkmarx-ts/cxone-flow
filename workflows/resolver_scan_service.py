@@ -1,5 +1,5 @@
 from .base_service import CxOneFlowAbstractWorkflowService
-from . import ScanStates, ExecTypes, ResolverOps, ScanWorkflow
+from workflows.enums import ScanStates, ExecTypes, ResolverOps, ScanWorkflow
 from .resolver_workflow_base import AbstractResolverWorkflow
 from scm_services import SCMService
 from cxone_service import CxOneService

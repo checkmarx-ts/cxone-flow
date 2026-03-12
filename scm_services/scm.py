@@ -4,13 +4,16 @@ from scm_services.cloner import Cloner
 from typing import Dict, Any, final
 from requests import Response
 from api_utils.auth_factories import EventContext
+from workflows.messaging import PRDetails, ScanMessage
+from workflows.pr_content import PullRequestCommentContent
 
 class BasicSCMService:
     @classmethod
     def log(clazz):
         return logging.getLogger(clazz.__name__)
 
-    def __init__(self, api_session : APISession):
+    def __init__(self, api_session : APISession, **kwargs):
+        super().__init__(**kwargs)
         self.__session = api_session
 
     @final
@@ -23,8 +26,8 @@ class BasicSCMService:
 
 class SCMService(BasicSCMService):
 
-    def __init__(self, display_url : str, moniker : str, api_session : APISession, shared_secret : str, cloner : Cloner):
-        super().__init__(api_session)
+    def __init__(self, display_url : str, moniker : str, api_session : APISession, shared_secret : str, cloner : Cloner, **kwargs):
+        super().__init__(api_session=api_session, **kwargs)
         self.__shared_secret = shared_secret
         self.__cloner = cloner
         self.__moniker = moniker
@@ -46,10 +49,24 @@ class SCMService(BasicSCMService):
     def shared_secret(self) -> str:
         return self.__shared_secret
 
-    async def exec_pr_decorate(self, organization : str, project : str, repo_slug : str, pr_number : str, scanid : str, full_markdown : str, 
-        summary_markdown : str, event_context : EventContext):
-        raise NotImplementedError("exec_pr_decorate")
-   
+    async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
+        raise NotImplementedError("exec_pr_scan_update_decorate")
+    
+    async def exec_pr_scan_pending_decorate(self, pr_details : PRDetails, content: PullRequestCommentContent):
+        raise NotImplementedError("exec_pr_scan_pending_decorate")
+
+    async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
+        raise NotImplementedError("exec_pr_scan_failure_decorate")
+
+    async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
+        raise NotImplementedError("exec_pr_scan_success_decorate")
+
+    async def exec_pr_unrecoverable_error(self, pr_details : PRDetails, scan_details : ScanMessage, fail_msg : str):
+        raise NotImplementedError("exec_pr_unrecoverable_error")
+
+    async def exec_pr_prescan_failure(self, pr_details : PRDetails, fail_msg : str):
+        raise NotImplementedError("exec_pr_prescan_failure")
+
     def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
         raise NotImplementedError("create_code_permalink")
    
