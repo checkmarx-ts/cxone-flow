@@ -162,8 +162,13 @@ One or more Azure DevOps connections can be defined under an Azure DevOps monike
   * The "api-auth" element can only have the "token" element.
 * When the Azure DevOps configuration is used to connect to a self-hosted Azure DevOps instance, the following rules apply to level 2 SCM connection elements:
   * The "base-url" element should be set to the URL of the self-hosted instance.
-    
 
+## Gitlab Connections
+
+Connections to Gitlab have the following additional configuration rules:
+
+* All Gitlab connections require the element "api-url-suffix" to be set to "api/v4".
+* When connecting to Gitlab Cloud, the element "base-url" must be set to "https://gitlab.com"
 
 # Root elements
   * The YAML element "script-path" is an optional element at level 0.  Described as "A string that is the path to a directory that contains one or more Python modules." If the user does not specify a script path, do not include this element in the YAML output.
