@@ -130,7 +130,8 @@
     * The optional "proxies" element at level 2.
     * An optional pint element "retries" at level 2. Described as "The number of retries to make when an API request fails. Default: 3".
     * An optional pint element "retry-delay" at level 2. Described as "The maximum number of seconds to wait between retries of failed requests. Default: 30s".
-    * A required secret element "shared-secret" at Level 2.
+    * A required secret element "shared-secret" at Level 2.  The user should be informed that the shared secret must be a minimum of 20 characters long, contain
+      at least 3 numbers, at least 3 upper case letters, and at least 2 special characters.
     * The optional element "ssl-verify" element at Level 2.
     * An optional pint element "timeout-seconds" at level 2. Described as "The number of seconds before a request for API results times out. Default: 60s".
 
@@ -261,6 +262,27 @@ Connections to Gitlab have the following additional configuration rules:
         a project upon project creation.
       * The optional "default-scan-tags" element. It is a YAML dictionary with each key/value pair assigned to
         each orchestrated scan.
+
+    * The optional element "scan-agent" described as "The configuration for distributed scan agents."  It is a YAML dictionary 
+      with the following elements:
+      * An optional "amqp" element described as "The connection parameters for an AMQP endpoint used for scan agent communication."
+        The user should be warned that using the internal RabbitMQ instance should only be used for development purposes.
+      * The required element "allowed-agent-tags" described as "A list of scan agent tags that are handled by the CxOneFlow service."
+        This is a list element with each list entry treated as a string that matches the value of a Checkmarx One project tag where
+        the "key" part of the tag matches the string provided in the "resolver-tag-key" configuration element.
+      * The optional element "capture-resolver-logs" described as "If set to True, any logs emitted by the scan agent are transported
+        back to the CxOneFlow server and emitted in the CxOneFlow logs." with a default value of "False".
+      * The optional element "default-agent-tag" described as "A tag configured in allowed-agent-tags that is used to send scan
+        requests to the scan agent when the Checkmarx One project does not have an agent tag".
+      * The required secret element "private-key" described as "The PEM encoded unencrypted RSA or elliptic curve private key used to
+        sign payloads sent to Scan Agents.  The Scan Agents use the corresponding public key to validate the signature."
+      * The optional element "resolver-tag-key" described as "The Checkmarx One project tag key value used to find the scan agent tag
+        that should be used for a delegated scan." with the default of "resolver".
+      * The optional pint element "scan-retries" described as "The number of times a request for a delegated scan will be retried after the
+        initial request if no Scan Agent handles the scan." with the default of "3".
+      * The optional pint element "scan-timeout-seconds" desribed as "The number of seconds before a scan request is not selected by a Scan Agent
+        before it times out." with the default value of "10800".
+
 
 # Feedback
 
