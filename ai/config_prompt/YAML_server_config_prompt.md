@@ -265,8 +265,9 @@ Connections to Gitlab have the following additional configuration rules:
 
     * The optional element "scan-agent" described as "The configuration for distributed scan agents."  It is a YAML dictionary 
       with the following elements:
-      * An optional "amqp" element described as "The connection parameters for an AMQP endpoint used for scan agent communication."
-        The user should be warned that using the internal RabbitMQ instance should only be used for development purposes.
+      * An optional YAML merge key with a value for an anchor reference for a {{fannout_prefix}} with the name "amqp" described as "The connection parameters
+        for an AMQP endpoint used for scan agent communication."  If not provided, the internal RabbitMQ instance is used.  The user should be warned that
+        using the internal RabbitMQ instance for this configuration should only be used for development purposes.
       * The required element "allowed-agent-tags" described as "A list of scan agent tags that are handled by the CxOneFlow service."
         This is a list element with each list entry treated as a string that matches the value of a Checkmarx One project tag where
         the "key" part of the tag matches the string provided in the "resolver-tag-key" configuration element.
@@ -289,8 +290,9 @@ Connections to Gitlab have the following additional configuration rules:
   * Each SCM service has an optional level 1 element "feedback" that is a YAML dictionary containing other elements.
 
   * The general feedback element may contain the following level 2 elements:
-    * An optional "amqp" element described as "The connection parameters for an AMQP endpoint used for workflow
-      orchestration and scan agent coordination."
+    * An optional YAML merge key with a value for an anchor reference for a {{fannout_prefix}} with the name "amqp" described as "The connection
+      parameters for an AMQP endpoint used for feedback workflow orchestration and scan agent coordination."  If not provided, the internal
+      RabbitMQ instance is used.
     * An optional "pull-request" element described as "The configuration parameters for pull request feedback workflows."
       It is a YAML dictionary containing the following elements:
       * The optional element "enabled" described as "If set to True, the feedback workflow for Pull Requests
@@ -316,8 +318,9 @@ Connections to Gitlab have the following additional configuration rules:
       * One or all of the following optional elements: 
         * The optional "via-amqp" element described as "Configuration for transmitting Sarif logs to a collector via AMQP."
           It is a YAML dictionary containing the following elements:
-          * The optional element "amqp".  If this is ommitted, the user should be warned that sending Sarif logs via the
-            internal RabbitMQ instance should only be done for development or testing purposes.
+          * An optional YAML merge key with a value for an anchor reference for a {{fannout_prefix}} with the name "amqp".  If this is ommitted,
+            the user should be warned that sending Sarif logs via the internal RabbitMQ instance should only be done for development or testing
+            purposes.
           * The required element "exchange" described as "The name of the exchange where the Sarif log message will be submitted."
           * The required secret element "shared-secret" described as "A shared secret used for validating an HMAC signature of the Sarif log
             delivered as a message via AMQP".
