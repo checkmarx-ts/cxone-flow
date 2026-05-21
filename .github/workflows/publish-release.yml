@@ -13,7 +13,7 @@ on:
   
 jobs:
   make-tag-string:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     outputs:
       tag: ${{ steps.tag-string.outputs.tag }}
       whl_tag: ${{ steps.tag-string.outputs.whl_tag }}
@@ -28,7 +28,7 @@ jobs:
         id: tag-string
       
   validate-no-tag:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     needs: [make-tag-string]
     steps:
       - name: Fetch Code
