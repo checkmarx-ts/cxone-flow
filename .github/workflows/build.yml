@@ -23,7 +23,7 @@ env:
                 
 jobs:
   publish-container:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     needs: [compile-manual,scan-agent-deb-amd64,build-kickoff-whl]
     steps:
       - name: Set up Docker Buildx
@@ -54,7 +54,7 @@ jobs:
           docker push --all-tags $DOCKER_REPO
   
   build-kickoff-whl:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
@@ -79,7 +79,7 @@ jobs:
 
 
   compile-yaml-examples:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code @ tag ${{ inputs.tag }}
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
@@ -109,7 +109,7 @@ jobs:
           path: config-examples.zip
 
   compile-manual:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code @ tag ${{ inputs.tag }}
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
@@ -158,7 +158,7 @@ jobs:
           path: release_notes/release_notes.pdf
 
   scan-agent-deb-amd64:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code @ tag ${{ inputs.tag }}
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
@@ -179,7 +179,7 @@ jobs:
           path: agent_packages/scan-agent/debian/*.deb
 
   publish-release:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     needs: [publish-container,compile-manual,scan-agent-deb-amd64,build-kickoff-whl]
     steps:
       - name: Download whl
@@ -273,7 +273,7 @@ jobs:
 
 
   artifact-cleanup:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     needs: [publish-release]
     steps:
       - uses: geekyeggo/delete-artifact@9d15d164b1dcd538ff1b1a2984bc2c0240986c3b
