@@ -46,7 +46,7 @@ jobs:
     runs-on: cx-public-ubuntu-x64
     if: always()
     steps:
-      - uses: technote-space/workflow-conclusion-action@45ce8e0eb155657ab8ccf346ade734257fd196a5
+      - uses: step-security/workflow-conclusion-action@417a08214e364cc913458a2fab8aae827d1ba779 # v3.0.10
       - name: Fetch Code
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
         if: env.WORKFLOW_CONCLUSION == 'failure'

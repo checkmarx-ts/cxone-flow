@@ -5,11 +5,11 @@ on:
 
 jobs:
   build-container:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226
+        uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
 
       - name: Fetch Code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
@@ -19,7 +19,7 @@ jobs:
           docker build -f docker/Dockerfile .
 
   build-kickoff-api-package:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
@@ -35,7 +35,7 @@ jobs:
 
 
   execute-pylint-on-api:
-      runs-on: ubuntu-latest
+      runs-on: cx-public-ubuntu-x64
       strategy:
         max-parallel: 3
         matrix:
@@ -65,7 +65,7 @@ jobs:
             pylint --disable=all --enable=E,F --disable=E1121 --score=false cxoneflow_kickoff_api
 
   execute-linters-on-server:
-      runs-on: ubuntu-latest
+      runs-on: cx-public-ubuntu-x64
       strategy:
         max-parallel: 3
         matrix:
@@ -100,7 +100,7 @@ jobs:
             yamllint manual
 
   build-deb-amd64:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
@@ -109,7 +109,7 @@ jobs:
         run: agent_packages/scan-agent/debian/build-package.sh
    
   execute-unit-tests:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
@@ -125,7 +125,7 @@ jobs:
         run: python -m unittest discover -v -p *_test.py -s ${{ github.workspace }}/tests
 
   docs-manual-build:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
@@ -136,7 +136,7 @@ jobs:
           work_in_root_file_dir: true
 
   docs-release-notes-build:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
