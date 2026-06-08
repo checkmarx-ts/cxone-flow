@@ -1,11 +1,11 @@
-FROM alpine/openssl:latest AS cert
+FROM alpine/openssl:3.5.3@sha256:fd5d2d233cb288916677b58bdada52c863ddfc3448c04f4e28bf95e42daacb79 AS cert
 
 RUN openssl genrsa -out /tmp/key.private.pem 2048 && \
     openssl req -new -key /tmp/key.private.pem -out /tmp/ssl.cert.pem -x509 -days 365 -subj "/CN=localhost/O=Checkmarx/OU=Professional Services"
 
 
 
-FROM ubuntu:25.10
+FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
 LABEL org.opencontainers.image.source="https://github.com/checkmarx-ts/cxone-flow"
 LABEL org.opencontainers.image.vendor="Checkmarx Professional Services"
 LABEL org.opencontainers.image.title="Checkmarx One Flow"
