@@ -30,7 +30,8 @@ jobs:
 
       - name: Build Package
         run: |
-          pip3 install build
+          pip config set global.index-url https://pypi.echohq.com/simple
+          pip install build
           python3 -m build
 
 
@@ -40,11 +41,11 @@ jobs:
         max-parallel: 3
         matrix:
           pver:
-            - "3.9"
             - "3.10"
             - "3.11"
             - "3.12"
             - "3.13"
+            - "3.14"
       container: python:${{ matrix.pver }}
       steps:
         - name: Fetch Code
@@ -53,6 +54,7 @@ jobs:
         - name: Make virtual environment
           shell: bash
           run: |
+            pip config set global.index-url https://pypi.echohq.com/simple
             pip install virtualenv
             virtualenv .venv
             . .venv/bin/activate
@@ -61,7 +63,6 @@ jobs:
         - name: Pylint
           shell: bash
           run: |
-            . .venv/bin/activate
             pylint --disable=all --enable=E,F --disable=E1121 --score=false cxoneflow_kickoff_api
 
   execute-linters-on-server:
@@ -72,6 +73,7 @@ jobs:
           pver:
             - "3.12"
             - "3.13"
+            - "3.14"
       container: python:${{ matrix.pver }}
       steps:
         - name: Fetch Code
@@ -80,6 +82,7 @@ jobs:
         - name: Make virtual environment
           shell: bash
           run: |
+            pip config set global.index-url https://pypi.echohq.com/simple
             pip install virtualenv
             virtualenv .venv
             . .venv/bin/activate
@@ -88,15 +91,12 @@ jobs:
 
         - name: Pylint
           shell: bash
-          run: |
-            . .venv/bin/activate
-            pylint --disable=all --enable=E,F --disable=E1121 --score=false --ignore=cxoneflow_kickoff_api --ignore=.venv .
+          run: pylint --disable=all --enable=E,F --disable=E1121 --score=false --ignore=cxoneflow_kickoff_api --ignore=.venv .
 
 
         - name: YAML Lint Documentation Examples
           shell: bash
           run: |
-            . .venv/bin/activate
             yamllint manual
 
   build-deb-amd64:
@@ -119,7 +119,9 @@ jobs:
           python-version: '3.12'
 
       - name: Install packages
-        run: pip install -r ${{ github.workspace }}/requirements.txt
+        run: |
+          pip config set global.index-url https://pypi.echohq.com/simple
+          pip install -r ${{ github.workspace }}/requirements.txt pytest
 
       - name: Execute Unit Tests
         run: python -m unittest discover -v -p *_test.py -s ${{ github.workspace }}/tests
@@ -129,6 +131,7 @@ jobs:
     steps:
       - name: Fetch Code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+
       - name: Build PDF Manual
         uses: xu-cheng/latex-action@f1ca82cbed861b3534e2997dd584944f55b884ed
         with:
@@ -140,6 +143,7 @@ jobs:
     steps:
       - name: Fetch Code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+
       - name: Build PDF Release Notes
         uses: xu-cheng/latex-action@f1ca82cbed861b3534e2997dd584944f55b884ed
         with:
