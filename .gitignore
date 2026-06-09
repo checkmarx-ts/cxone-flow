@@ -8,7 +8,7 @@
 !manual/release_notes.json
 *.zip
 *.tgz
-
+ai/**/manual
 
 # Dynamic scripts
 scripts
