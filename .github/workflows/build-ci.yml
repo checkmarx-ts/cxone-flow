@@ -2,6 +2,8 @@ on:
   workflow_dispatch:
   push:
 
+permissions:
+  contents: read
 
 jobs:
   build-container:
@@ -12,7 +14,7 @@ jobs:
         uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
 
       - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Build Docker Image
         run: |
@@ -22,9 +24,9 @@ jobs:
     runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: "3.12"
 
@@ -49,15 +51,12 @@ jobs:
       container: python:${{ matrix.pver }}
       steps:
         - name: Fetch Code
-          uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+          uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-        - name: Make virtual environment
+        - name: Install Pylint
           shell: bash
           run: |
             pip config set global.index-url https://pypi.echohq.com/simple
-            pip install virtualenv
-            virtualenv .venv
-            . .venv/bin/activate
             pip install . pylint
 
         - name: Pylint
@@ -77,15 +76,12 @@ jobs:
       container: python:${{ matrix.pver }}
       steps:
         - name: Fetch Code
-          uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+          uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-        - name: Make virtual environment
+        - name: Install linters and dependencies
           shell: bash
           run: |
             pip config set global.index-url https://pypi.echohq.com/simple
-            pip install virtualenv
-            virtualenv .venv
-            . .venv/bin/activate
             pip install pylint yamllint
             pip install -r requirements.txt
 
@@ -103,7 +99,7 @@ jobs:
     runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Build Debian amd64 Package
         run: agent_packages/scan-agent/debian/build-package.sh
@@ -112,9 +108,9 @@ jobs:
     runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: '3.12'
 
@@ -130,10 +126,10 @@ jobs:
     runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Build PDF Manual
-        uses: xu-cheng/latex-action@f1ca82cbed861b3534e2997dd584944f55b884ed
+        uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # v4.1.0
         with:
           root_file: manual/cxone-flow.tex
           work_in_root_file_dir: true
@@ -142,10 +138,10 @@ jobs:
     runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Build PDF Release Notes
-        uses: xu-cheng/latex-action@f1ca82cbed861b3534e2997dd584944f55b884ed
+        uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # v4.1.0
         with:
           root_file: release_notes/release_notes.tex
           work_in_root_file_dir: true

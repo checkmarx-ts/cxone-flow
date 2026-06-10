@@ -10,7 +10,11 @@ on:
         description: 'Check if this is to publish a pre-release.'
         required: true
         type: boolean
-  
+env:
+  PACKAGE_NAME: cxone/cxone-flow
+  DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/cxone/cxone-flow/${{ env.PACKAGE_NAME }}
+
+
 permissions:
   contents: read
 
@@ -48,29 +52,39 @@ jobs:
         run: |
           git tag '${{ steps.tag-string.outputs.tag }}'
           git push origin '${{ steps.tag-string.outputs.tag }}'
-
-  force-fail:
+  
+  publish-container:
     runs-on: cx-public-ubuntu-x64
     needs: [tag-repo]
+    permissions:
+      packages: write
     steps:
-      - name: Delay fails
-        run: |
-          sleep 90
-          exit 1
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
 
-      
-  # validate-no-tag:
-  #   runs-on: cx-public-ubuntu-x64
-  #   needs: [make-tag-string]
-  #   steps:
-  #     - name: Fetch Code
-  #       continue-on-error: true
-  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-  #       with:
-  #         ref: refs/tags/${{ needs.make-tag-string.outputs.tag }}
-  #     - name: Fail if tag ${{ needs.make-tag-string.outputs.tag }} exists
-  #       run: |
-  #         [[ $(git describe --tags) ==  ${{ needs.make-tag-string.outputs.tag }} ]] && exit 1 || :
+      - name: Login to GitHub Container Registry
+        uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch Code @ tag ${{ needs.tag-repo.outputs.tag }}
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ needs.tag-repo.outputs.tag }}
+
+      - name: Update version.txt
+        run: |
+            echo __version__=\"${{ needs.tag-repo.outputs.tag }}\" > _version.py
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -f docker/Dockerfile -t $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }} .
+          # [ ${{ inputs.prerelease }} = false ] && docker tag $DOCKER_REPO:$BRIEFTAG $DOCKER_REPO:latest || :
+          # docker push --all-tags $DOCKER_REPO
+
 
   # invoke-build-for-publish:
   #   uses: ./.github/workflows/invoke-build.yml
@@ -84,7 +98,7 @@ jobs:
   #   needs: [make-tag-string, validate-no-tag]
 
   remove-tag-on-failure:
-    needs: [tag-repo, force-fail]
+    needs: [tag-repo, publish-container]
     permissions:
       contents: write
     runs-on: cx-public-ubuntu-x64
