@@ -9,7 +9,7 @@ dependencies = [
     "PyJWT==2.13.0",
     "dataclasses-json==0.6.7",
     "cryptography==48.0.0",
-    "cxone-api@git+https://github.com/checkmarx-ts/cxone-async-api.git@b37efa9bd0a7a161c216be4ff1dd53932a0b7ce7" # v1.1.5
+    "cxone-api@https://github.com/checkmarx-ts/cxone-async-api/releases/download/1.1.5/cxone_api-1.1.5-py3-none-any.whl"
     ] 
 description = "CxOneFlow Kickoff API"
 requires-python = ">=3.10"
