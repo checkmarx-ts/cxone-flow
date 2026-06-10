@@ -75,5 +75,8 @@ jobs:
       - name: Fetch Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - name: Remove tag
-        run: git push origin ':refs/tags/${{ needs.tag-repo.outputs.tag }}'
+      - name: Placeholder
+        run: echo executed
+
+      # - name: Remove tag
+      #   run: git push origin ':refs/tags/${{ needs.tag-repo.outputs.tag }}'
