@@ -5,7 +5,7 @@ jsonpath-ng==1.8.0
 Gunicorn==23.0.0
 aio-pika==9.5.4
 dataclasses-json==0.6.7
-aenum==3.1.15
+aenum==3.1.17
 PyJWT==2.13.0
 cryptography==48.0.0
 aiofiles==24.1.0
