@@ -12,41 +12,68 @@ on:
         type: boolean
   
 jobs:
-  make-tag-string:
+
+  tag-repo:
     runs-on: cx-public-ubuntu-x64
     outputs:
       tag: ${{ steps.tag-string.outputs.tag }}
       whl_tag: ${{ steps.tag-string.outputs.whl_tag }}
     steps:
       - name: Create tag
-        run: |
-          [ ${{ inputs.prerelease }} = false ] && echo "tag=${{ inputs.version }}" >> $GITHUB_OUTPUT || \
-            echo "tag=${{ inputs.version }}-${{ github.run_number }}-prerelease" >> $GITHUB_OUTPUT
-
-            [ ${{ inputs.prerelease }} = false ] && echo "whl_tag=${{ inputs.version }}" >> $GITHUB_OUTPUT || \
-            echo "whl_tag=${{ inputs.version }}rc${{ github.run_number }}" >> $GITHUB_OUTPUT
         id: tag-string
+        run: |
+          [ ${{ inputs.prerelease }} = false ] && export TAG=${{ inputs.version }} || \
+            export TAG=${{ inputs.version }}-${{ github.run_number }}-prerelease
+
+          [ ${{ inputs.prerelease }} = false ] && export WHL_TAG=${{ inputs.version }} || \
+            export WHL_TAG=${{ inputs.version }}rc${{ github.run_number }}
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "whl_tag=$WHL_TAG" >> $GITHUB_OUTPUT
+
+      - name: Validate no tag
+        run: |
+          echo "GITHUB_SERVER_URL=$GITHUB_SERVER_URL"
+          echo "GITHUB_REPOSITORY=$GITHUB_REPOSITORY"
+          echo "TAG=$TAG"
+          echo "WHL_TAG=$WHL_TAG"
+          exit 1
+          # git clone --branch $TAG --depth=1 https://github.com/digininja/DVWA.git > /dev/null 2>&1 && exit 1
+
       
-  validate-no-tag:
+  # validate-no-tag:
+  #   runs-on: cx-public-ubuntu-x64
+  #   needs: [make-tag-string]
+  #   steps:
+  #     - name: Fetch Code
+  #       continue-on-error: true
+  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+  #       with:
+  #         ref: refs/tags/${{ needs.make-tag-string.outputs.tag }}
+  #     - name: Fail if tag ${{ needs.make-tag-string.outputs.tag }} exists
+  #       run: |
+  #         [[ $(git describe --tags) ==  ${{ needs.make-tag-string.outputs.tag }} ]] && exit 1 || :
+
+  # invoke-build-for-publish:
+  #   uses: ./.github/workflows/invoke-build.yml
+  #   with:
+  #     tag: ${{ needs.make-tag-string.outputs.tag }}
+  #     whl_tag: ${{ needs.make-tag-string.outputs.whl_tag }}
+  #     prerelease: ${{ inputs.prerelease }}
+  #   secrets:
+  #     PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
+  #     PACKAGE_PAT: ${{ secrets.PACKAGE_PAT }}
+  #   needs: [make-tag-string, validate-no-tag]
+
+  remove-tag-on-failure:
+    needs: [tag-repo]
+    permissions:
+      contents: write
     runs-on: cx-public-ubuntu-x64
-    needs: [make-tag-string]
+    if: (failure() || cancelled()) && needs.tag-repo.result == 'success'
     steps:
       - name: Fetch Code
-        continue-on-error: true
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
-        with:
-          ref: refs/tags/${{ needs.make-tag-string.outputs.tag }}
-      - name: Fail if tag ${{ needs.make-tag-string.outputs.tag }} exists
-        run: |
-          [[ $(git describe --tags) ==  ${{ needs.make-tag-string.outputs.tag }} ]] && exit 1 || :
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-  invoke-build-for-publish:
-    uses: ./.github/workflows/invoke-build.yml
-    with:
-      tag: ${{ needs.make-tag-string.outputs.tag }}
-      whl_tag: ${{ needs.make-tag-string.outputs.whl_tag }}
-      prerelease: ${{ inputs.prerelease }}
-    secrets:
-      PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
-      PACKAGE_PAT: ${{ secrets.PACKAGE_PAT }}
-    needs: [make-tag-string, validate-no-tag]
+      - name: Remove tag
+        run: git push origin ':refs/tags/${{ needs.tag-repo.outputs.tag }}'
