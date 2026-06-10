@@ -37,7 +37,9 @@ jobs:
 
       - name: Validate no tag
         run: |
+          set +e
           git clone --branch ${{ steps.tag-string.outputs.tag }} --depth=1 GITHUB_SERVER_URL/$GITHUB_REPOSITORY > /dev/null 2>&1 && exit 1
+          set -e
 
       - name: Set Tag
         run: |
