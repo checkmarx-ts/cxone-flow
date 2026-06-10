@@ -35,10 +35,10 @@ jobs:
         run: |
           echo "GITHUB_SERVER_URL=$GITHUB_SERVER_URL"
           echo "GITHUB_REPOSITORY=$GITHUB_REPOSITORY"
-          echo "TAG=$TAG"
-          echo "WHL_TAG=$WHL_TAG"
+          echo "TAG=${{ steps.tag-string.outputs.tag }}"
+          echo "WHL_TAG=${{ steps.tag-string.outputs.whl_tag }}"
           exit 1
-          # git clone --branch $TAG --depth=1 https://github.com/digininja/DVWA.git > /dev/null 2>&1 && exit 1
+          # git clone --branch $TAG --depth=1 GITHUB_SERVER_URL/$GITHUB_REPOSITORY > /dev/null 2>&1 && exit 1
 
       
   # validate-no-tag:
