@@ -118,7 +118,8 @@ jobs:
       - name: Install packages
         run: |
           pip config set global.index-url https://pypi.echohq.com/simple
-          pip install --require-hashes -r ${{ github.workspace }}/requirements.txt pytest
+          pip install --require-hashes -r ${{ github.workspace }}/requirements.txt
+          pip install pytest
 
       - name: Execute Unit Tests
         run: python -m unittest discover -v -p *_test.py -s ${{ github.workspace }}/tests
