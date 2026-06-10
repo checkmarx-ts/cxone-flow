@@ -41,6 +41,9 @@ jobs:
           git clone --branch ${{ steps.tag-string.outputs.tag }} --depth=1 GITHUB_SERVER_URL/$GITHUB_REPOSITORY > /dev/null 2>&1 && exit 1
           set -e
 
+      - name: Fetch Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
       - name: Set Tag
         run: |
           git tag '${{ steps.tag-string.outputs.tag }}'
