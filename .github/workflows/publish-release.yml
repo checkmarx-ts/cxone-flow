@@ -11,13 +11,17 @@ on:
         required: true
         type: boolean
   
-jobs:
+permissions:
+  contents: read
 
+jobs:
   tag-repo:
     runs-on: cx-public-ubuntu-x64
     outputs:
       tag: ${{ steps.tag-string.outputs.tag }}
       whl_tag: ${{ steps.tag-string.outputs.whl_tag }}
+    permissions:
+      contents: write
     steps:
       - name: Create tag
         id: tag-string
@@ -33,12 +37,21 @@ jobs:
 
       - name: Validate no tag
         run: |
-          echo "GITHUB_SERVER_URL=$GITHUB_SERVER_URL"
-          echo "GITHUB_REPOSITORY=$GITHUB_REPOSITORY"
-          echo "TAG=${{ steps.tag-string.outputs.tag }}"
-          echo "WHL_TAG=${{ steps.tag-string.outputs.whl_tag }}"
+          git clone --branch ${{ steps.tag-string.outputs.tag }} --depth=1 GITHUB_SERVER_URL/$GITHUB_REPOSITORY > /dev/null 2>&1 && exit 1
+
+      - name: Set Tag
+        run: |
+          git tag '${{ steps.tag-string.outputs.tag }}'
+          git push origin '${{ steps.tag-string.outputs.tag }}'
+
+  force-fail:
+    runs-on: cx-public-ubuntu-x64
+    needs: [tag-repo]
+    steps:
+      - name: Delay fails
+        run: |
+          sleep 90
           exit 1
-          # git clone --branch $TAG --depth=1 GITHUB_SERVER_URL/$GITHUB_REPOSITORY > /dev/null 2>&1 && exit 1
 
       
   # validate-no-tag:
@@ -66,7 +79,7 @@ jobs:
   #   needs: [make-tag-string, validate-no-tag]
 
   remove-tag-on-failure:
-    needs: [tag-repo]
+    needs: [tag-repo, force-fail]
     permissions:
       contents: write
     runs-on: cx-public-ubuntu-x64
@@ -75,8 +88,5 @@ jobs:
       - name: Fetch Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - name: Placeholder
-        run: echo executed
-
-      # - name: Remove tag
-      #   run: git push origin ':refs/tags/${{ needs.tag-repo.outputs.tag }}'
+      - name: Remove tag
+        run: git push origin ':refs/tags/${{ needs.tag-repo.outputs.tag }}'
