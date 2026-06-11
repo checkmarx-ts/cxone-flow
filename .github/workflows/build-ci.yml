@@ -84,7 +84,7 @@ jobs:
           run: |
             pip config set global.index-url https://pypi.echohq.com/simple
             pip install pylint yamllint
-            pip install --require-hashes -r requirements.txt
+            pip install -r requirements.txt
 
         - name: Pylint
           shell: bash
@@ -118,7 +118,7 @@ jobs:
       - name: Install packages
         run: |
           pip config set global.index-url https://pypi.echohq.com/simple
-          pip install --require-hashes -r ${{ github.workspace }}/requirements.txt
+          pip install -r ${{ github.workspace }}/requirements.txt
           pip install pytest
 
       - name: Execute Unit Tests
