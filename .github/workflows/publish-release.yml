@@ -86,7 +86,7 @@ jobs:
 
   tag-container-as-latest:
     runs-on: cx-public-ubuntu-x64
-    needs: [tag-repo, checkpoint]
+    needs: [tag-repo, publish-release]
     if: ${{ ! inputs.prerelease }}
     permissions:
       packages: write
@@ -102,23 +102,46 @@ jobs:
         run: |
           docker pull $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }}
           docker tag $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }} $DOCKER_REPO:latest
-          # docker push $DOCKER_REPO:latest
+          docker push $DOCKER_REPO:latest
 
 
-  checkpoint:
+  publish-release:
     runs-on: cx-public-ubuntu-x64
-    needs: [publish-tagged-container]
+    needs: 
+      - tag-repo
+      - publish-tagged-container
+      - build-kickoff-wheel
+      - build-agent-deb
+      - build-yaml-examples
+      - build-manual
     steps:
-      - name: Dummy
+      - name: placeholder
         run: exit 0
 
-  complete:
-    runs-on: cx-public-ubuntu-x64
-    needs: [checkpoint, tag-container-as-latest]
-    steps:
-      - name: Dummy
-        run: exit 0
+  build-kickoff-wheel:
+    needs: [tag-repo]
+    uses: ./.github/workflows/build-kickoff-whl.yml
+    with:
+      tag: ${{ needs.tag-repo.outputs.tag }}
+      whl_tag: ${{ needs.tag-repo.outputs.whl_tag }}
 
+  build-agent-deb:
+    needs: [tag-repo]
+    uses: ./.github/workflows/build-agent-deb.yml
+    with:
+      tag: ${{ needs.tag-repo.outputs.tag }}
+
+  build-yaml-examples:
+    needs: [tag-repo]
+    uses: ./.github/workflows/build-yaml-examples.yml
+    with:
+      tag: ${{ needs.tag-repo.outputs.tag }}
+
+  build-manual:
+    needs: [tag-repo]
+    uses: ./.github/workflows/build-manual.yml
+    with:
+      tag: ${{ needs.tag-repo.outputs.tag }}
 
   # invoke-build-for-publish:
   #   uses: ./.github/workflows/invoke-build.yml
@@ -132,7 +155,7 @@ jobs:
   #   needs: [make-tag-string, validate-no-tag]
 
   remove-tag-on-failure:
-    needs: [tag-repo, complete]
+    needs: [tag-repo, tag-container-as-latest]
     permissions:
       contents: write
     runs-on: cx-public-ubuntu-x64
@@ -143,3 +166,19 @@ jobs:
 
       - name: Remove tag
         run: git push origin ':refs/tags/${{ needs.tag-repo.outputs.tag }}'
+
+  artifact-cleanup:
+    runs-on: cx-public-ubuntu-x64
+    needs: [publish-release]
+    if: always()
+    steps:
+      - uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
+        with:
+          name: |
+            whl-${{ github.run_number }}
+            deb-amd64-${{ github.run_number }}
+            config-examples-tarball-${{ github.run_number }}
+            config-examples-zip-${{ github.run_number }}
+            rnmd-${{ github.run_number }}
+            manual-${{ github.run_number }}
+            release-notes-${{ github.run_number }}

@@ -28,23 +28,6 @@ jobs:
     with:
       buildonly: true
 
-  # build-kickoff-api-package:
-  #   runs-on: cx-public-ubuntu-x64
-  #   steps:
-  #     - name: Fetch Code
-  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-  #     - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-  #       with:
-  #         python-version: "3.12"
-
-  #     - name: Build Package
-  #       run: |
-  #         pip config set global.index-url https://pypi.echohq.com/simple
-  #         pip install build
-  #         python3 -m build
-
-
   execute-pylint-on-api:
       runs-on: cx-public-ubuntu-x64
       strategy:
@@ -103,14 +86,20 @@ jobs:
           run: |
             yamllint manual
 
-  build-agent-deb-amd64:
-    runs-on: cx-public-ubuntu-x64
-    steps:
-      - name: Fetch Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+  build-agent-deb:
+    uses: ./.github/workflows/build-agent-deb.yml
+    with:
+      buildonly: true
 
-      - name: Build Debian amd64 Package
-        run: agent_packages/scan-agent/debian/build-package.sh
+  build-yaml-examples:
+    uses: ./.github/workflows/build-yaml-examples.yml
+    with:
+      buildonly: true
+
+  build-manual:
+    uses: ./.github/workflows/build-manual.yml
+    with:
+      buildonly: true
    
   execute-unit-tests:
     runs-on: cx-public-ubuntu-x64
