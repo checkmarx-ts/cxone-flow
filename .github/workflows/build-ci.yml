@@ -24,7 +24,6 @@ jobs:
           docker build --progress plain -f docker/Dockerfile .
 
   build-kickoff-wheel:
-    needs: [tag-repo]
     uses: ./.github/workflows/build-kickoff-whl.yml
     with:
       buildonly: true
