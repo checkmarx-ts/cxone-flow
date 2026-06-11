@@ -107,6 +107,8 @@ jobs:
 
   publish-release:
     runs-on: cx-public-ubuntu-x64
+    permissions:
+      contents: write
     needs: 
       - tag-repo
       - publish-tagged-container
