@@ -120,6 +120,12 @@ jobs:
       - name: Dummy
         run: exit 0
 
+  complete:
+    runs-on: cx-public-ubuntu-x64
+    needs: [checkpoint, tag-container-as-latest]
+    steps:
+      - name: Dummy
+        run: exit 0
 
 
   # invoke-build-for-publish:
@@ -134,11 +140,11 @@ jobs:
   #   needs: [make-tag-string, validate-no-tag]
 
   remove-tag-on-failure:
-    needs: [tag-repo]
+    needs: [tag-repo, complete]
     permissions:
       contents: write
     runs-on: cx-public-ubuntu-x64
-    if: always() && (failure() || cancelled()) && needs.tag-repo.result == 'success'
+    if: (failure() || cancelled()) && needs.tag-repo.result == 'success'
     steps:
       - name: Fetch Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
