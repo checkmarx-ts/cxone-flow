@@ -104,18 +104,10 @@ jobs:
           docker tag $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }} $DOCKER_REPO:latest
           # docker push $DOCKER_REPO:latest
 
-      
-  force-fail:
-    runs-on: cx-public-ubuntu-x64
-    needs: [tag-repo, publish-tagged-container]
-    steps:
-      - name: Sleep and fail
-        run: sleep 10 && exit 1
-
 
   checkpoint:
     runs-on: cx-public-ubuntu-x64
-    needs: [force-fail, publish-tagged-container]
+    needs: [publish-tagged-container]
     steps:
       - name: Dummy
         run: exit 0
