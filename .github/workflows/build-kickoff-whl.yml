@@ -1,4 +1,4 @@
-name: Build Wheel [called]
+name: Build Kickoff Wheel [called]
 on:
   workflow_call:
     inputs:
