@@ -23,21 +23,27 @@ jobs:
         run: |
           docker build --progress plain -f docker/Dockerfile .
 
-  build-kickoff-api-package:
-    runs-on: cx-public-ubuntu-x64
-    steps:
-      - name: Fetch Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+  build-kickoff-wheel:
+    needs: [tag-repo]
+    uses: ./.github/workflows/build-kickoff-whl.yml
+    with:
+      buildonly: true
 
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          python-version: "3.12"
+  # build-kickoff-api-package:
+  #   runs-on: cx-public-ubuntu-x64
+  #   steps:
+  #     - name: Fetch Code
+  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - name: Build Package
-        run: |
-          pip config set global.index-url https://pypi.echohq.com/simple
-          pip install build
-          python3 -m build
+  #     - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+  #       with:
+  #         python-version: "3.12"
+
+  #     - name: Build Package
+  #       run: |
+  #         pip config set global.index-url https://pypi.echohq.com/simple
+  #         pip install build
+  #         python3 -m build
 
 
   execute-pylint-on-api:
