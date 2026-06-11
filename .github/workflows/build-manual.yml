@@ -2,6 +2,9 @@ name: Build Manual [called]
 on:
   workflow_call:
     inputs:
+      version:
+        type: string
+        default: ''
       tag:
         type: string
         default: ''
@@ -31,7 +34,7 @@ jobs:
 
       - name: Generate Markdown Release Notes
         run: |
-          python3 .github/workflows/scripts/json2md.py manual/release_notes.json ${{ inputs.tag }} > rn.md
+          python3 .github/workflows/scripts/json2md.py manual/release_notes.json ${{ inputs.version }} > rn.md
 
       - name: Upload Markdown Release Notes
         if: ${{ ! inputs.buildonly }}

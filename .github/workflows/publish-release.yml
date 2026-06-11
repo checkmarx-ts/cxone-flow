@@ -230,6 +230,7 @@ jobs:
     uses: ./.github/workflows/build-manual.yml
     with:
       tag: ${{ needs.tag-repo.outputs.tag }}
+      version: ${{ inputs.version }}
 
   remove-tag-on-failure:
     needs: [tag-repo, tag-container-as-latest]
