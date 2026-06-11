@@ -2,7 +2,9 @@ name: CxOneFlow CI
 on:
   workflow_dispatch:
   push:
-
+  schedule:
+    - cron: '0 3 * * 1'
+    
 permissions:
   contents: read
 
@@ -96,7 +98,7 @@ jobs:
           run: |
             yamllint manual
 
-  build-deb-amd64:
+  build-agent-deb-amd64:
     runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
