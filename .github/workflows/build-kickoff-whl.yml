@@ -15,7 +15,7 @@ on:
 permissions:
   contents: read
 
-job:
+jobs:
   build-kickoff-whl:
     runs-on: cx-public-ubuntu-x64
     steps:
