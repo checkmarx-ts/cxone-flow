@@ -87,7 +87,7 @@ jobs:
   tag-container-as-latest:
     runs-on: cx-public-ubuntu-x64
     needs: [tag-repo, wait-for-important-steps]
-    if: ${{! ${{ inputs.prerelease }} }}
+    if: ${{ ! inputs.prerelease }}
     permissions:
       packages: write
     steps:
@@ -119,17 +119,6 @@ jobs:
     steps:
       - name: Dummy
         run: exit 0
-
-
-  unpublish-container-on-failure:
-    runs-on: cx-public-ubuntu-x64
-    needs: [tag-repo, wait-for-important-steps]
-    if: (failure() || cancelled()) && needs.publish-tagged-container.result == 'success'
-    permissions:
-      packages: delete
-    steps:
-      - name: Remove published container
-        run: gh pkg delete $PACKAGE_NAME --version ${{ needs.tag-repo.outputs.tag }} --repo $GITHUB_REPOSITORY --confirm
 
 
 
