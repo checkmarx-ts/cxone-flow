@@ -86,7 +86,7 @@ jobs:
 
   tag-container-as-latest:
     runs-on: cx-public-ubuntu-x64
-    needs: [tag-repo, wait-for-important-steps]
+    needs: [tag-repo, checkpoint]
     if: ${{ ! inputs.prerelease }}
     permissions:
       packages: write
@@ -110,10 +110,10 @@ jobs:
     needs: [tag-repo, publish-tagged-container]
     steps:
       - name: Sleep and fail
-        run: sleep 90 && exit 1
+        run: sleep 10 && exit 1
 
 
-  wait-for-important-steps:
+  checkpoint:
     runs-on: cx-public-ubuntu-x64
     needs: [force-fail, publish-tagged-container]
     steps:
@@ -134,11 +134,11 @@ jobs:
   #   needs: [make-tag-string, validate-no-tag]
 
   remove-tag-on-failure:
-    needs: [tag-repo, publish-tagged-container]
+    needs: [tag-repo]
     permissions:
       contents: write
     runs-on: cx-public-ubuntu-x64
-    if: (failure() || cancelled()) && needs.tag-repo.result == 'success'
+    if: always() && (failure() || cancelled()) && needs.tag-repo.result == 'success'
     steps:
       - name: Fetch Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
