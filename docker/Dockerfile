@@ -22,8 +22,10 @@ ENV SSL_CERT_PATH=/opt/cxone/ssl/default/ssl.cert.pem
 ENV SSL_CERT_KEY_PATH=/opt/cxone/ssl/default/key.private.pem
 ENV CXONEFLOW_HOSTNAME=localhost
 
-RUN apt-get update && apt-get upgrade -y && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata locales && \
+RUN echo 'Acquire::EnableSrvRecords "false";' >> /etc/apt/apt.conf.d/99-nosrv && \
+    export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends tzdata locales && \
     apt-get install -y python3 python3-pip python-is-python3 nginx git openssh-client bash gettext-base curl gnupg apt-transport-https && \
     pip config set global.index-url https://pypi.echohq.com/simple && \
     pip install -r requirements.txt --no-cache-dir --break-system-packages && \
