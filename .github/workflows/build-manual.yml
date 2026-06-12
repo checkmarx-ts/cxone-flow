@@ -68,3 +68,18 @@ jobs:
         with:
           name: release-notes-${{ github.run_number }}
           path: release_notes/release_notes.pdf
+
+      - name: Make AI config skill zip
+        run: |
+          pushd ai/skills/cxoneflow-config
+          cp -r $GITHUB_WORKSPACE/manual ./references
+          zip -r cxoneflow-config.zip .
+          popd
+
+      - name: Upload AI config skill zip
+        if: ${{ ! inputs.buildonly }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ai-cxoneflow-config-${{ github.run_number }}
+          path: ai/skills/cxoneflow-config/cxoneflow-config.zip
+        
