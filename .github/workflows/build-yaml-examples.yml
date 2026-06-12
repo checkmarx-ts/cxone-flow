@@ -1,0 +1,47 @@
+name: Build YAML Examples [called]
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        default: ''
+      buildonly:
+        type: boolean
+        default: false
+
+
+permissions:
+  contents: read
+
+jobs:
+  compile-yaml-examples:
+    runs-on: cx-public-ubuntu-x64
+    steps:
+      - name: Fetch Code @ tag ${{ inputs.tag }}
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Create tarball
+        run: tar -C manual -czf config-examples.tgz quickstart_configs
+
+      - name: Upload YAML example tarball
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ ! inputs.buildonly }}
+        with:
+          name: config-examples-tarball-${{ github.run_number }}
+          path: config-examples.tgz
+      
+      - name: Create zip
+        run: |
+          pushd manual
+          zip -r ../config-examples.zip quickstart_configs
+          popd
+        
+
+      - name: Upload YAML example zip
+        if: ${{ ! inputs.buildonly }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: config-examples-zip-${{ github.run_number }}
+          path: config-examples.zip

@@ -1,7 +1,12 @@
+name: CxOneFlow CI
 on:
   workflow_dispatch:
   push:
-
+  schedule:
+    - cron: '0 3 * * 1'
+    
+permissions:
+  contents: read
 
 jobs:
   build-container:
@@ -12,27 +17,16 @@ jobs:
         uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
 
       - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Build Docker Image
         run: |
-          docker build -f docker/Dockerfile .
+          docker build --progress plain -f docker/Dockerfile .
 
-  build-kickoff-api-package:
-    runs-on: cx-public-ubuntu-x64
-    steps:
-      - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
-
-      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
-        with:
-          python-version: "3.12"
-
-      - name: Build Package
-        run: |
-          pip3 install build
-          python3 -m build
-
+  build-kickoff-wheel:
+    uses: ./.github/workflows/build-kickoff-whl.yml
+    with:
+      buildonly: true
 
   execute-pylint-on-api:
       runs-on: cx-public-ubuntu-x64
@@ -40,28 +34,25 @@ jobs:
         max-parallel: 3
         matrix:
           pver:
-            - "3.9"
             - "3.10"
             - "3.11"
             - "3.12"
             - "3.13"
+            - "3.14"
       container: python:${{ matrix.pver }}
       steps:
         - name: Fetch Code
-          uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+          uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-        - name: Make virtual environment
+        - name: Install Pylint
           shell: bash
           run: |
-            pip install virtualenv
-            virtualenv .venv
-            . .venv/bin/activate
+            pip config set global.index-url https://pypi.echohq.com/simple
             pip install . pylint
 
         - name: Pylint
           shell: bash
           run: |
-            . .venv/bin/activate
             pylint --disable=all --enable=E,F --disable=E1121 --score=false cxoneflow_kickoff_api
 
   execute-linters-on-server:
@@ -72,76 +63,60 @@ jobs:
           pver:
             - "3.12"
             - "3.13"
+            - "3.14"
       container: python:${{ matrix.pver }}
       steps:
         - name: Fetch Code
-          uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+          uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-        - name: Make virtual environment
+        - name: Install linters and dependencies
           shell: bash
           run: |
-            pip install virtualenv
-            virtualenv .venv
-            . .venv/bin/activate
+            pip config set global.index-url https://pypi.echohq.com/simple
             pip install pylint yamllint
             pip install -r requirements.txt
 
         - name: Pylint
           shell: bash
-          run: |
-            . .venv/bin/activate
-            pylint --disable=all --enable=E,F --disable=E1121 --score=false --ignore=cxoneflow_kickoff_api --ignore=.venv .
+          run: pylint --disable=all --enable=E,F --disable=E1121 --score=false --ignore=cxoneflow_kickoff_api --ignore=.venv .
 
 
         - name: YAML Lint Documentation Examples
           shell: bash
           run: |
-            . .venv/bin/activate
             yamllint manual
 
-  build-deb-amd64:
-    runs-on: cx-public-ubuntu-x64
-    steps:
-      - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+  build-agent-deb:
+    uses: ./.github/workflows/build-agent-deb.yml
+    with:
+      buildonly: true
 
-      - name: Build Debian amd64 Package
-        run: agent_packages/scan-agent/debian/build-package.sh
+  build-yaml-examples:
+    uses: ./.github/workflows/build-yaml-examples.yml
+    with:
+      buildonly: true
+
+  build-latex-docs:
+    uses: ./.github/workflows/build-manual.yml
+    with:
+      buildonly: true
    
   execute-unit-tests:
     runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: '3.12'
 
       - name: Install packages
-        run: pip install -r ${{ github.workspace }}/requirements.txt
+        run: |
+          pip config set global.index-url https://pypi.echohq.com/simple
+          pip install -r ${{ github.workspace }}/requirements.txt
+          pip install pytest
 
       - name: Execute Unit Tests
         run: python -m unittest discover -v -p *_test.py -s ${{ github.workspace }}/tests
 
-  docs-manual-build:
-    runs-on: cx-public-ubuntu-x64
-    steps:
-      - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
-      - name: Build PDF Manual
-        uses: xu-cheng/latex-action@f1ca82cbed861b3534e2997dd584944f55b884ed
-        with:
-          root_file: manual/cxone-flow.tex
-          work_in_root_file_dir: true
-
-  docs-release-notes-build:
-    runs-on: cx-public-ubuntu-x64
-    steps:
-      - name: Fetch Code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
-      - name: Build PDF Release Notes
-        uses: xu-cheng/latex-action@f1ca82cbed861b3534e2997dd584944f55b884ed
-        with:
-          root_file: release_notes/release_notes.tex
-          work_in_root_file_dir: true

@@ -1,0 +1,4 @@
+test_data/rsa-priv.2.pem:private-key:1
+test_data/rsa-priv.1.pem:private-key:1
+test_data/ec-priv.2.pem:private-key:1
+test_data/ec-priv.1.pem:private-key:1

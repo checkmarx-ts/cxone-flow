@@ -28,6 +28,7 @@ docker run -i --rm -w /src \
 -v $SRC_ROOT:/src -v $PACKAGE_ROOT/deb-package/opt/cxoneflow-scan-agent:/dist/output \
 python:3.12-bookworm sh -c \
 " \
+pip config set global.index-url https://pypi.echohq.com/simple && \
 pip install -U pyinstaller && \
 pip install -r requirements.txt && \
 pyinstaller -F --copy-metadata aio-pika --copy-metadata jschema-to-python --specpath /dist/platform/spec --distpath /dist/output --workpath /dist/work cx_scan_agent.py \
