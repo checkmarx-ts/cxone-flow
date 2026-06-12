@@ -73,7 +73,7 @@ jobs:
         run: |
           pushd ai/skills/cxoneflow-config
           cp -r $GITHUB_WORKSPACE/manual ./references
-          zip -r cxoneflow-config.zip .
+          zip -r cxoneflow-config-skill.zip .
           popd
 
       - name: Upload AI config skill zip
@@ -81,5 +81,5 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ai-cxoneflow-config-${{ github.run_number }}
-          path: ai/skills/cxoneflow-config/cxoneflow-config.zip
+          path: ai/skills/cxoneflow-config/cxoneflow-config-skill.zip
         
