@@ -1,0 +1,38 @@
+name: Build Agent Debian Package [called]
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        default: ''
+      buildonly:
+        type: boolean
+        default: false
+
+
+permissions:
+  contents: read
+
+jobs:
+  scan-agent-deb-amd64:
+    runs-on: cx-public-ubuntu-x64
+    steps:
+      - name: Fetch Code @ tag ${{ inputs.tag }}
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Update version
+        if: ${{ ! inputs.buildonly }}
+        run: |
+            echo __version__=\"${{ inputs.tag }}\" > _version.py
+
+      - name: Build deb package
+        run: agent_packages/scan-agent/debian/build-package.sh ${{ inputs.tag }}
+
+      - name: Upload deb amd64 package
+        if: ${{ ! inputs.buildonly }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deb-amd64-${{ github.run_number }}
+          path: agent_packages/scan-agent/debian/*.deb

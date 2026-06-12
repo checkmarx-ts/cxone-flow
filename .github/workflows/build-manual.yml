@@ -1,0 +1,70 @@
+name: Build Manual [called]
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        default: ''
+      tag:
+        type: string
+        default: ''
+      buildonly:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  compile-manual:
+    runs-on: cx-public-ubuntu-x64
+    steps:
+      - name: Fetch Code @ tag ${{ inputs.tag }}
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ inputs.tag }}
+        
+      - name: Edit manual's version stamp
+        if: ${{ ! inputs.buildonly }}
+        run: echo ${{ inputs.tag }} > manual/version.tex
+
+      - name: Generate Latex Release Notes
+        run: |
+          python3 .github/workflows/scripts/json2tex.py manual/release_notes.json manual/release_notes-content.tex
+
+      - name: Generate Markdown Release Notes
+        run: |
+          python3 .github/workflows/scripts/json2md.py manual/release_notes.json ${{ inputs.version }} > rn.md
+
+      - name: Upload Markdown Release Notes
+        if: ${{ ! inputs.buildonly }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rnmd-${{ github.run_number }}
+          path: rn.md
+
+      - name: Build PDF Manual
+        uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # v4.1.0
+        with:
+          root_file: manual/cxone-flow.tex
+          work_in_root_file_dir: true
+
+      - name: Upload manual
+        if: ${{ ! inputs.buildonly }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: manual-${{ github.run_number }}
+          path: manual/cxone-flow.pdf
+  
+      - name: Build PDF Release Notes
+        uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # v4.1.0
+        with:
+          root_file: release_notes/release_notes.tex
+          work_in_root_file_dir: true
+
+      - name: Upload release notes
+        if: ${{ ! inputs.buildonly }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-notes-${{ github.run_number }}
+          path: release_notes/release_notes.pdf

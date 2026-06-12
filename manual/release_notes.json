@@ -1,4 +1,8 @@
 {
+  "2.3.1" : [
+    "Dependency updates.",
+    "Remediate CVE-2026-31431 (CopyFail) potentially vulnerable version of the Ubuntu base image."
+  ],
   "2.3.0" : [
     "Integration with Checkmarx One policies for Github pull-request Checks (when using Github app authentication) and Commit Status. New permissions may be required to enable policy integrations.",
     "Optimized the SARIF log delivery feature to avoid unnecessary API calls.",

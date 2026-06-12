@@ -10,43 +10,253 @@ on:
         description: 'Check if this is to publish a pre-release.'
         required: true
         type: boolean
-  
+env:
+  PACKAGE_NAME: cxone/cxone-flow
+  DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/cxone/cxone-flow
+
+
+permissions:
+  contents: read
+
 jobs:
-  make-tag-string:
-    runs-on: ubuntu-latest
+  tag-repo:
+    runs-on: cx-public-ubuntu-x64
     outputs:
       tag: ${{ steps.tag-string.outputs.tag }}
       whl_tag: ${{ steps.tag-string.outputs.whl_tag }}
+    permissions:
+      contents: write
     steps:
       - name: Create tag
-        run: |
-          [ ${{ inputs.prerelease }} = false ] && echo "tag=${{ inputs.version }}" >> $GITHUB_OUTPUT || \
-            echo "tag=${{ inputs.version }}-${{ github.run_number }}-prerelease" >> $GITHUB_OUTPUT
-
-            [ ${{ inputs.prerelease }} = false ] && echo "whl_tag=${{ inputs.version }}" >> $GITHUB_OUTPUT || \
-            echo "whl_tag=${{ inputs.version }}rc${{ github.run_number }}" >> $GITHUB_OUTPUT
         id: tag-string
-      
-  validate-no-tag:
-    runs-on: ubuntu-latest
-    needs: [make-tag-string]
+        run: |
+          [ ${{ inputs.prerelease }} = false ] && export TAG=${{ inputs.version }} || \
+            export TAG=${{ inputs.version }}-${{ github.run_number }}-prerelease
+
+          [ ${{ inputs.prerelease }} = false ] && export WHL_TAG=${{ inputs.version }} || \
+            export WHL_TAG=${{ inputs.version }}rc${{ github.run_number }}
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "whl_tag=$WHL_TAG" >> $GITHUB_OUTPUT
+
+      - name: Validate no tag
+        run: |
+          set +e
+          git clone --branch ${{ steps.tag-string.outputs.tag }} --depth=1 GITHUB_SERVER_URL/$GITHUB_REPOSITORY > /dev/null 2>&1 && exit 1
+          set -e
+
+      - name: Fetch Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set Tag
+        run: |
+          git tag '${{ steps.tag-string.outputs.tag }}'
+          git push origin '${{ steps.tag-string.outputs.tag }}'
+  
+  publish-tagged-container:
+    runs-on: cx-public-ubuntu-x64
+    needs: [tag-repo]
+    permissions:
+      packages: write
+    steps:
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+
+      - name: Login to GitHub Container Registry
+        uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch Code @ tag ${{ needs.tag-repo.outputs.tag }}
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ needs.tag-repo.outputs.tag }}
+
+      - name: Update version.txt
+        run: |
+            echo __version__=\"${{ needs.tag-repo.outputs.tag }}\" > _version.py
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build --progress plain -f docker/Dockerfile -t $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }} .
+          docker push $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }}
+
+  tag-container-as-latest:
+    runs-on: cx-public-ubuntu-x64
+    needs: [tag-repo, publish-release]
+    if: ${{ ! inputs.prerelease }}
+    permissions:
+      packages: write
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag latest
+        run: |
+          docker pull $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }}
+          docker tag $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }} $DOCKER_REPO:latest
+          docker push $DOCKER_REPO:latest
+
+
+  publish-release:
+    runs-on: cx-public-ubuntu-x64
+    permissions:
+      contents: write
+    needs: 
+      - tag-repo
+      - publish-tagged-container
+      - build-kickoff-wheel
+      - build-agent-deb
+      - build-yaml-examples
+      - build-manual
+    steps:
+      - name: Download kickoff wheel
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: whl-${{ github.run_number }}
+
+      - name: Download Release Notes markdown
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: rnmd-${{ github.run_number }}
+
+      - name: Make release text
+        run: |
+          echo "# CxOneFlow ${{ needs.tag-repo.outputs.tag }}" > release.md
+
+          echo "" >> release.md
+          cat rn.md >> release.md
+          echo "" >> release.md
+
+          echo The CxOneFlow ${{ needs.tag-repo.outputs.tag }} Server is available in a container: >> release.md
+          echo '```' >> release.md
+          [ ${{ inputs.prerelease }} = false ] && echo "docker pull $DOCKER_REPO:latest" >> release.md || :
+          echo "docker pull $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }}" >> release.md
+          echo '```' >> release.md
+          echo The CxOneFlow Resolver Agent is an optional component for running SCA Resolver prior to a scan.  It >> release.md
+          echo can be downloaded as an installer package appropriate for supported operating systems. >> release.md
+
+          echo "" >> release.md
+          echo "" >> release.md
+          echo "# CxOneFlow Kickoff API Client" >> release.md
+          echo 'Installation can be performed by adding one of the following lines to your `requirements.txt` file:' >> release.md
+
+          WHEEL_NAME=$(basename $(ls *.whl))
+          WHEEL_HASH=$(pip3 hash $WHEEL_NAME | grep "^--")
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/download/${{ needs.tag-repo.outputs.tag }}/$WHEEL_NAME"
+
+          echo '```' >> release.md
+          echo $RELEASE_URL >> release.md
+          echo '```' >> release.md
+
+          echo "## Hashes" >> release.md
+          echo "### $WHEEL_NAME" >> release.md
+          echo '```' >> release.md
+          echo "$WHEEL_HASH" >> release.md
+          echo '```' >> release.md
+
+
+      - name: Download manual
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: manual-${{ github.run_number }}
+
+      - name: Download release notes
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: release-notes-${{ github.run_number }}
+
+      - name: Rename documentation artifacts
+        run: |
+          mv cxone-flow.pdf cxone-flow-manual-${{ needs.tag-repo.outputs.tag }}.pdf
+          mv release_notes.pdf cxone-flow-release-notes-${{ needs.tag-repo.outputs.tag }}.pdf
+
+      - name: Download deb-amd64
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: deb-amd64-${{ github.run_number }}
+
+      - name: Download examples-tarball
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: config-examples-tarball-${{ github.run_number }}
+
+      - name: Download examples-zip
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: config-examples-zip-${{ github.run_number }}
+
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: step-security/release-action@a0d8e0f90f554c15366ca2c9046bf4090d24adbe # v1.21.0
+        with:
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          artifacts: ./*.pdf, ./*.deb, ./*.whl, ./*.tgz, ./*.zip
+          bodyFile: release.md
+          name: ${{ needs.tag-repo.outputs.tag }}
+          prerelease: ${{ inputs.prerelease }}
+          tag: ${{ needs.tag-repo.outputs.tag }}
+
+  build-kickoff-wheel:
+    needs: [tag-repo]
+    uses: ./.github/workflows/build-kickoff-whl.yml
+    with:
+      tag: ${{ needs.tag-repo.outputs.tag }}
+      whl_tag: ${{ needs.tag-repo.outputs.whl_tag }}
+
+  build-agent-deb:
+    needs: [tag-repo]
+    uses: ./.github/workflows/build-agent-deb.yml
+    with:
+      tag: ${{ needs.tag-repo.outputs.tag }}
+
+  build-yaml-examples:
+    needs: [tag-repo]
+    uses: ./.github/workflows/build-yaml-examples.yml
+    with:
+      tag: ${{ needs.tag-repo.outputs.tag }}
+
+  build-manual:
+    needs: [tag-repo]
+    uses: ./.github/workflows/build-manual.yml
+    with:
+      tag: ${{ needs.tag-repo.outputs.tag }}
+      version: ${{ inputs.version }}
+
+  remove-tag-on-failure:
+    needs: [tag-repo, tag-container-as-latest]
+    permissions:
+      contents: write
+    runs-on: cx-public-ubuntu-x64
+    if: (failure() || cancelled()) && needs.tag-repo.result == 'success'
     steps:
       - name: Fetch Code
-        continue-on-error: true
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
-        with:
-          ref: refs/tags/${{ needs.make-tag-string.outputs.tag }}
-      - name: Fail if tag ${{ needs.make-tag-string.outputs.tag }} exists
-        run: |
-          [[ $(git describe --tags) ==  ${{ needs.make-tag-string.outputs.tag }} ]] && exit 1 || :
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-  invoke-build-for-publish:
-    uses: ./.github/workflows/invoke-build.yml
-    with:
-      tag: ${{ needs.make-tag-string.outputs.tag }}
-      whl_tag: ${{ needs.make-tag-string.outputs.whl_tag }}
-      prerelease: ${{ inputs.prerelease }}
-    secrets:
-      PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
-      PACKAGE_PAT: ${{ secrets.PACKAGE_PAT }}
-    needs: [make-tag-string, validate-no-tag]
+      - name: Remove tag
+        run: git push origin ':refs/tags/${{ needs.tag-repo.outputs.tag }}'
+
+  artifact-cleanup:
+    runs-on: cx-public-ubuntu-x64
+    needs: [publish-release]
+    if: always()
+    steps:
+      - uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
+        with:
+          name: |
+            whl-${{ github.run_number }}
+            deb-amd64-${{ github.run_number }}
+            config-examples-tarball-${{ github.run_number }}
+            config-examples-zip-${{ github.run_number }}
+            rnmd-${{ github.run_number }}
+            manual-${{ github.run_number }}
+            release-notes-${{ github.run_number }}
