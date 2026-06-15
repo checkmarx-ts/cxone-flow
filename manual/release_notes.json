@@ -1,5 +1,6 @@
 {
   "2.3.1" : [
+    "A Claude skill for guided configuration of the CxOneFlow YAML is now available for download in the release artifacts.",
     "Dependency updates.",
     "Remediate CVE-2026-31431 (CopyFail) potentially vulnerable version of the Ubuntu base image."
   ],
