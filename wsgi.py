@@ -191,3 +191,7 @@ async def artifacts(path):
     res = send_from_directory("artifacts", path)
     res.headers['Access-Control-Allow-Origin'] = '*'
     return res
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return Response(status=404)
