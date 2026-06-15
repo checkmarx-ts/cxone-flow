@@ -1,18 +1,50 @@
-from password_strength import PasswordPolicy
+import string
 from pathlib import Path
 from scm_services import *
 from scm_services.cloner import Cloner
 from api_utils.apisession import APISession
 from api_utils.auth_factories import AuthFactory
 from config import CommonConfig, ConfigurationException, ConfigDictionaryReader
-from typing import Dict, Callable
+from typing import Dict, Callable, Self
 
+
+# replacement for unmaintained password_strength package
+class PasswordStrengthValidator:
+
+    @staticmethod
+    def from_names(*, length : int = 0, uppercase : int = 0, numbers : int = 0, special : int = 0) -> Self:
+        ret = PasswordStrengthValidator()
+        ret.__length = length
+        ret.__uppercase = uppercase
+        ret.__numbers = numbers
+        ret.__special = special
+        return ret
+
+
+
+    def test(self, pw_value : str) -> bool:
+        if pw_value is None:
+            return False
+
+        if len(pw_value) < self.__length:
+            return False
+        
+        if len([c for c in pw_value if c in string.ascii_uppercase]) < self.__uppercase:
+            return False
+        
+        if len([c for c in pw_value if c in string.digits]) < self.__numbers:
+            return False
+
+        if len([c for c in pw_value if c in string.punctuation]) < self.__special:
+            return False
+    
+        return True
 
 class AbstractSCMServiceFactory(ConfigDictionaryReader):
 
     class RepoConfigProps(CommonConfig):
 
-        __shared_secret_policy = PasswordPolicy.from_names(
+        __shared_secret_policy = PasswordStrengthValidator.from_names(
             length=20, uppercase=3, numbers=3, special=2
         )
 
@@ -29,10 +61,8 @@ class AbstractSCMServiceFactory(ConfigDictionaryReader):
                 "shared-secret",
                 self.__con_cfg_dict)
             
-            secret_test_result = self.__shared_secret_policy.test(self.__scm_shared_secret)
-
-            if not len(secret_test_result) == 0:
-              raise ConfigurationException(f"{self.__base_path}/connection/shared-secret fails some complexity requirements: {secret_test_result}")
+            if not self.__shared_secret_policy.test(self.__scm_shared_secret):
+              raise ConfigurationException(f"{self.__base_path}/connection/shared-secret fails some complexity requirements.")
             
             self.__clone_auth_dict = self._get_value_for_key_or_default("clone-auth", self.__con_cfg_dict, None)
             self.__clone_config_path = f"{self.__base_path}/connection/clone-auth"
