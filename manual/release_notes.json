@@ -1,4 +1,8 @@
 {
+  "2.4.0" : [
+    "Azure DevOps Entra ID Service Principal authentication is now supported."
+
+  ],
   "2.3.1" : [
     "A Claude skill for guided configuration of the CxOneFlow YAML is now available for download in the release artifacts.",
     "Dependency updates.",

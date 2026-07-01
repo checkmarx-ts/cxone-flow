@@ -2,7 +2,7 @@ import os, tempfile, shutil, shlex, subprocess, asyncio, logging, urllib, base64
 from cxoneflow_logging import SecretRegistry
 from pathlib import Path
 from typing import Dict, List, Coroutine
-from api_utils.auth_factories import GithubAppAuthFactory
+from api_utils.auth_factories import AuthFactory, ADOSPAuthFactory, GithubAppAuthFactory
 from api_utils.auth_factories import EventContext
 
 
@@ -138,6 +138,17 @@ class Cloner:
         retval.__git_cmd_stub = ["git"]
 
         return retval
+
+    @staticmethod
+    def using_ado_sp_client_secret_auth(auth_factory : ADOSPAuthFactory, ssl_no_verify : bool):
+        Cloner.log().debug("Clone config: using_ado_sp_client_secret_auth")
+
+        retval = AdoServicePrincipalCloner(auth_factory, ssl_no_verify)
+        retval.__protocol_matcher = Cloner.__https_matcher
+        retval.__supported_protocols = Cloner.__http_protocols
+        retval.__port = None
+
+        return retval
    
     def select_protocol_from_supported(self, protocol_list):
         for x in protocol_list:
@@ -189,7 +200,7 @@ class Cloner:
         temp_dir_object = tempfile.TemporaryDirectory(delete=False, prefix=temp_root) if make_temp else None
         clone_output_loc = temp_dir_object.name if make_temp else temp_root
         
-        thread = asyncio.to_thread(Cloner.do_clone, run_env=dict(self.__running_env), git_cmd_stub=list(self.__git_cmd_stub), 
+        thread = asyncio.to_thread(Cloner.do_clone, run_env=dict(self.__running_env), git_cmd_stub=list(await self._git_cmd_stub(event_context, force_reauth)), 
                                    clone_url=fixed_clone_url, clone_output_loc=clone_output_loc)
         
         return CloneWorker(thread, temp_dir_object, clone_output_loc)
@@ -205,6 +216,9 @@ class Cloner:
             self.log().error(f"{ex} stdout: [{ex.stdout.decode('UTF-8')}] stderr: [{ex.stderr.decode('UTF-8')})]")
             raise
 
+    async def _git_cmd_stub(self, event_context : EventContext=None, force_reauth : bool=False) -> List:
+        return self.__git_cmd_stub
+
 class BasicAuthWithCredsInUrl(Cloner):
     def __init__(self, username : str, password : str, ssl_no_verify : bool):
         Cloner.__init__(self, ssl_no_verify)
@@ -215,11 +229,23 @@ class BasicAuthWithCredsInUrl(Cloner):
         return Cloner.insert_creds_in_url(clone_url, self.__username, self.__password)
 
 
-class GithubAppCloner(Cloner):
-    def __init__(self, auth_factory : GithubAppAuthFactory, ssl_no_verify : bool):
+class AuthFactoryCloner(Cloner):
+    def __init__(self, auth_factory : AuthFactory, ssl_no_verify : bool):
         Cloner.__init__(self, ssl_no_verify)
-        self.__auth_factory = auth_factory
+        self._auth_factory = auth_factory
+
+class GithubAppCloner(AuthFactoryCloner):
+    def __init__(self, auth_factory : GithubAppAuthFactory, ssl_no_verify : bool):
+        AuthFactoryCloner.__init__(self, auth_factory, ssl_no_verify)
 
     async def _fix_clone_url(self, clone_url : str, event_context : EventContext=None, force_reauth : bool=False):
-        token = SecretRegistry.register(await self.__auth_factory.get_token(event_context, force_reauth))
+        token = SecretRegistry.register(await self._auth_factory.get_token(event_context, force_reauth))
         return Cloner.insert_creds_in_url(clone_url, "x-access-token", token)
+
+class AdoServicePrincipalCloner(AuthFactoryCloner):
+    def __init__(self, auth_factory : ADOSPAuthFactory, ssl_no_verify : bool):
+        AuthFactoryCloner.__init__(self, auth_factory, ssl_no_verify)
+
+    async def _git_cmd_stub(self, event_context : EventContext=None, force_reauth : bool=False) -> List:
+        token = SecretRegistry.register(await self._auth_factory.get_token(event_context, force_reauth))
+        return ["git", "-c", f"http.extraHeader=Authorization: Bearer {token}"]
