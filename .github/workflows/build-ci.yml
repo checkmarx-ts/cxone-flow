@@ -47,7 +47,7 @@ jobs:
         - name: Install Pylint
           shell: bash
           run: |
-            pip config set global.index-url https://pypi.echohq.com/simple
+            pip config set global.index-url https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple
             pip install . pylint
 
         - name: Pylint
@@ -72,7 +72,7 @@ jobs:
         - name: Install linters and dependencies
           shell: bash
           run: |
-            pip config set global.index-url https://pypi.echohq.com/simple
+            pip config set global.index-url https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple
             pip install pylint yamllint
             pip install -r requirements.txt
 
@@ -113,7 +113,7 @@ jobs:
 
       - name: Install packages
         run: |
-          pip config set global.index-url https://pypi.echohq.com/simple
+          pip config set global.index-url https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple
           pip install -r ${{ github.workspace }}/requirements.txt
           pip install pytest
 

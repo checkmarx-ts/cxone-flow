@@ -34,7 +34,7 @@ jobs:
 
       - name: Build package
         run: |
-          pip config set global.index-url https://pypi.echohq.com/simple
+          pip config set global.index-url https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple
           pip install build
           python3 -m build
 
