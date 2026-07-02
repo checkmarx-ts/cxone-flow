@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+echo "Args: $@"
+
 PACKAGE_ROOT=$(dirname $(realpath $0))
 
 SRC_ROOT=$PACKAGE_ROOT/../../..
