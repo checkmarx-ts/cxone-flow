@@ -222,6 +222,7 @@ jobs:
   build-agent-deb:
     needs: [tag-repo]
     uses: ./.github/workflows/build-agent-deb.yml
+    secrets: inherit
     with:
       tag: ${{ needs.tag-repo.outputs.tag }}
 

@@ -90,6 +90,7 @@ jobs:
 
   build-agent-deb:
     uses: ./.github/workflows/build-agent-deb.yml
+    secrets: inherit
     with:
       buildonly: true
 
