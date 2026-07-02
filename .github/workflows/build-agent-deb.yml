@@ -28,7 +28,7 @@ jobs:
             echo __version__=\"${{ inputs.tag }}\" > _version.py
 
       - name: Build deb package
-        run: agent_packages/scan-agent/debian/build-package.sh ${{ inputs.tag }}
+        run: agent_packages/scan-agent/debian/build-package.sh ${{ inputs.tag }} "https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple"
 
       - name: Upload deb amd64 package
         if: ${{ ! inputs.buildonly }}
