@@ -81,7 +81,8 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          docker build --progress plain -f docker/Dockerfile -t $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }} .
+          export INDEX_URL="https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple"
+          docker build --progress plain -f docker/Dockerfile --secret id=PACKAGE_INDEX,env=INDEX_URL -t $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }} .
           docker push $DOCKER_REPO:${{ needs.tag-repo.outputs.tag }}
 
   tag-container-as-latest:
@@ -213,6 +214,7 @@ jobs:
   build-kickoff-wheel:
     needs: [tag-repo]
     uses: ./.github/workflows/build-kickoff-whl.yml
+    secrets: inherit
     with:
       tag: ${{ needs.tag-repo.outputs.tag }}
       whl_tag: ${{ needs.tag-repo.outputs.whl_tag }}
@@ -220,6 +222,7 @@ jobs:
   build-agent-deb:
     needs: [tag-repo]
     uses: ./.github/workflows/build-agent-deb.yml
+    secrets: inherit
     with:
       tag: ${{ needs.tag-repo.outputs.tag }}
 

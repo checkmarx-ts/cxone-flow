@@ -76,15 +76,56 @@ A complete configuration should emit web hook payloads on the following events:
     \label{fig:adoe-endpoint-config}
 \end{figure}
 
+
+\section{\cxoneflowtext\space Service Principal Account}\label{sec:ado-service-principals}
+
+If your Azure DevOps Enterprise is integrated with an Entra ID directory,
+using a Service Principal for \cxoneflow authentication is recommended over other
+authentication options.  The Service Principal is not tied to a user account
+and can be assigned access scope in projects across multiple organizations.
+
+\cxoneflow supports the use of "Client secrets" that are generated where
+the Service Principal is defined in Entra ID "App registrations". The Service Principal
+account is then assigned to each organization in the \textit{Contributor} role
+with project scope limitations, if any.  This allows one Service Principal account
+to authenticate with multiple organizations.
+
+To use a Service Principal, the following secret elements must be configured in the \texttt{api-auth}
+element of the Azure DevOps connection:
+
+\begin{itemize}
+    \item \intlink{sec:yaml-api-auth-sp-client-id}{sp-client-id}
+    \item \intlink{sec:yaml-api-auth-sp-client-secret}{sp-client-secret}
+    \item \intlink{sec:yaml-api-auth-sp-tenant-id}{sp-tenant-id}
+\end{itemize}
+
+The configuration values can be sourced from the App registration overview
+for the Service Principal, as shown in Figure \ref{fig:adoe-service-principal-overview}.
+
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/adoe-service-principal.png}
+    \caption{Azure DevOps Service Principal Overview}
+    \label{fig:adoe-service-principal-overview}
+\end{figure}
+
 \section{\cxoneflowtext\space Service Account}
 
-Azure DevOps Enterprise utilizes user accounts to define access.  \cxoneflow will require
-at least one user account to use as a service account for API and cloning operations.  The
-service account must be in the \textit{Contributor} group for each project for which
-that account will orchestrate scans.  It is possible to create a single service account that
+If not using an Entra ID Service Principal, Azure DevOps Enterprise utilizes user accounts
+to define access.  \cxoneflow will require a PAT generated for a user account to act as a service account
+for API and cloning operations.  The service account must be in the \textit{Contributor} group
+for each project for which that account will orchestrate scans.
+
+For self-hosted Azure DevOps, it is possible to create a single service account that
 is used for all projects if the service account is assigned as a contributor to all
-relevant projects.  The \cxoneflow configuration can accommodate multiple user accounts
-if there is a need to have separate service accounts for some projects.
+relevant projects.  If using token authentication, the PAT is generated for the service account
+with the organization scope set to "All accessible organizations". The \cxoneflow configuration
+can accommodate multiple user accounts using multiple service definitions if there is a need to
+have separate service accounts for some projects.
+
+For cloud-hosted Azure DevOps, Microsoft has announced
+"\extlink{https://devblogs.microsoft.com/devops/retirement-of-global-personal-access-tokens-in-azure-devops/}{Retirement of Global Personal Access Tokens}".
+While the \cxoneflow configuration can accomodate mutiple PATs if required, the configuration may become complex to maintain.
+It is recommended to instead utilize Entra ID Service Principals with cloud-hosted Azure DevOps Enterprise.
 
 \section{\cxoneflowtext\space SSH Keys}
 
