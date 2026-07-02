@@ -214,6 +214,7 @@ jobs:
   build-kickoff-wheel:
     needs: [tag-repo]
     uses: ./.github/workflows/build-kickoff-whl.yml
+    secrets: inherit
     with:
       tag: ${{ needs.tag-repo.outputs.tag }}
       whl_tag: ${{ needs.tag-repo.outputs.whl_tag }}

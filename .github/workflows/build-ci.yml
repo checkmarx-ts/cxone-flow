@@ -26,6 +26,7 @@ jobs:
 
   build-kickoff-wheel:
     uses: ./.github/workflows/build-kickoff-whl.yml
+    secrets: inherit
     with:
       buildonly: true
 
