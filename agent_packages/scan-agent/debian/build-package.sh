@@ -33,7 +33,7 @@ echo "Version: $VERSION" >> $PACKAGE_ROOT/deb-package/DEBIAN/control
 cp $PACKAGE_ROOT/../etc/cxoneflow-scan-agent/* $PACKAGE_ROOT/deb-package/etc/cxoneflow-scan-agent/
 cp $PACKAGE_ROOT/../systemd/* $PACKAGE_ROOT/deb-package/opt/cxoneflow-scan-agent/
 
-docker run -i --rm -w /src \
+docker run -i --rm -w /src -e INDEX_URL_ARG=$INDEX_URL_ARG \
 -v $SRC_ROOT:/src -v $PACKAGE_ROOT/deb-package/opt/cxoneflow-scan-agent:/dist/output \
 python:3.12-bookworm sh -c \
 " \
