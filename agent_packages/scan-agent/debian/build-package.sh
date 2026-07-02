@@ -14,10 +14,10 @@ fi
 if [ $# -ge 2 ];
 then
   echo Python index URL passed as a parameter
-  INDEX_URL_ARG="--index-url $2"
+  INDEX_URL="$2"
 else
   echo Using default Python index URL
-  INDEX_URL_ARG=""
+  INDEX_URL=""
 fi
 
 DEB_NAME=cxoneflow-scan-agent_${VERSION}_$(dpkg-architecture -q DEB_BUILD_ARCH).deb
@@ -33,13 +33,12 @@ echo "Version: $VERSION" >> $PACKAGE_ROOT/deb-package/DEBIAN/control
 cp $PACKAGE_ROOT/../etc/cxoneflow-scan-agent/* $PACKAGE_ROOT/deb-package/etc/cxoneflow-scan-agent/
 cp $PACKAGE_ROOT/../systemd/* $PACKAGE_ROOT/deb-package/opt/cxoneflow-scan-agent/
 
-docker run -i --rm -w /src -e INDEX_URL_ARG="$INDEX_URL_ARG" \
+docker run -i --rm -w /src \
 -v $SRC_ROOT:/src -v $PACKAGE_ROOT/deb-package/opt/cxoneflow-scan-agent:/dist/output \
 python:3.12-bookworm sh -c \
 " \
-echo "$INDEX_URL_ARG" && \
 pip install -U pyinstaller && \
-pip install -r requirements.txt $(printf -- "$INDEX_URL_ARG") && \
+pip install -r requirements.txt $([ \"$INDEX_URL\" != \"\" ] && printf -- "--index-url \"$INDEX_URL\"" ) && \
 pyinstaller -F --copy-metadata aio-pika --copy-metadata jschema-to-python --specpath /dist/platform/spec --distpath /dist/output --workpath /dist/work cx_scan_agent.py \
 "
 
