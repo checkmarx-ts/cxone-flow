@@ -37,9 +37,8 @@ docker run -i --rm -w /src -e INDEX_URL_ARG="$INDEX_URL_ARG" \
 -v $SRC_ROOT:/src -v $PACKAGE_ROOT/deb-package/opt/cxoneflow-scan-agent:/dist/output \
 python:3.12-bookworm sh -c \
 " \
-set && \
 pip install -U pyinstaller && \
-pip install -r requirements.txt $INDEX_URL_ARG && \
+pip install -r requirements.txt $(printf -- "$INDEX_URL_ARG") && \
 pyinstaller -F --copy-metadata aio-pika --copy-metadata jschema-to-python --specpath /dist/platform/spec --distpath /dist/output --workpath /dist/work cx_scan_agent.py \
 "
 
