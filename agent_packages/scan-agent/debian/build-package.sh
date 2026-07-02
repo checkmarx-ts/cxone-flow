@@ -13,8 +13,10 @@ fi
 
 if [ $# -ge 2 ];
 then
+  echo Python index URL provided
   INDEX_URL_ARG="--index-url $2"
 else
+  echo Using default Python index URL
   INDEX_URL_ARG=""
 fi
 
