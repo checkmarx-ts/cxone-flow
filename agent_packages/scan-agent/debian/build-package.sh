@@ -1,8 +1,6 @@
 #!/bin/sh
 set -e
 
-echo "Args: $@"
-
 PACKAGE_ROOT=$(dirname $(realpath $0))
 
 SRC_ROOT=$PACKAGE_ROOT/../../..
@@ -15,7 +13,7 @@ fi
 
 if [ $# -ge 2 ];
 then
-  echo Python index URL provided
+  echo Python index URL passed as a parameter
   INDEX_URL_ARG="--index-url $2"
 else
   echo Using default Python index URL
