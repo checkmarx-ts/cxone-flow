@@ -1,5 +1,5 @@
 import json
-from .scm import SCMService
+from scm_services.scm import SCMService
 from cxone_api.util import json_on_ok
 from typing import Union, Dict
 from datetime import datetime, UTC
