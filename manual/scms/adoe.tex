@@ -124,8 +124,10 @@ have separate service accounts for some projects.
 
 For cloud-hosted Azure DevOps, Microsoft has announced
 "\extlink{https://devblogs.microsoft.com/devops/retirement-of-global-personal-access-tokens-in-azure-devops/}{Retirement of Global Personal Access Tokens}".
-While the \cxoneflow configuration can accomodate mutiple PATs if required, the configuration may become complex to maintain.
-It is recommended to instead utilize Entra ID Service Principals with cloud-hosted Azure DevOps Enterprise.
+The Microsoft announcement, in summary, means that a single PAT from a cross-organization service account will
+no longer be a viable authentication method as of December 2026. While the \cxoneflow configuration can accomodate mutiple PATs if required,
+the configuration may become complex to maintain. It is recommended to instead utilize Entra ID Service Principals with cloud-hosted
+Azure DevOps Enterprise.
 
 \section{\cxoneflowtext\space SSH Keys}
 
