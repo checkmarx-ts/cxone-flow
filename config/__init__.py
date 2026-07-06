@@ -79,6 +79,12 @@ class ConfigurationException(Exception):
     def module_load_error(key_path, module_name):
         return ConfigurationException(f"Error loading module {module_name} at {key_path}")
 
+    @staticmethod
+    def invalid_service_principal_config(key_path):
+        return ConfigurationException(f"Service principal at {key_path} requires sp-client-secret.")
+
+
+
 class RouteNotFoundException(Exception):
     pass
 

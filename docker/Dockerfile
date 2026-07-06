@@ -22,13 +22,13 @@ ENV SSL_CERT_PATH=/opt/cxone/ssl/default/ssl.cert.pem
 ENV SSL_CERT_KEY_PATH=/opt/cxone/ssl/default/key.private.pem
 ENV CXONEFLOW_HOSTNAME=localhost
 
-RUN echo 'Acquire::EnableSrvRecords "false";' >> /etc/apt/apt.conf.d/99-nosrv && \
+RUN --mount=type=secret,id=PACKAGE_INDEX \
+    echo 'Acquire::EnableSrvRecords "false";' >> /etc/apt/apt.conf.d/99-nosrv && \
     export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends tzdata locales && \
     apt-get install -y python3 python3-pip python-is-python3 nginx git openssh-client bash gettext-base curl gnupg apt-transport-https && \
-    pip config set global.index-url https://pypi.echohq.com/simple && \
-    pip install -r requirements.txt --no-cache-dir --break-system-packages && \
+    pip install -r requirements.txt --no-cache-dir --break-system-packages $([ -f "/run/secrets/PACKAGE_INDEX" ] && printf -- "--index-url $(cat /run/secrets/PACKAGE_INDEX)" ) && \
     locale-gen "en_US.UTF-8" && update-locale && \
     apt-get install rabbitmq-server -y && \
     apt-get autoremove -y && \
@@ -59,6 +59,6 @@ COPY docker/nginx /opt/cxone/nginx
 
 RUN rm -rf /opt/cxone/docker
 
-HEALTHCHECK --start-period=2m CMD (sudo rabbitmqctl await_startup && curl -f http://localhost:8000/ping) || exit 1
+HEALTHCHECK --start-period=2m CMD (rabbitmqctl await_startup && curl -f http://localhost:8000/ping) || exit 1
 
 ENTRYPOINT ["/opt/cxone/entrypoint.sh"]

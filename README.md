@@ -11,7 +11,12 @@ itself does not create results in feedback applications.
 
 # Quickstart and Documentation
 
-Please refer to the [Releases](https://github.com/checkmarx-ts/cxone-flow/releases) where you will find a PDF manual that will explain configuration steps for a quick evaluation.
+Please refer to the [Releases](https://github.com/checkmarx-ts/cxone-flow/releases) where you will find the following downloadable artifacts:
+
+* A Claude skill that will answer questions about how CxOneFlow works and assist in configuration.
+* A complete PDF manual that covers all topics in a human-readable, structured format.
+
+Using Claude to guide setup and configuration will be the most rapid method of starting a working CxOneFlow server.
 
 # Execution Features
 

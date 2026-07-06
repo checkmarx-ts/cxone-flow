@@ -9,7 +9,7 @@ from scm_services import SCMService
 from scm_services.cloner import Cloner
 from api_utils import auth_basic, auth_bearer
 from api_utils.apisession import APISession
-from api_utils.auth_factories import AuthFactory, GithubAppAuthFactory
+from api_utils.auth_factories import AuthFactory, GithubAppAuthFactory, ADOSPClientSecretAuthFactory
 from cxone_service import CxOneService
 from cxone_service.grouping import GroupingService
 from workflows.feedback_services.pr import AbstractPRFeedbackService, PRFeedbackService
@@ -687,6 +687,20 @@ class CxOneFlowConfig(CommonConfig):
                 config_dict["ssh-port"] if "ssh-port" in config_dict.keys() else None,
             )
 
+        if config_dict.get("sp-tenant-id") is not None:
+            if config_dict.get("sp-client-secret") is not None:
+                return Cloner.using_ado_sp_client_secret_auth(
+                    ADOSPClientSecretAuthFactory(
+                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path,
+                          "sp-tenant-id", config_dict),
+                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path,
+                          "sp-client-id", config_dict),
+                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path,
+                          "sp-client-secret", config_dict)
+                        ),
+                    ssl_no_verify
+                )
+
         return None
 
     @staticmethod
@@ -799,6 +813,17 @@ class CxOneFlowConfig(CommonConfig):
                     config_path, "password", config_dict
                 ),
             )
+        elif config_dict.get("sp-tenant-id") is not None:
+            if config_dict.get("sp-client-secret") is not None:
+                return ADOSPClientSecretAuthFactory(
+                    CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                        config_path, "sp-tenant-id", config_dict), 
+                    CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                        config_path, "sp-client-id", config_dict), 
+                    CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                        config_path,"sp-client-secret", config_dict))
+            else:
+                raise ConfigurationException.invalid_service_principal_config(config_path)
 
         return None
 
