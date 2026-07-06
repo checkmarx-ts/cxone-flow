@@ -297,15 +297,31 @@ class ADOEServiceFactory(AbstractSCMServiceFactory):
         props = AbstractSCMServiceFactory.RepoConfigProps(repo_config, config_path)
         api_sess = AbstractSCMServiceFactory.APISession_factory(api_auth_factory, props)
 
-        return ADOEService(props.display_url, 
-                           props.service_moniker, 
-                           api_sess, 
-                           props.scm_shared_secret, 
-                           AbstractSCMServiceFactory.Cloner_factory(api_sess,
+        additional_args = {}
+
+        if not ADOEServiceFactory.use_policies(repo_config):
+            service_clazz = ADOEServiceBasic
+        else:
+            pr_dict = AbstractSCMServiceFactory.get_pr_config_dict(repo_config)
+            pr_opts = AbstractSCMServiceFactory._get_value_for_key_or_fail(config_path, "adoe-pr-opts", pr_dict)
+            
+            additional_args = {
+                "check_name" : AbstractSCMServiceFactory._get_value_for_key_or_fail(f"{config_path}/adoe-pr-opts", "check-name", pr_opts),
+                "check_genre" : AbstractSCMServiceFactory._get_value_for_key_or_default("check-genre", pr_opts, None)
+            }
+
+            service_clazz = ADOEServiceChecks
+
+        return service_clazz(display_url=props.display_url, 
+                        moniker=props.service_moniker, 
+                        api_session=api_sess, 
+                        shared_secret=props.scm_shared_secret, 
+                        cloner=AbstractSCMServiceFactory.Cloner_factory(api_sess,
                                                                     cloner_factory, 
                                                                     props.clone_auth_config_dict, 
                                                                     props.clone_config_path, 
-                                                                    props.ssl_no_verify_git))
+                                                                    props.ssl_no_verify_git),
+                        **additional_args)
 
 
 
