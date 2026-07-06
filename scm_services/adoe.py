@@ -9,7 +9,7 @@ from api_utils import form_url
 from workflows.pr_content import PullRequestCommentContent
 from workflows.messaging import PRDetails, ScanMessage
 
-class ADOEService(SCMService):
+class ADOEServiceBasic(SCMService):
 
     __max_content_chars = 150000
 
@@ -29,7 +29,7 @@ class ADOEService(SCMService):
                                              query = {"api-version": "7.0"}))
 
         for thread in threads['value']:
-            if 'properties' in thread.keys() and thread['properties'] is not None and ADOEService.__thread_prop_key in thread['properties'].keys() \
+            if 'properties' in thread.keys() and thread['properties'] is not None and ADOEServiceBasic.__thread_prop_key in thread['properties'].keys() \
                 and not bool(thread['isDeleted']):
                 return thread['id']
 
@@ -45,9 +45,9 @@ class ADOEService(SCMService):
                                             query = {"api-version": "7.0"}, body=json.dumps(payload), extra_headers={"Content-Type" : "application/json"}))
         
         if thread is None:
-            ADOEService.log().error(f"Unable to update PR thread {thread_id}.")
+            ADOEServiceBasic.log().error(f"Unable to update PR thread {thread_id}.")
         else:
-            ADOEService.log().debug(f"PR thread {thread_id} updated on PR {pr_number}")
+            ADOEServiceBasic.log().debug(f"PR thread {thread_id} updated on PR {pr_number}")
     
 
     async def __create_pr_thread(self, organization : str, project : str, repo_slug : str, pr_number : str, annotation : str, status_msg : str):
@@ -61,7 +61,7 @@ class ADOEService(SCMService):
             ],
             "status" : 1,
             "properties" : {
-              ADOEService.__thread_prop_key : ADOEService.__create_thread_props(status_msg)
+              ADOEServiceBasic.__thread_prop_key : ADOEServiceBasic.__create_thread_props(status_msg)
             }
         }
 
@@ -69,9 +69,9 @@ class ADOEService(SCMService):
                                             query = {"api-version": "7.0"}, body=json.dumps(payload), extra_headers={"Content-Type" : "application/json"}))
         
         if thread is None:
-            ADOEService.log().error(f"Unable to create PR thread for PR id {pr_number}")
+            ADOEServiceBasic.log().error(f"Unable to create PR thread for PR id {pr_number}")
         else:
-            ADOEService.log().debug(f"PR thread {thread['id']} created on PR {pr_number}")
+            ADOEServiceBasic.log().debug(f"PR thread {thread['id']} created on PR {pr_number}")
 
 
     async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
@@ -92,18 +92,18 @@ class ADOEService(SCMService):
             await self.__update_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id, 
                                           existing_thread, fail_msg)
         else:
-            ADOEService.log().warning("Unrecoverable error could locate thread for scanid %s", scan_details.scanid)
+            ADOEServiceBasic.log().warning("Unrecoverable error could locate thread for scanid %s", scan_details.scanid)
         
     async def __create_or_update_pr_comment(self, pr_details : PRDetails, content : PullRequestCommentContent):
         existing_thread = await self.__get_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id)
 
         if existing_thread is None:
             await self.__create_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id, 
-                                          content.get_content(ADOEService.__max_content_chars), 
-                                          content.get_status_msg(ADOEService.__max_content_chars))
+                                          content.get_content(ADOEServiceBasic.__max_content_chars), 
+                                          content.get_status_msg(ADOEServiceBasic.__max_content_chars))
         else:
             await self.__update_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id, 
-                                          existing_thread, content.get_content(ADOEService.__max_content_chars))
+                                          existing_thread, content.get_content(ADOEServiceBasic.__max_content_chars))
 
     def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
         return form_url(self.display_url, f"{organization}/{project}/_git/{repo_slug}", path=code_path, version=f"GB{branch}", 
