@@ -307,46 +307,5 @@ class ADOEServiceFactory(AbstractSCMServiceFactory):
                                                                     props.clone_config_path, 
                                                                     props.ssl_no_verify_git))
 
-# def bbdc_scm_service_factory(repo_config : Dict, config_path : str) -> SCMService:
 
-#   display_url : str, moniker : str, api_session : APISession, shared_secret : str, cloner : Cloner
-
-
-#         api_session = APISession(
-#             api_url,
-#             CxOneFlowConfig.__scm_api_auth_factory(
-#                 api_url,
-#                 api_auth_factory,
-#                 api_auth_dict,
-#                 f"{config_path}/connection/api-auth",
-#             ),
-#             CxOneFlowConfig._get_value_for_key_or_default(
-#                 "timeout-seconds", connection_config_dict, 60
-#             ),
-#             CxOneFlowConfig._get_value_for_key_or_default(
-#                 "retries", connection_config_dict, 3
-#             ),
-#             CxOneFlowConfig._get_value_for_key_or_default(
-#                 "proxies", connection_config_dict, None
-#             ),
-#             ssl_verify,
-#         )
-
-
-#         # scm_service = scm_service(
-#         #     display_url,
-#         #     service_moniker,
-#         #     api_session,
-#         #     scm_shared_secret,
-#         #     CxOneFlowConfig.__cloner_factory(
-#         #         api_session,
-#         #         cloner_factory,
-#         #         clone_auth_dict,
-#         #         clone_config_path,
-#         #         ssl_no_verify_git,
-#         #     ),
-#         # )
-
-
-#   pass
 
