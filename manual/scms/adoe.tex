@@ -154,3 +154,74 @@ a protected branch for workflow logic purposes.
 
 A push to any protected branch or pull request that targets a protected branch will cause \cxoneflow to
 orchestrate a scan.
+
+\section{Required Checks and \cxone Policy Integration}
+
+Pull requests in Azure DevOps can be updated with the status of "checks" that indicate the status
+of external checks.  If the Azure DevOps Enterprise feedback configuration has the
+\intlink{sec:yaml-pull-request-use-policies}{\texttt{use-policies}} element set to \texttt{true},
+the a pull request will be updated with a scan status in addition to comments containing
+the scan result summary.  Azure DevOps, by default, treats all checks as optional unless
+the check is configured in a branch policy as a "Required Check".
+
+Azure DevOps has a \extlink{https://learn.microsoft.com/en-us/azure/devops/repos/git/pull-request-status?view=azure-devops\#status-policy}{"Status policy"}
+configuration that allows a check to be specified as required by providing the check in the form of "<genre>/<name>" where the
+genre is optional.  Figure \ref{fig:adoe-enabled-status-check} shows an example of a repository
+branch policy configuration that has the check \texttt{Security/CheckmarxScan} set as a required check.
+This means that the pull request merge is blocked until a scan is completed successfully without
+violating any \cxone policies that have "break build" enabled.
+
+Figure \ref{fig:adoe-status-check-policy-edit} is an example of the status policy editor where
+the Genre is set to "Security" and the Name is set to "CheckmarxScan".  The configuration elements under
+\intlink{sec:yaml-pull-request-adoe-pr-opts}{adoe-pr-opts} must be set to values corresponding to this
+policy configuration.  If there is a value mismatch in the \cxoneflow configuration, Azure DevOps
+will not correlate the status updates sent by \cxoneflow to the required check.  The policy
+editor allows configuration of control of the pull request merge as a result of the check
+status.  It is possible, for example, to use the policy configuration allow the
+pull-request merge on check failure if desired.
+
+Figure \ref{fig:adoe-status-check-waiting} shows the pull request status when it is initially
+opened.  The configuration of the status check policy will indicate it is waiting for the
+status check to complete successfully. Figure \ref{fig:adoe-status-check-pending} shows
+the pull request status after \cxoneflow has sent an update indicating that the scan
+is in progress.  Figures \ref{fig:adoe-status-check-success} show \ref{fig:adoe-status-check-fail}
+the pull request status to indicate the success or failure of the scan respectively.
+
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/adoe-status-checks.png}
+    \caption{Azure DevOps Enabled Status Check}
+    \label{fig:adoe-enabled-status-check}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=.8]{graphics/adoe-status-policy.png}
+    \caption{Azure DevOps Status Check Policy Editor}
+    \label{fig:adoe-status-check-policy-edit}
+\end{figure}
+
+
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/adoe-status-check-waiting.png}
+    \caption{Azure DevOps Pull Request Waiting for Status Check}
+    \label{fig:adoe-status-check-waiting}
+\end{figure}
+
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/adoe-status-check-pending.png}
+    \caption{Azure DevOps Pull Request Status Check Waiting for Scan}
+    \label{fig:adoe-status-check-pending}
+\end{figure}
+
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/adoe-status-check-success.png}
+    \caption{Azure DevOps Pull Request with Success Status Check}
+    \label{fig:adoe-status-check-success}
+\end{figure}
+
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{graphics/adoe-status-check-fail.png}
+    \caption{Azure DevOps Pull Request with Failed Status Check}
+    \label{fig:adoe-status-check-fail}
+\end{figure}
+
