@@ -6,20 +6,16 @@ that is compatible with other methods of deployment.
 """
 from _agent import __agent__
 from flask import Flask, request, Response, send_from_directory
-from orchestration import OrchestrationDispatch
-
+import json, logging, os, asyncio
 from orchestration.kickoff import KickoffOrchestrator
 from orchestration.kickoff.bbdc import BitBucketDataCenterKickoffOrchestrator
 from orchestration.kickoff.gh import GithubKickoffOrchestrator
 from orchestration.kickoff.adoe import AzureDevOpsKickoffOrchestrator
 from orchestration.kickoff.gl import GitlabKickoffOrchestrator
-
-from orchestration.bbdc import  BitBucketDataCenterOrchestrator
-from orchestration.adoe import AzureDevOpsEnterpriseOrchestrator
-from orchestration.gh import GithubOrchestrator
-from orchestration.gl import GitlabOrchestrator
-
-import json, logging, os, asyncio
+from orchestration import  (OrchestrationDispatch, BitBucketDataCenterOrchestrator, 
+                            AzureDevOpsEnterpriseOrchestrator,
+                            GithubOrchestrator,
+                            GitlabOrchestrator)
 from config import ConfigurationException, RouteNotFoundException, get_config_path
 from config.server import CxOneFlowConfig
 from task_management import TaskManager
@@ -81,6 +77,26 @@ async def ping():
 
     return Response("pong", status=200)
 
+@app.post("/bbc")
+async def bbc_webhook_endpoint():
+    __log.info("Received hook for BitBucket Cloud")
+    __log.debug(f"bbc webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
+    # try:
+    #     TaskManager.in_background(OrchestrationDispatch.execute(BitBucketDataCenterOrchestrator(EventContext(request.get_data(), dict(request.headers)))))
+    #     return Response(status=204)
+    # except Exception as ex:
+    #     __log.exception(ex)
+    #     return Response(status=400)
+    return Response(status=200)
+
+@app.post("/bbc/kickoff")
+async def bbc_kickoff_endpoint():
+    __log.info("Received kickoff request for BitBucket Cloud")
+    __log.debug(f"bbc kickoff: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
+    # ec = EventContext(request.get_data(), dict(request.headers))
+    # return await TaskManager.in_foreground(__kickoff_impl(BitBucketDataCenterKickoffOrchestrator(ko.BitbucketKickoffMsg(**(ec.message)), ec)))
+    return Response(status=200)
+
 @app.post("/bbdc")
 async def bbdc_webhook_endpoint():
     __log.info("Received hook for BitBucket Data Center")
@@ -91,7 +107,6 @@ async def bbdc_webhook_endpoint():
     except Exception as ex:
         __log.exception(ex)
         return Response(status=400)
-    
 
 @app.post("/bbdc/kickoff")
 async def bbdc_kickoff_endpoint():
