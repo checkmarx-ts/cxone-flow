@@ -112,7 +112,6 @@ class CxOneFlowConfig(CommonConfig):
                     index = 0
                     for repo_config_dict in raw_yaml[scm]:
 
-                        # TODO: __setup_scm should be __services_factory or something
                         services = CxOneFlowConfig.__setup_scm(
                             CxOneFlowConfig.__scm_service_factories[scm].factory(repo_config_dict, f"/{scm}[{index}]", 
                                                                                  CxOneFlowConfig.__cloner_factories[scm], 
@@ -647,6 +646,38 @@ class CxOneFlowConfig(CommonConfig):
 
         return None
 
+
+    @staticmethod
+    def __bbc_cloner_factory(
+        api_session: APISession,
+        config_path: str,
+        config_dict: Dict,
+        ssl_no_verify: bool,
+    ) -> Cloner:
+        if CxOneFlowConfig.__has_basic_auth(config_dict):
+            raise ConfigurationException.invalid_authorization_type(config_path)
+
+        if CxOneFlowConfig.__has_token_auth(config_dict):
+            return Cloner.using_token_auth(
+                CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                    config_path, "token", config_dict
+                ),
+                ssl_no_verify,
+            )
+
+        if CxOneFlowConfig.__has_ssh_auth(config_dict):
+            return Cloner.using_ssh_auth(
+                Path(CxOneFlowConfig._secret_root)
+                / Path(
+                    CxOneFlowConfig._get_value_for_key_or_fail(
+                        config_path, "ssh", config_dict
+                    )
+                ),
+                config_dict["ssh-port"] if "ssh-port" in config_dict.keys() else None,
+            )
+
+        return None
+
     @staticmethod
     def __adoe_cloner_factory(
         api_session: APISession,
@@ -850,6 +881,19 @@ class CxOneFlowConfig(CommonConfig):
             return None
 
     @staticmethod
+    def __token_only_api_auth_factory(
+        api_url: str, config_path: str, config_dict: Dict
+    ) -> Union[AuthFactory, None]:
+        if CxOneFlowConfig.__has_token_auth(config_dict):
+            return auth_bearer(
+                CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                    config_path, "token", config_dict
+                )
+            )
+        else:
+            return None
+
+    @staticmethod
     def __github_api_auth_factory(
         api_url: str, config_path: str, config_dict: Dict
     ) -> AuthFactory:
@@ -874,6 +918,7 @@ class CxOneFlowConfig(CommonConfig):
         "adoe": __adoe_cloner_factory,
         "gh": __gh_cloner_factory,
         "gl": __gl_cloner_factory,
+        "bbc": __bbc_cloner_factory,
     }
 
     __api_auth_factories = {
@@ -881,12 +926,13 @@ class CxOneFlowConfig(CommonConfig):
         "adoe": __adoe_api_auth_factory,
         "gh": __github_api_auth_factory,
         "gl": __common_api_auth_factory,
+        "bbc": __token_only_api_auth_factory,
     }
 
     __scm_service_factories = {
         "gh" : GHSCMServiceFactory,
         "bbdc": BBDCServiceFactory,
         "adoe": ADOEServiceFactory,
-        "gl": GLServiceFactory
-
+        "gl": GLServiceFactory,
+        "bbc": BBCServiceFactory,
     }
