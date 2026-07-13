@@ -341,7 +341,7 @@ class AbstractOrchestrator:
         raise NotImplementedError("is_signature_valid")
     
     async def get_default_cxone_project_name(self) -> str:
-        raise NotImplementedError("get_cxone_project_name")
+        raise NotImplementedError("get_default_cxone_project_name")
 
     @property
     def _pr_state(self) -> str:
