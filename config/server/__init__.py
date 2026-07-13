@@ -655,15 +655,19 @@ class CxOneFlowConfig(CommonConfig):
         ssl_no_verify: bool,
     ) -> Cloner:
         if CxOneFlowConfig.__has_basic_auth(config_dict):
-            raise ConfigurationException.invalid_authorization_type(config_path)
-
-        if CxOneFlowConfig.__has_token_auth(config_dict):
-            return Cloner.using_token_auth(
+            return Cloner.using_basic_auth(
                 CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
-                    config_path, "token", config_dict
+                    config_path, "username", config_dict
+                ),
+                CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                    config_path, "password", config_dict
                 ),
                 ssl_no_verify,
+                True,
             )
+
+        if CxOneFlowConfig.__has_token_auth(config_dict):
+            raise ConfigurationException.invalid_authorization_type(config_path)
 
         if CxOneFlowConfig.__has_ssh_auth(config_dict):
             return Cloner.using_ssh_auth(
@@ -881,17 +885,13 @@ class CxOneFlowConfig(CommonConfig):
             return None
 
     @staticmethod
-    def __token_only_api_auth_factory(
+    def __bbc_api_auth_factory(
         api_url: str, config_path: str, config_dict: Dict
     ) -> Union[AuthFactory, None]:
         if CxOneFlowConfig.__has_token_auth(config_dict):
-            return auth_bearer(
-                CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
-                    config_path, "token", config_dict
-                )
-            )
-        else:
             return None
+        else:
+            return CxOneFlowConfig.__common_api_auth_factory(api_url, config_path, config_dict)
 
     @staticmethod
     def __github_api_auth_factory(
@@ -926,7 +926,7 @@ class CxOneFlowConfig(CommonConfig):
         "adoe": __adoe_api_auth_factory,
         "gh": __github_api_auth_factory,
         "gl": __common_api_auth_factory,
-        "bbc": __token_only_api_auth_factory,
+        "bbc": __bbc_api_auth_factory,
     }
 
     __scm_service_factories = {

@@ -12,7 +12,9 @@ from orchestration.kickoff.bbdc import BitBucketDataCenterKickoffOrchestrator
 from orchestration.kickoff.gh import GithubKickoffOrchestrator
 from orchestration.kickoff.adoe import AzureDevOpsKickoffOrchestrator
 from orchestration.kickoff.gl import GitlabKickoffOrchestrator
-from orchestration import  (OrchestrationDispatch, BitBucketDataCenterOrchestrator, 
+from orchestration import  (OrchestrationDispatch,
+                            BitBucketDataCenterOrchestrator,
+                            BitBucketCloudOrchestrator,
                             AzureDevOpsEnterpriseOrchestrator,
                             GithubOrchestrator,
                             GitlabOrchestrator)
@@ -81,13 +83,12 @@ async def ping():
 async def bbc_webhook_endpoint():
     __log.info("Received hook for BitBucket Cloud")
     __log.debug(f"bbc webhook: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
-    # try:
-    #     TaskManager.in_background(OrchestrationDispatch.execute(BitBucketDataCenterOrchestrator(EventContext(request.get_data(), dict(request.headers)))))
-    #     return Response(status=204)
-    # except Exception as ex:
-    #     __log.exception(ex)
-    #     return Response(status=400)
-    return Response(status=200)
+    try:
+        TaskManager.in_background(OrchestrationDispatch.execute(BitBucketCloudOrchestrator(EventContext(request.get_data(), dict(request.headers)))))
+        return Response(status=204)
+    except Exception as ex:
+        __log.exception(ex)
+        return Response(status=400)
 
 @app.post("/bbc/kickoff")
 async def bbc_kickoff_endpoint():
