@@ -44,7 +44,7 @@ class ConfigurationException(Exception):
 
     @staticmethod
     def invalid_value (key_path):
-        return ConfigurationException(f"The value configured at {key_path} is invalid")
+        return ConfigurationException(f"The value configured at {key_path} is invalid.")
 
     @staticmethod
     def missing_keys(key_path, keys):
@@ -77,12 +77,15 @@ class ConfigurationException(Exception):
     
     @staticmethod
     def module_load_error(key_path, module_name):
-        return ConfigurationException(f"Error loading module {module_name} at {key_path}")
+        return ConfigurationException(f"Error loading module {module_name} at {key_path}.")
 
     @staticmethod
     def invalid_service_principal_config(key_path):
         return ConfigurationException(f"Service principal at {key_path} requires sp-client-secret.")
 
+    @staticmethod
+    def invalid_authorization_type (key_path):
+        return ConfigurationException(f"The SCM authorization configured at {key_path} is not supported.")
 
 
 class RouteNotFoundException(Exception):
