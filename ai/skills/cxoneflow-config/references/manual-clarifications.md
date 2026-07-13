@@ -22,3 +22,11 @@
 
 * The links to the `/api/scans` documentation in the manual may have changed.  The user should be referred to the URL
   listed in the previous bullet if they need details about scan engine configuration parameters.
+
+## The `<scm moniker>.feedback.pull-request.adoe-pr-opts` Element
+
+The `<scm moniker>.feedback.pull-request.adoe-pr-opts` is listed as required when
+`<scm moniker>.feedback.pull-request.use-policies` is set to `true`.  The
+requirement for `<scm moniker>.feedback.pull-request.adoe-pr-opts` is only when the
+`<scm moniker>` is `adoe`.  For other SCM monikers, `adoe-pr-opts` is ignored and
+thus not required.

@@ -21,6 +21,21 @@ or
 \extlink{https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28\#about-commit-statuses}{Github Commit Statuses}.
 This name is displayed in the pull-request and can be referenced in branch protection rules as a required check.
 
+\subsubsection{YAML Element: <scm moniker>.feedback.pull-request.adoe-pr-opts}\label{sec:yaml-pull-request-adoe-pr-opts}
+This element is optional unless \intlink{sec:yaml-pull-request-use-policies}{\texttt{use-policies}} is \texttt{True}
+and the feedback configuration appears under an \textbf{adoe} SCM moniker.  The child elements of this
+element configure the check name that is registered to indicate if the scan found \cxone policy violations.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.pull-request.adoe-pr-opts.check-name}\label{sec:yaml-pull-request-adoe-pr-opts-check-name}
+A required element that indicates the name of the check that is updated in alignment
+with \cxone policy violations.  If configured as a required check and the \cxone policy is configured
+to break the build, a policy violation will block a pull-request merge.
+
+\subsubsection{YAML Element: <scm moniker>.feedback.pull-request.adoe-pr-opts.check-genre}\label{sec:yaml-pull-request-adoe-pr-opts-check-genre}
+An optional element that is configured to match the Genre name of a configured check policy in Azure DevOps.
+Azure DevOps only requires the name of a required check; if a Genre was not configured for the required check,
+this element can be omitted from the configuration.
+
 \subsubsection{YAML Element: <scm moniker>.feedback.push}\label{sec:yaml-feedback-push}
 The configuration parameters for Sarif delivery as push feedback.
 

@@ -1,0 +1,48 @@
+\chapter{\cxone OAuth Client Roles}\label{sec:cxone-roles}
+
+
+\section{OAuth Client Required Role Assignments}
+
+The OAuth client used by \cxoneflow to communicate with \cxone must be assigned
+the roles as described in Table \ref{tab:cxone-oauth-roles}.  The OAuth client
+must also be assigned to the tenant authorization scope to allow project visibility
+to all tenant projects.
+
+\begin{table}[ht]
+    \caption{Required Role Assignments \& Descriptions}  
+    \label{tab:cxone-oauth-roles}      
+    \begin{tabularx}{\textwidth}{cl}
+        \toprule
+        \textbf{Role} & \textbf{Reason} \\
+        \midrule
+        \texttt{assign-resource-all-groups} & Allows scan orchestration to assign projects to groups.\\
+        \midrule
+        \texttt{create-project} & Required for scan orchestration.\\
+        \midrule
+        \texttt{create-scan} & Required for scan orchestration.\\
+        \midrule
+        \texttt{manage-reports} & Required for any use of results (feedback, Sarif, etc).\\
+        \midrule
+        \texttt{update-project} & Required for scan orchestration.\\
+        \midrule
+        \texttt{view-applications} & Required for scan orchestration.\\
+        \midrule
+        \texttt{view-policy-management} & Required for \cxone policy integration.\\
+        \midrule
+        \texttt{view-projects} & Required for scan orchestration.\\
+        \midrule
+        \texttt{view-project-params} & Required for scan orchestration.\\
+        \midrule
+        \texttt{view-results} & Required for any use of results (feedback, Sarif, etc).\\
+        \midrule
+        \texttt{view-scans} & Required for scan orchestration.\\
+        \midrule
+        \texttt{update-project-params} & Required for scan orchestration.\\
+        \midrule
+        \texttt{update-scan} & Required for scan orchestration.\\
+        \midrule
+        \texttt{view-tenant-params} & Required for scan orchestration.\\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+

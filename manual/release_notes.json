@@ -1,7 +1,7 @@
 {
   "2.4.0" : [
-    "Azure DevOps Entra ID Service Principal authentication is now supported."
-
+    "Azure DevOps Entra ID Service Principal authentication is now supported.",
+    "CxOne policy integration now works with Azure DevOps \"Required Checks\" policies."
   ],
   "2.3.1" : [
     "A Claude skill for guided configuration of the CxOneFlow YAML is now available for download in the release artifacts.",

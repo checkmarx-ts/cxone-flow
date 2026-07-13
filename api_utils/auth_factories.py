@@ -73,7 +73,7 @@ class GithubAppAuthFactory(AuthFactory):
         payload = {
             'iat' : int(time.time()),
             "exp" : int(time.time()) + 600,
-            'iss' : install_id,
+            'iss' : str(install_id),
             'alg' : "RS256"
         }
 

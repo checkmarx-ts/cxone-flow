@@ -104,8 +104,25 @@ common_scan_cfg: &common-scan-cfg
     # This AMQP connection is for orchestrating
     # the feedback workflows.
     <<: *all-amqp
+
     pull-request:
       enabled: true
+
+      # Enables the use of policy integration
+      use-policies: true
+
+      # Optional policy configuration for GitHub
+      gh-pr-opts:
+        check-name: CheckmarxScan
+
+      # Required policy configuration if using Azure DevOps
+      adoe-pr-opts:
+        # Genre is optional; needed only if your "Required Checks"
+        # policy specifies a Genre
+        check-genre: Security
+
+        # Azure DevOps requires a check name
+        check-name: CheckmarxScan
 
     push:
       enabled: true

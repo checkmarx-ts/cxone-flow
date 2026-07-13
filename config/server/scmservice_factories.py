@@ -297,56 +297,31 @@ class ADOEServiceFactory(AbstractSCMServiceFactory):
         props = AbstractSCMServiceFactory.RepoConfigProps(repo_config, config_path)
         api_sess = AbstractSCMServiceFactory.APISession_factory(api_auth_factory, props)
 
-        return ADOEService(props.display_url, 
-                           props.service_moniker, 
-                           api_sess, 
-                           props.scm_shared_secret, 
-                           AbstractSCMServiceFactory.Cloner_factory(api_sess,
+        additional_args = {}
+
+        if not ADOEServiceFactory.use_policies(repo_config):
+            service_clazz = ADOEServiceBasic
+        else:
+            pr_dict = AbstractSCMServiceFactory.get_pr_config_dict(repo_config)
+            pr_opts = AbstractSCMServiceFactory._get_value_for_key_or_fail(config_path, "adoe-pr-opts", pr_dict)
+            
+            additional_args = {
+                "check_name" : AbstractSCMServiceFactory._get_value_for_key_or_fail(f"{config_path}/adoe-pr-opts", "check-name", pr_opts),
+                "check_genre" : AbstractSCMServiceFactory._get_value_for_key_or_default("check-genre", pr_opts, None)
+            }
+
+            service_clazz = ADOEServiceChecks
+
+        return service_clazz(display_url=props.display_url, 
+                        moniker=props.service_moniker, 
+                        api_session=api_sess, 
+                        shared_secret=props.scm_shared_secret, 
+                        cloner=AbstractSCMServiceFactory.Cloner_factory(api_sess,
                                                                     cloner_factory, 
                                                                     props.clone_auth_config_dict, 
                                                                     props.clone_config_path, 
-                                                                    props.ssl_no_verify_git))
-
-# def bbdc_scm_service_factory(repo_config : Dict, config_path : str) -> SCMService:
-
-#   display_url : str, moniker : str, api_session : APISession, shared_secret : str, cloner : Cloner
+                                                                    props.ssl_no_verify_git),
+                        **additional_args)
 
 
-#         api_session = APISession(
-#             api_url,
-#             CxOneFlowConfig.__scm_api_auth_factory(
-#                 api_url,
-#                 api_auth_factory,
-#                 api_auth_dict,
-#                 f"{config_path}/connection/api-auth",
-#             ),
-#             CxOneFlowConfig._get_value_for_key_or_default(
-#                 "timeout-seconds", connection_config_dict, 60
-#             ),
-#             CxOneFlowConfig._get_value_for_key_or_default(
-#                 "retries", connection_config_dict, 3
-#             ),
-#             CxOneFlowConfig._get_value_for_key_or_default(
-#                 "proxies", connection_config_dict, None
-#             ),
-#             ssl_verify,
-#         )
-
-
-#         # scm_service = scm_service(
-#         #     display_url,
-#         #     service_moniker,
-#         #     api_session,
-#         #     scm_shared_secret,
-#         #     CxOneFlowConfig.__cloner_factory(
-#         #         api_session,
-#         #         cloner_factory,
-#         #         clone_auth_dict,
-#         #         clone_config_path,
-#         #         ssl_no_verify_git,
-#         #     ),
-#         # )
-
-
-#   pass
 
