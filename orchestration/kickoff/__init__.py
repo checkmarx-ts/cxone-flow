@@ -1,4 +1,4 @@
-from orchestration import AbstractOrchestrator
+from orchestration.base import AbstractOrchestrator
 import cxoneflow_kickoff_api as ko
 from kickoff_services import KickoffService
 from typing import Union, Dict, List
