@@ -80,12 +80,9 @@ class AbstractOrchestrator:
             else:
                 AbstractOrchestrator.log().warning(f"File skipped: {str(entry)} (Symlink: {entry.is_symlink()})")
         return return_dict
-    
+
     def get_header_key_safe(self, key):
-        try:
-            return self.event_context.headers[key]
-        except:
-            return None
+        return self.event_context.headers.get(key, None)
 
     async def execute(self, services : CxOneFlowServices) -> Any:
         raise NotImplementedError("execute")
