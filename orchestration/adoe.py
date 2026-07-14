@@ -1,5 +1,5 @@
 from orchestration.base import AbstractOrchestrator
-from orchestration.naming.adoe import AzureDevOpsProjectNaming
+from orchestration.naming import AzureDevOpsProjectNaming
 import base64, urllib, urllib.parse, re
 from jsonpath_ng import parse
 from cxone_api.util import CloneUrlParser

@@ -10,7 +10,7 @@ from requests import Response
 from cxone_api.high.scans import ScanInspector
 from services import CxOneFlowServices
 from typing import List, Dict
-from orchestration.naming.gh import GithubProjectNaming
+from orchestration.naming import GithubProjectNaming
 
 class GithubOrchestrator(AbstractOrchestrator):
 
