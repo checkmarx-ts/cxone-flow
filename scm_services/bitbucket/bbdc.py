@@ -1,6 +1,6 @@
+import json
 from scm_services.scm import SCMService
 from cxone_api.util import json_on_ok
-import json
 from workflows.pr_content import PullRequestAbstractMarkdownComment
 from api_utils.auth_factories import EventContext
 from api_utils import form_url
