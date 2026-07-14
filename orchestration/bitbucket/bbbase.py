@@ -52,6 +52,30 @@ class BitBucketAbstractOrchestrator(AbstractOrchestrator):
   def _repo_project_key(self, value : str):
       self.__repo_project_key = value
 
+  @property
+  def _pr_state(self) -> str:
+      return self.__pr_state
+  
+  @_pr_state.setter
+  def _pr_state(self, value : str):
+     self.__pr_state = value
+
+  @property
+  def _pr_status(self) -> str:
+      return self.__pr_status
+
+  @_pr_status.setter
+  def _pr_status(self, value : str):
+      self.__pr_status = value
+
+  @property
+  def _pr_id(self) -> str:
+      return self.__pr_id
+
+  @_pr_id.setter
+  def _pr_id(self, value : str):
+      self.__pr_id = value
+
   async def is_signature_valid(self, shared_secret : str) -> bool:
     sig = self.get_header_key_safe('X-Hub-Signature')
     

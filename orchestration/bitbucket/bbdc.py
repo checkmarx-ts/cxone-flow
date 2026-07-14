@@ -85,7 +85,7 @@ class BitBucketDataCenterOrchestrator(BitBucketAbstractOrchestrator):
             self.__source_branch = self.__target_branch = first_change['ref']['displayId']
             self.__source_hash = self.__target_hash = first_change['toHash']
 
-        self.__repo_project_key = BitBucketDataCenterOrchestrator.__push_repo_project_key_query.find(self.event_context.message)[0].value
+        self._repo_project_key = BitBucketDataCenterOrchestrator.__push_repo_project_key_query.find(self.event_context.message)[0].value
         self._repo_project_name = BitBucketDataCenterOrchestrator.__push_repo_project_name_query.find(self.event_context.message)[0].value
         self._repo_slug = BitBucketDataCenterOrchestrator.__push_repo_slug_query.find(self.event_context.message)[0].value
         self._repo_name = BitBucketDataCenterOrchestrator.__push_repo_name_query.find(self.event_context.message)[0].value
@@ -98,8 +98,8 @@ class BitBucketDataCenterOrchestrator(BitBucketAbstractOrchestrator):
         self.__populate_common_push_data()
         return await BitBucketAbstractOrchestrator._execute_push_scan_workflow(self, services)
 
-    async def __is_pr_draft(self) -> bool:
-        return bool(BitBucketDataCenterOrchestrator.__pr_draft_query.find(self.event_context.message)[0].value)
+    def __is_pr_draft(self) -> bool:
+        return bool(BitBucketDataCenterOrchestrator.__pr_draft_query.find(self.event_context.message).pop().value)
     
     def __populate_common_pr_data(self):
         toref = BitBucketDataCenterOrchestrator.__pr_toref_extract_query.find(self.event_context.message)[0].value
@@ -111,34 +111,34 @@ class BitBucketDataCenterOrchestrator(BitBucketAbstractOrchestrator):
         self.__source_branch = fromref['displayId']
         self.__source_hash = fromref['latestCommit']
 
-        self.__repo_project_key = BitBucketDataCenterOrchestrator.__pr_repo_project_key_query.find(self.event_context.message)[0].value
+        self._repo_project_key = BitBucketDataCenterOrchestrator.__pr_repo_project_key_query.find(self.event_context.message)[0].value
         self._repo_project_name = BitBucketDataCenterOrchestrator.__pr_repo_project_name_query.find(self.event_context.message)[0].value
         self._repo_slug = BitBucketDataCenterOrchestrator.__pr_repo_slug_query.find(self.event_context.message)[0].value
         self._repo_name = BitBucketDataCenterOrchestrator.__pr_repo_name_query.find(self.event_context.message)[0].value
-        self.__pr_id = str(BitBucketDataCenterOrchestrator.__pr_id_query.find(self.event_context.message)[0].value)
-        self.__pr_state = BitBucketDataCenterOrchestrator.__pr_state_query.find(self.event_context.message)[0].value
+        self._pr_id = str(BitBucketDataCenterOrchestrator.__pr_id_query.find(self.event_context.message)[0].value)
+        self._pr_state = BitBucketDataCenterOrchestrator.__pr_state_query.find(self.event_context.message)[0].value
 
         statuses = list(set([x.value for x in BitBucketDataCenterOrchestrator.__pr_reviewer_status_query.find(self.event_context.message)]))
 
         if not len(statuses) > 0:
-            self.__pr_status = "NO_REVIEWERS"
+            self._pr_status = "NO_REVIEWERS"
         else:
-            self.__pr_status = "/".join(statuses)
+            self._pr_status = "/".join(statuses)
 
     async def _execute_delegated_pr_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
         self.__populate_common_pr_data()
         return await BitBucketAbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
 
     async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
-        if await self.__is_pr_draft():
-            BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
+        if self.__is_pr_draft():
+            BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}")
             return
         self.__populate_common_pr_data()
         return await BitBucketAbstractOrchestrator._execute_pr_scan_workflow(self, services)
 
     async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices):
-        if await self.__is_pr_draft():
-            BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message)[0].value}")
+        if self.__is_pr_draft():
+            BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}")
             return
 
         self.__populate_common_pr_data()
@@ -168,18 +168,6 @@ class BitBucketDataCenterOrchestrator(BitBucketAbstractOrchestrator):
             retBranches.append(json['production']['displayId'])
         
         return list(set(retBranches))
-
-    @property
-    def _pr_state(self) -> str:
-        return self.__pr_state
-
-    @property
-    def _pr_status(self) -> str:
-        return self.__pr_status
-
-    @property
-    def _pr_id(self) -> str:
-        return self.__pr_id
 
     @property
     def _repo_organization(self) -> str:

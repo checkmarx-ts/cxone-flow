@@ -1,6 +1,7 @@
 import urllib3
 from jsonpath_ng.ext.parser import parse
 from typing import Dict, List
+from cxone_api.high.scans import ScanInspector
 from orchestration.naming import BitbucketCloudProjectNaming
 from cxone_api.util import json_on_ok
 from orchestration.exceptions import OrchestrationException
@@ -21,6 +22,14 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
 
   __branchmodel_name_query = parse("$..['development','production'].branch.name")
 
+  __pr_draft_query = parse("$.pullrequest.draft")
+  __pr_self_link_query = parse("$.pullrequest.links.html.href")
+  __pr_id_query = parse("$.pullrequest.id")
+  __pr_state_query = parse("$.pullrequest.state")
+  __pr_source_branch_query = parse("$.pullrequest.source.branch.name")
+  __pr_dest_branch_query = parse("$.pullrequest.destination.branch.name")
+  __pr_event_short_dest_hash_query = parse("$.pullrequest.destination.commit.hash")
+  __pr_event_short_source_hash_query = parse("$.pullrequest.source.commit.hash")
 
   def __init__(self, event_context : EventContext):
     BitBucketAbstractOrchestrator.__init__(self, event_context)
@@ -32,7 +41,9 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
     if len(self.__route_urls) == 0:
        raise OrchestrationException("Route URLs could not be found in the payload.")
 
-    pass
+  def __is_pr_draft(self) -> bool:
+      return bool(BitBucketCloudOrchestrator.__pr_draft_query.find(self.event_context.message).pop().value)
+
 
   @property
   def config_key(self):
@@ -88,7 +99,19 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
       # self.delegated_scan = True
       # return await self.__delegated_dispatcher(BitBucketDataCenterOrchestrator.__delegate_scan_handler_map, services, scan_id)
 
+  async def __populate_common_event_data(self, scm_service : SCMService):
+    self._repo_project_key = BitBucketCloudOrchestrator.__repo_project_key_query.find(self.event_context.message).pop().value
+    self._repo_project_name = BitBucketCloudOrchestrator.__repo_project_name_query.find(self.event_context.message).pop().value
+    self._repo_name = BitBucketCloudOrchestrator.__repo_full_name_query.find(self.event_context.message).pop().value
+    self._repo_organization = BitBucketCloudOrchestrator.__repo_workspace_slug_query.find(self.event_context.message).pop().value
+
+    repo_data = json_on_ok(await scm_service.exec("GET", f"repositories/{self._repo_name}"))
+    self._repo_slug = repo_data.get("slug")
+    self.__init_clone_urls(repo_data)
+
   async def __populate_common_push_data(self, commit_dict : Dict, scm_service : SCMService):
+      await self.__populate_common_event_data(scm_service)
+
       self.__source_branch = self.__target_branch = None
       self.__source_hash = self.__target_hash = None
 
@@ -96,14 +119,6 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
       self.__source_branch = self.__target_branch = new_commit.get("name")
       self.__source_hash = self.__target_hash = new_commit.get("target").get("hash")
 
-      self._repo_project_key = BitBucketCloudOrchestrator.__repo_project_key_query.find(self.event_context.message).pop().value
-      self._repo_project_name = BitBucketCloudOrchestrator.__repo_project_name_query.find(self.event_context.message).pop().value
-      self._repo_name = BitBucketCloudOrchestrator.__repo_full_name_query.find(self.event_context.message).pop().value
-      self._repo_organization = BitBucketCloudOrchestrator.__repo_workspace_slug_query.find(self.event_context.message).pop().value
-
-      repo_data = json_on_ok(await scm_service.exec("GET", f"repositories/{self._repo_name}"))
-      self._repo_slug = repo_data.get("slug")
-      self.__init_clone_urls(repo_data)
 
 
   async def _execute_push_scan_workflow(self, services : CxOneFlowServices):
@@ -116,10 +131,56 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
       else:
          BitBucketCloudOrchestrator.log().info("No commits found to handle.")
 
+  async def __populate_common_pr_data(self, scm_service : SCMService):
+    await self.__populate_common_event_data(scm_service)
+    self._pr_id = str(BitBucketCloudOrchestrator.__pr_id_query.find(self.event_context.message).pop().value)
+    self._pr_state = BitBucketCloudOrchestrator.__pr_state_query.find(self.event_context.message).pop().value
+
+    self.__source_branch = BitBucketCloudOrchestrator.__pr_source_branch_query.find(self.event_context.message).pop().value
+    self.__target_branch = BitBucketCloudOrchestrator.__pr_dest_branch_query.find(self.event_context.message).pop().value
+
+    self.__target_hash = BitBucketCloudOrchestrator.__pr_event_short_dest_hash_query.find(self.event_context.message).pop().value
+    self.__source_hash = BitBucketCloudOrchestrator.__pr_event_short_source_hash_query.find(self.event_context.message).pop().value
+
+    # statuses = list(set([x.value for x in BitBucketDataCenterOrchestrator.__pr_reviewer_status_query.find(self.event_context.message)]))
+
+    # if not len(statuses) > 0:
+    self._pr_status = "NO_REVIEWERS"
+    # else:
+    #     self._pr_status = "/".join(statuses)
+
+
+  async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
+      if self.__is_pr_draft():
+          BitBucketCloudOrchestrator.log().info(f"Skipping draft PR {BitBucketCloudOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}")
+          return
+
+      await self.__populate_common_pr_data(services.scm)
+
+      return await BitBucketAbstractOrchestrator._execute_pr_scan_workflow(self, services)
+
   async def get_default_cxone_project_name(self) -> str:
      return BitbucketCloudProjectNaming.create_project_name(self._repo_organization, self._repo_project_key, self._repo_project_name, self._repo_slug)
   
   __workflow_map = {
     "repo:push" : _execute_push_scan_workflow,
+    "pullrequest:created" : _execute_pr_scan_workflow,
+    "pullrequest:updated" : _execute_pr_scan_workflow,
   }
+
+# Scan
+# pullrequest:updated
+
+
+# Tags
+# pullrequest:approved
+# pullrequest:unapproved
+# pullrequest:fulfilled (merged)
+# pullrequest:rejected
+# No reviewer?
+# Can't delete a PR
+# pullrequest:updated - change draft status
+# Draft status is possible
+
+
   __delegate_scan_handler_map = {}
