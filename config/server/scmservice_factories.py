@@ -267,6 +267,26 @@ class BBDCServiceFactory(AbstractSCMServiceFactory):
                                                                     props.clone_config_path, 
                                                                     props.ssl_no_verify_git))
 
+class BBCServiceFactory(AbstractSCMServiceFactory):
+    @staticmethod
+    def factory(repo_config : Dict, 
+                config_path : str, 
+                cloner_factory : Callable[[APISession, str, Dict, bool], Cloner],
+                api_auth_factory : Callable[[str, str, Dict], AuthFactory]) -> SCMService:
+        
+        props = AbstractSCMServiceFactory.RepoConfigProps(repo_config, config_path)
+        api_sess = AbstractSCMServiceFactory.APISession_factory(api_auth_factory, props)
+
+        return BBCService(props.display_url, 
+                           props.service_moniker, 
+                           api_sess, 
+                           props.scm_shared_secret, 
+                           AbstractSCMServiceFactory.Cloner_factory(api_sess,
+                                                                    cloner_factory, 
+                                                                    props.clone_auth_config_dict, 
+                                                                    props.clone_config_path, 
+                                                                    props.ssl_no_verify_git))
+
 
 class GLServiceFactory(AbstractSCMServiceFactory):
     @staticmethod

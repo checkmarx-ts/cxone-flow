@@ -669,7 +669,7 @@ class CxOneFlowConfig(CommonConfig):
         if CxOneFlowConfig.__has_token_auth(config_dict):
             return Cloner.using_basic_auth("x-token-auth",
                 CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
-                    config_path, "password", config_dict
+                    config_path, "token", config_dict
                 ),
                 ssl_no_verify,
                 False,
