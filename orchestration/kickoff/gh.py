@@ -1,6 +1,6 @@
 from orchestration.kickoff import KickoffOrchestrator
 from cxoneflow_kickoff_api import GithubKickoffMsg
-from orchestration.naming.gh import GithubProjectNaming
+from orchestration.naming import GithubProjectNaming
 from scm_services import SCMService
 from scm_services.cloner import CloneWorker
 

@@ -1,6 +1,6 @@
 from orchestration.kickoff import KickoffOrchestrator
 from cxoneflow_kickoff_api import BitbucketKickoffMsg
-from orchestration.naming.bbdc import BitbucketProjectNaming
+from orchestration.naming.bitbucket import BitbucketDCProjectNaming
 
 class BitBucketDataCenterKickoffOrchestrator(KickoffOrchestrator):
 
@@ -37,7 +37,7 @@ class BitBucketDataCenterKickoffOrchestrator(KickoffOrchestrator):
         return self.__msg.repo_name
 
     async def get_default_cxone_project_name(self) -> str:
-        return BitbucketProjectNaming.create_project_name(self.kickoff_msg.project_key, 
+        return BitbucketDCProjectNaming.create_project_name(self.kickoff_msg.project_key, 
                                                         self.kickoff_msg.project_name, 
                                                         self.kickoff_msg.repo_name)
 

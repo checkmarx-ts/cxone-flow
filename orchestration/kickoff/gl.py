@@ -1,6 +1,6 @@
 from orchestration.kickoff import KickoffOrchestrator
 from cxoneflow_kickoff_api import GitlabKickoffMsg
-from orchestration.naming.gl import GitlabProjectNaming
+from orchestration.naming import GitlabProjectNaming
 
 class GitlabKickoffOrchestrator(KickoffOrchestrator):
 
