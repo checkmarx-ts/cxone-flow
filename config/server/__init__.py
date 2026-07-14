@@ -663,11 +663,17 @@ class CxOneFlowConfig(CommonConfig):
                     config_path, "password", config_dict
                 ),
                 ssl_no_verify,
-                True,
+                False,
             )
 
         if CxOneFlowConfig.__has_token_auth(config_dict):
-            raise ConfigurationException.invalid_authorization_type(config_path)
+            return Cloner.using_basic_auth("x-token-auth",
+                CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                    config_path, "password", config_dict
+                ),
+                ssl_no_verify,
+                False,
+            )
 
         if CxOneFlowConfig.__has_ssh_auth(config_dict):
             return Cloner.using_ssh_auth(
@@ -884,14 +890,6 @@ class CxOneFlowConfig(CommonConfig):
         else:
             return None
 
-    @staticmethod
-    def __bbc_api_auth_factory(
-        api_url: str, config_path: str, config_dict: Dict
-    ) -> Union[AuthFactory, None]:
-        if CxOneFlowConfig.__has_token_auth(config_dict):
-            return None
-        else:
-            return CxOneFlowConfig.__common_api_auth_factory(api_url, config_path, config_dict)
 
     @staticmethod
     def __github_api_auth_factory(
@@ -926,7 +924,7 @@ class CxOneFlowConfig(CommonConfig):
         "adoe": __adoe_api_auth_factory,
         "gh": __github_api_auth_factory,
         "gl": __common_api_auth_factory,
-        "bbc": __bbc_api_auth_factory,
+        "bbc": __common_api_auth_factory,
     }
 
     __scm_service_factories = {
