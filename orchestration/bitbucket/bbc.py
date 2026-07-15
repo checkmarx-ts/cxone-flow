@@ -8,6 +8,7 @@ from orchestration.exceptions import OrchestrationException
 from .bbbase import BitBucketAbstractOrchestrator
 from api_utils.auth_factories import EventContext
 from services import CxOneFlowServices, SCMService
+from workflows.messaging import PRDetails
 
 class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
   
@@ -30,6 +31,7 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
   __pr_dest_branch_query = parse("$.pullrequest.destination.branch.name")
   __pr_event_short_dest_hash_query = parse("$.pullrequest.destination.commit.hash")
   __pr_event_short_source_hash_query = parse("$.pullrequest.source.commit.hash")
+  __pr_participants_query = parse("$.pullrequest.participants[?(@.role == 'REVIEWER')]")
 
   def __init__(self, event_context : EventContext):
     BitBucketAbstractOrchestrator.__init__(self, event_context)
@@ -44,6 +46,17 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
   def __is_pr_draft(self) -> bool:
       return bool(BitBucketCloudOrchestrator.__pr_draft_query.find(self.event_context.message).pop().value)
 
+  async def _make_prdetails(self, services : CxOneFlowServices) -> PRDetails:
+      # BB Cloud uses hashes in permalink URLs instead of branches, so need to adjust
+      # the branch name in PR details sent to workflows.
+      _, source_hash = await self._get_source_branch_and_hash()
+      target_branch, _ = await self._get_target_branch_and_hash()
+
+      return PRDetails.factory(event_context=self.event_context, 
+          clone_url=self._repo_clone_url(services.scm.cloner), 
+          repo_project=self._repo_project_key, repo_slug=self._repo_slug, 
+          organization=self._repo_organization, pr_id=self._pr_id,
+          source_branch=source_hash, target_branch=target_branch)
 
   @property
   def config_key(self):
@@ -119,8 +132,6 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
       self.__source_branch = self.__target_branch = new_commit.get("name")
       self.__source_hash = self.__target_hash = new_commit.get("target").get("hash")
 
-
-
   async def _execute_push_scan_workflow(self, services : CxOneFlowServices):
       found_first_commit = BitBucketCloudOrchestrator.__first_push_commit_query.find(self.event_context.message)
       if len(found_first_commit) > 0:
@@ -141,14 +152,27 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
 
     self.__target_hash = BitBucketCloudOrchestrator.__pr_event_short_dest_hash_query.find(self.event_context.message).pop().value
     self.__source_hash = BitBucketCloudOrchestrator.__pr_event_short_source_hash_query.find(self.event_context.message).pop().value
+    self._pr_status = self.__get_pr_status()
 
-    # statuses = list(set([x.value for x in BitBucketDataCenterOrchestrator.__pr_reviewer_status_query.find(self.event_context.message)]))
+  def __get_pr_status(self) -> str:
+    status = "NO_REVIEWERS"
 
-    # if not len(statuses) > 0:
-    self._pr_status = "NO_REVIEWERS"
-    # else:
-    #     self._pr_status = "/".join(statuses)
+    participants = [p.value for p in BitBucketCloudOrchestrator.__pr_participants_query.find(self.event_context.message)]
 
+    if len(participants) > 0:
+      status = "AWAITING_REVIEW"
+      
+      changes_requested = [p for p in participants if p.get("state") is not None and p.get("state") == "changes_requested"]
+      approved = [p for p in participants if p.get("approved", False) is True]
+
+      if len(approved) > 0 and len(changes_requested) == 0:
+        return "APPROVED"
+      elif len(approved) > 0 and len(changes_requested) > 0:
+        return "PARTIAL_APPROVAL"
+      elif len(approved) == 0 and len(changes_requested) > 0:
+        return "CHANGES_REQUESTED"
+
+    return status
 
   async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
       if self.__is_pr_draft():
@@ -157,7 +181,23 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
 
       await self.__populate_common_pr_data(services.scm)
 
-      return await BitBucketAbstractOrchestrator._execute_pr_scan_workflow(self, services)
+      existing_scans = await services.cxone.find_pr_scans(await services.naming.get_project_name
+                                                          (await self.get_default_cxone_project_name(), self.event_context), 
+                                                          self._pr_id, self.__source_hash)
+      if len(existing_scans) > 0:
+         # This is a tag update, not a scan.
+         return await self._execute_pr_tag_update_workflow(services)
+      else:
+        return await BitBucketAbstractOrchestrator._execute_pr_scan_workflow(self, services)
+
+  async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices) -> ScanInspector:
+      if self.__is_pr_draft():
+          BitBucketCloudOrchestrator.log().info(f"Skipping draft PR {BitBucketCloudOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}")
+          return
+
+      await self.__populate_common_pr_data(services.scm)
+
+      return await BitBucketAbstractOrchestrator._execute_pr_tag_update_workflow(self, services)
 
   async def get_default_cxone_project_name(self) -> str:
      return BitbucketCloudProjectNaming.create_project_name(self._repo_organization, self._repo_project_key, self._repo_project_name, self._repo_slug)
@@ -166,21 +206,12 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
     "repo:push" : _execute_push_scan_workflow,
     "pullrequest:created" : _execute_pr_scan_workflow,
     "pullrequest:updated" : _execute_pr_scan_workflow,
+    "pullrequest:fulfilled" : _execute_pr_tag_update_workflow,
+    "pullrequest:rejected" : _execute_pr_tag_update_workflow,
+    "pullrequest:approved" : _execute_pr_tag_update_workflow,
+    "pullrequest:unapproved" : _execute_pr_tag_update_workflow,
+    "pullrequest:changes_request_created" : _execute_pr_tag_update_workflow,
+    "pullrequest:changes_request_removed" : _execute_pr_tag_update_workflow,
   }
-
-# Scan
-# pullrequest:updated
-
-
-# Tags
-# pullrequest:approved
-# pullrequest:unapproved
-# pullrequest:fulfilled (merged)
-# pullrequest:rejected
-# No reviewer?
-# Can't delete a PR
-# pullrequest:updated - change draft status
-# Draft status is possible
-
 
   __delegate_scan_handler_map = {}
