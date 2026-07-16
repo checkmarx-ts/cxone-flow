@@ -93,5 +93,5 @@ class BBCServiceBasic(SCMService):
     await self.__create_or_update_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, 
                                 PullRequestAbstractMarkdownComment.append_comment_identifier(fail_msg))
 
-  def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
-    return form_url(self.display_url, f"/{organization}/{repo_slug}/src/{branch}{code_path}", anchor=f"lines-{code_line}")
+  def create_code_permalink(self, pr_details : PRDetails, code_path : str, code_line : str):
+    return form_url(self.display_url, f"/{pr_details.organization}/{pr_details.repo_slug}/src/{pr_details.source_hash}{code_path}", anchor=f"lines-{code_line}")
