@@ -105,6 +105,7 @@ class ADOEServiceBasic(SCMService):
             await self.__update_pr_thread(pr_details.organization, pr_details.repo_project, pr_details.repo_slug, pr_details.pr_id, 
                                           existing_thread, content.get_content(ADOEServiceBasic.__max_content_chars))
 
-    def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
-        return form_url(self.display_url, f"{organization}/{project}/_git/{repo_slug}", path=code_path, version=f"GB{branch}", 
-                              line=code_line, lineEnd=code_line, lineStartColumn=0, lineEndColumn=1024, lineStyle="plain", _a="contents")
+    def create_code_permalink(self, pr_details : PRDetails, code_path : str, code_line : str):
+        return form_url(self.display_url, f"{pr_details.organization}/{pr_details.repo_project}/_git/{pr_details.repo_slug}",
+                        path=code_path, version=f"GB{pr_details.source_branch}", 
+                        line=code_line, lineEnd=code_line, lineStartColumn=0, lineEndColumn=1024, lineStyle="plain", _a="contents")

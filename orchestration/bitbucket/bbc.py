@@ -46,18 +46,6 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
   def __is_pr_draft(self) -> bool:
       return bool(BitBucketCloudOrchestrator.__pr_draft_query.find(self.event_context.message).pop().value)
 
-  async def _make_prdetails(self, services : CxOneFlowServices) -> PRDetails:
-      # BB Cloud uses hashes in permalink URLs instead of branches, so need to adjust
-      # the branch name in PR details sent to workflows.
-      _, source_hash = await self._get_source_branch_and_hash()
-      target_branch, _ = await self._get_target_branch_and_hash()
-
-      return PRDetails.factory(event_context=self.event_context, 
-          clone_url=self._repo_clone_url(services.scm.cloner), 
-          repo_project=self._repo_project_key, repo_slug=self._repo_slug, 
-          organization=self._repo_organization, pr_id=self._pr_id,
-          source_branch=source_hash, target_branch=target_branch)
-
   @property
   def config_key(self):
     return "bbc"

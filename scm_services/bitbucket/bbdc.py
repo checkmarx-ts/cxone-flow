@@ -86,6 +86,7 @@ class BBDCService(SCMService):
 
         SCMService.log().debug(f"Comment {id} version {version} modified on PR {pr_number}")
    
-    def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
-        return form_url(self.display_url, f"projects/{project}/repos/{repo_slug}/browse{code_path}", anchor=code_line, at=branch)
+    def create_code_permalink(self, pr_details : PRDetails, code_path : str, code_line : str):
+        return form_url(self.display_url, f"projects/{pr_details.repo_project}/repos/{pr_details.repo_slug}/browse{code_path}",
+                        anchor=code_line, at=pr_details.source_branch)
    

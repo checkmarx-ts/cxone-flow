@@ -61,5 +61,5 @@ class GLService(SCMService):
         self.log().debug(f"Comment posted on PR#{pr_details.pr_id}: {posted}")
 
    
-    def create_code_permalink(self, organization : str, project : str, repo_slug : str, branch : str, code_path : str, code_line : str):
-        return form_url(self.display_url, f"/{repo_slug}/-/blob/{branch}{code_path}", f"L{code_line}")
+    def create_code_permalink(self, pr_details : PRDetails, code_path : str, code_line : str):
+        return form_url(self.display_url, f"/{pr_details.repo_slug}/-/blob/{pr_details.source_branch}{code_path}", f"L{code_line}")
