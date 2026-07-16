@@ -19,3 +19,6 @@ class PushDetails(CommonDetails):
 class PRDetails(CommonDetails):
     pr_id : str
     target_branch : str
+    target_hash : str
+    source_branch : str
+    source_hash : str
