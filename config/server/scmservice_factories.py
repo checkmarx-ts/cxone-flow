@@ -277,7 +277,7 @@ class BBCServiceFactory(AbstractSCMServiceFactory):
         props = AbstractSCMServiceFactory.RepoConfigProps(repo_config, config_path)
         api_sess = AbstractSCMServiceFactory.APISession_factory(api_auth_factory, props)
 
-        return BBCService(props.display_url, 
+        return BBCServiceBasic(props.display_url, 
                            props.service_moniker, 
                            api_sess, 
                            props.scm_shared_secret, 

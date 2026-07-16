@@ -8,7 +8,7 @@ from workflows.pr_content import PullRequestAbstractMarkdownComment
 from api_utils import form_url
 
 
-class BBCService(SCMService):
+class BBCServiceBasic(SCMService):
   __max_content_chars = 32767
 
   async def __page_gen(self, path):
@@ -43,10 +43,10 @@ class BBCService(SCMService):
     response = await exec_coroutine
 
     if not response.ok:
-      BBCService.log().error(f"Response of {response.status_code} from {response.request.url}")
+      BBCServiceBasic.log().error(f"Response of {response.status_code} from {response.request.url}")
     else:
       comment = response.json()
-      BBCService.log().debug(f"Comment {comment.get("id", "Unknown")} modified: {response.request.url}")
+      BBCServiceBasic.log().debug(f"Comment {comment.get("id", "Unknown")} modified: {response.request.url}")
 
   async def __add_comment(self, organization : str, repo_slug : str, pr_number : str, content : str):
     payload = {"content" : {
@@ -74,16 +74,16 @@ class BBCService(SCMService):
        await self.__update_comment(organization, repo_slug, pr_number, existing_id, markdown)
 
   async def exec_pr_scan_update_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
-    await self.__create_or_update_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, content.get_content(BBCService.__max_content_chars))
+    await self.__create_or_update_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, content.get_content(BBCServiceBasic.__max_content_chars))
   
   async def exec_pr_scan_pending_decorate(self, pr_details : PRDetails, content: PullRequestCommentContent):
-    await self.__create_or_update_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, content.get_content(BBCService.__max_content_chars))
+    await self.__create_or_update_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, content.get_content(BBCServiceBasic.__max_content_chars))
 
   async def exec_pr_scan_failure_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
-    await self.__create_or_update_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, content.get_content(BBCService.__max_content_chars))
+    await self.__create_or_update_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, content.get_content(BBCServiceBasic.__max_content_chars))
 
   async def exec_pr_scan_success_decorate(self, pr_details : PRDetails, content : PullRequestCommentContent, scan_details : ScanMessage):
-    await self.__create_or_update_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, content.get_content(BBCService.__max_content_chars))
+    await self.__create_or_update_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, content.get_content(BBCServiceBasic.__max_content_chars))
 
   async def exec_pr_unrecoverable_error(self, pr_details : PRDetails, scan_details : ScanMessage, fail_msg : str):
     await self.__create_or_update_comment(pr_details.organization, pr_details.repo_slug, pr_details.pr_id, 
