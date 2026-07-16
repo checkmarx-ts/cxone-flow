@@ -44,11 +44,13 @@ To prevent an SSRF scenario due to an all-matching regular expression,
 \cxoneflow as of version 2.1.0 will not start if a configured \texttt{repo-match} element
 will match arbitrary values. Using a regular expression that matches the transport and FQDN
 of clone URLs expected in each event payload will prevent falsified events from being matched to a 
-service definition.  As an example, most regular expressions would be in a format similar to the one below:
+service definition.  As an example, most regular expressions should be in a format similar to
+the example below:
 
 \begin{code}{General Clone URL Regular Expression}{}{}
 ^http(s)?:(\/){2}my\.scm\.corp\.com.*
 \end{code}
+
 
 In the case of cloud-hosted Azure DevOps, an slightly different regular expression
 is needed.  The reason for this is that pull request events emitted from the multi-tenant ADO cloud have
