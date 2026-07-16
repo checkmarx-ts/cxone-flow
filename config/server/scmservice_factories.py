@@ -277,11 +277,31 @@ class BBCServiceFactory(AbstractSCMServiceFactory):
         props = AbstractSCMServiceFactory.RepoConfigProps(repo_config, config_path)
         api_sess = AbstractSCMServiceFactory.APISession_factory(api_auth_factory, props)
 
-        return BBCServiceBasic(props.display_url, 
-                           props.service_moniker, 
-                           api_sess, 
-                           props.scm_shared_secret, 
-                           AbstractSCMServiceFactory.Cloner_factory(api_sess,
+
+        additional_args = {}
+
+        if not AbstractSCMServiceFactory.use_policies(repo_config):
+            service_clazz = BBCServiceBasic
+        else:
+            service_clazz = BBCServiceChecks
+
+            pr_dict = AbstractSCMServiceFactory.get_pr_config_dict(repo_config)
+
+            custom_check_name = None
+
+            if pr_dict is not None:
+                bb_pr_opts = AbstractSCMServiceFactory._get_value_for_key_or_default("bb-pr-opts", pr_dict, None)
+
+                if bb_pr_opts is not None:
+                    custom_check_name = AbstractSCMServiceFactory._get_value_for_key_or_default("check-name", bb_pr_opts, None)
+
+            additional_args = {'check_name' : custom_check_name}
+            
+        return service_clazz(**additional_args, display_url=props.display_url, 
+                           moniker=props.service_moniker, 
+                           api_session=api_sess, 
+                           shared_secret=props.scm_shared_secret, 
+                           cloner=AbstractSCMServiceFactory.Cloner_factory(api_sess,
                                                                     cloner_factory, 
                                                                     props.clone_auth_config_dict, 
                                                                     props.clone_config_path, 
