@@ -154,6 +154,7 @@ constructor parameters that initialize the \texttt{KickoffClient} instance.
       \\\quad\texttt{/gh/kickoff}
       \\\quad\texttt{/gl/kickoff}
       \\\quad\texttt{/adoe/kickoff}
+      \\\quad\texttt{/bbc/kickoff}
       \\\quad\texttt{/bbdc/kickoff}} \\
       \midrule
       \texttt{user\_agent} & \makecell[c]{\texttt{str}} & \makecell[l]{An value that identifies the source of the request.
@@ -330,8 +331,8 @@ the repository described by the message.
 \paragraph{Message Type: \texttt{BitbucketKickoffMsg}}
 
 \noindent\\\\Table \ref{tab:bitbucket-kickoff-msg} describes the \texttt{BitbucketKickoffMsg} elements.  An instance
-of \texttt{BitbucketKickoffMsg} is sent to the \texttt{/bbdc/kickoff} endpoint to start a scan for
-the repository described by the message.
+of \texttt{BitbucketKickoffMsg} is sent to the \texttt{/bbdc/kickoff} or \texttt{/bbc/kickoff} endpoints
+to start a scan for the repository described by the message.
 
 \begin{table}[ht]
   \caption{\texttt{BitbucketKickoffMsg} Elements}\label{tab:bitbucket-kickoff-msg}
