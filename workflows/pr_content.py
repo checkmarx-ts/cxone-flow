@@ -483,10 +483,10 @@ class PullRequestMarkdownFeedback(PullRequestAbstractMarkdownComment):
                             self.start_iac_detail_section()
                             title_added = True
 
-                        self.add_iac_detail(ResultSeverity(result['severity']), PullRequestAbstractMarkdownComment.make_md_severity_indicator(self.server_base_url, result['severity']), 
-                                            x['name'], f"`{result['fileName']}`{PullRequestAbstractMarkdownComment.make_md_link(self.__permalink(pr_details.organization, 
-                                        pr_details.repo_project, pr_details.repo_slug, pr_details.source_branch, 
-                                        result['fileName'], 1), "view")}", query['queryName'], 
+                        self.add_iac_detail(ResultSeverity(result['severity']), PullRequestAbstractMarkdownComment.make_md_severity_indicator(
+                                            self.server_base_url, result['severity']), 
+                                            x['name'], f"`{result['fileName']}`{PullRequestAbstractMarkdownComment.make_md_link(
+                                            self.__permalink(pr_details, result['fileName'], 1), "view")}", query['queryName'], 
                                             PullRequestAbstractMarkdownComment.make_md_link(result['resultViewerLink'], "Risk Details"))
 
     def __add_sca_details(self, display_url, project_id, scanid):
@@ -535,9 +535,8 @@ class PullRequestMarkdownFeedback(PullRequestAbstractMarkdownComment):
 
                     self.add_sast_detail(ResultSeverity(vuln['severity']), 
                                     PullRequestAbstractMarkdownComment.make_md_severity_indicator(self.server_base_url, vuln['severity']), describe_link, 
-                                    f"`{vuln['sourceFileName']}`;{PullRequestAbstractMarkdownComment.make_md_link(self.__permalink(pr_details.organization, 
-                                        pr_details.repo_project, pr_details.repo_slug, pr_details.source_branch, 
-                                        vuln['sourceFileName'], vuln['sourceLine']), 
+                                    f"`{vuln['sourceFileName']}`;{PullRequestAbstractMarkdownComment.make_md_link(
+                                        self.__permalink(pr_details, vuln['sourceFileName'], vuln['sourceLine']), 
                                         vuln['sourceLine'])}", 
                                         PullRequestAbstractMarkdownComment.make_md_link(vuln['resultViewerLink'], "Attack Vector"))
 
