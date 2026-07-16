@@ -1,0 +1,67 @@
+\chapter{BitBucket Cloud}\label{sec:bbc}
+
+
+\section{About BitBucket Cloud}
+
+BitBucket Cloud is an cloud-hosted, multi-tenant SCM that is often confused with \intlink{sec:bbdc}{BitBucket Data Center};
+while the name of the products imply that they are the same, they are completely different products
+with different repository topologies and features. This section covers configuring \cxoneflow
+for use with BitBucket Cloud.
+
+The \cxoneflow endpoint \texttt{/bbc} is the handler for all webhook event
+payloads originating from BitBucket Cloud.  
+
+\section{Webhook Topology}
+
+\input{scms/topology/bbc.tex}
+
+
+\section{Webhook Configuration}
+
+The webhooks for BitBucket Cloud can be configured at the workspace scope
+\footnote{The BitBucket Cloud UI does not have a guided way for workspace deployment of webhooks;
+use \cxoneflowaudit for assistance with workspace webhook deployment.} or at repository scope.
+For large enterprise deployments with many repositories, deploying at the repository scope
+is likely infeasible.  The recommended approach is to deploy the webhooks at the workspace scope
+so that webhook events are sent for all repositories in the workspace.  This will prevent the need
+for a periodic check that repositories are sending events to \cxoneflow since any new repositories
+will be onboarded to \cxoneflow automatically.
+
+While repositories are segregated by projects in a workspace, BitBucket Cloud enforces a unique
+repository name across all repositories in the workspace regardless of project membership.  The
+project identifier is therefore not included in the clone URL that is used by \cxoneflow for routing
+to the correct service definition.  The clone URL contains the workspace identifier to allow
+routing by workspace but the credentials for API access and cloning should allow access to all
+repositories in the workspace.
+
+\section{Access Keys and API Tokens}
+
+BitBucket Cloud users can create \textit{API Tokens} that are roughly equivalent to
+\textit{Personal Access Tokens} used by other SCMs.  The token is associated with the
+user account; if the user is deleted from the organization, the token is no longer valid.
+
+
+
+All tokens can be assigned scopes that allow actions to be executed by \cxoneflow.  The
+required scopes for \cxoneflow operation with BitBucket Cloud
+\footnote{Token creation in BitBucket Cloud will allow scope definition for other Atlassian Products
+that are not accessed by \cxoneflow.  Ensure that scopes are selected for BitBucket.}
+, regardless of token type, are:
+
+\begin{itemize}
+  \item read:repository:bitbucket
+  \item read:pullrequest:bitbucket
+  \item write:pullrequest:bitbucket
+\end{itemize}
+
+
+\subsection{Configuring \cxoneflow with API Tokens}
+
+\subsection{Configuring \cxoneflow with API Access Keys}
+
+
+\section{SSH Keys}
+
+
+
+\section{Protected Branches}
