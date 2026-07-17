@@ -34,13 +34,74 @@ to the correct service definition.  The clone URL contains the workspace identif
 routing by workspace but the credentials for API access and cloning should allow access to all
 repositories in the workspace.
 
-\section{Access Keys and API Tokens}
+Figure \ref{fig:bbc-token-config} shows the \texttt{connection} element configuration required
+for BitBucket Cloud to work with \cxoneflowns.  Note in the configuration:
 
-BitBucket Cloud users can create \textit{API Tokens} that are roughly equivalent to
-\textit{Personal Access Tokens} used by other SCMs.  The token is associated with the
-user account; if the user is deleted from the organization, the token is no longer valid.
+\begin{itemize}
+  \item The \texttt{base-url} is \texttt{https://api.bitbucket.org}
+  \item The \texttt{api-url-suffix} is set to \texttt{2.0}
+  \item The \texttt{base-display-url} is set to \texttt{https://bitbucket.org}
+\end{itemize}
 
 
+\section{Authentication Configuration}
+
+There are several options for authenticating with BitBucket Cloud for API and clone
+access.  Premium subscribers will be able to create \textit{Access Tokens} that
+allow for a simple authentication configuration.  Non-premium subscribers can use
+\cxoneflow with BitBucket Cloud but the authentication configuration is slightly
+more difficult.
+
+BitBucker Cloud users, regardless of subscription type, can create \textit{API Tokens} that
+are roughly equivalent to \textit{Personal Access Tokens} used by other SCMs.  The token
+is associated with the user account; if the user is deleted from the organization, the token
+is no longer valid.
+
+BitBucket Cloud also supports SSH keys for cloning.  In some configurations, they are
+named \textit{SSH Keys} and in others they are named \textit{Access Keys}.  All subscribers
+may install an SSH key at the \textbf{Workspace}, \textbf{Project} and
+\textbf{Repository} scope to allow clone access to all workspace repositories.
+It should be understood, however, that the SSH key will have both read and write access
+to a repository accessed by \cxoneflowns.  \cxoneflow does not require write access to a
+repository for scan orchestration; \textit{Access Keys} and \textit{API Tokens} can be scoped
+to allow read only access to repositories.
+
+\textit{Access Tokens} that are not associated with a user account are the recommended
+method of configuring \cxoneflow to enable both cloning and API access.  For premium
+subscribers, access tokens can be created in both the \textbf{Workspace} and \textbf{Project}
+settings.  For all subscribers, access tokens can be created in the \textbf{Repository} settings.
+Table \ref{tab:bbc-access-tokens} explains how the access token configuration affects
+the visibility of repositories.
+
+
+\begin{table}[ht]
+    \caption{BitBucket Cloud Access Tokens Scope}  
+    \label{tab:bbc-access-tokens}      
+    \begin{tabularx}{\textwidth}{ll}
+        \toprule
+        \textbf{Configuration} & \textbf{Description} \\
+        \midrule
+        Workspace & \makecell[l]{This is the recommended configuration location for a token used
+        with\\\cxoneflow. An access token created here will have visibility to\\
+        all repositories in the workspace.}\\
+        \midrule
+        Project & \makecell[l]{An access token created here will have visibility to repositories\\
+        in the project where the token is created.  A token created at this\\
+        scope is not recommended unless there is only one project.}\\
+        \midrule
+        Repository & \makecell[l]{An access token created here will have visibility to
+        only the\\repository where the token was created.}\\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Using access tokens created in the project or repository settings with \cxoneflow will
+make configuration of SCM service definitions difficult.  The reason is that the 
+routing configuration will not be able to discern which project a repository belongs
+to when handling a webhook event.  For both project and repository tokens, the routing
+configuration must use the name of the repository.  Configuring an SCM service definition
+for each repository will likely not scale and may cause a performance impact on
+\cxoneflow operations.
 
 All tokens can be assigned scopes that allow actions to be executed by \cxoneflow.  The
 required scopes for \cxoneflow operation with BitBucket Cloud
@@ -55,13 +116,110 @@ that are not accessed by \cxoneflow.  Ensure that scopes are selected for BitBuc
 \end{itemize}
 
 
+\subsection{Configuring \cxoneflow with Access Tokens}
+
+Figure \ref{fig:bbc-token-config} shows an example of a configuration using an
+\textit{Access Token}.  The \texttt{api-auth} configuration element with a
+\texttt{token} secret is all that is required to enable both API and clone authentication.
+Premium subscribers will typically use a \textbf{Workspace} token with this configuration.
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/bbc-token-config.png}
+    \caption{BitBucket Cloud Access Token Configuration}
+    \label{fig:bbc-token-config}
+\end{figure}
+
+
 \subsection{Configuring \cxoneflow with API Tokens}
 
-\subsection{Configuring \cxoneflow with API Access Keys}
+Figure \ref{fig:bbc-api-token-config} shows a configuration using an \textit{API Token}.
+These types of tokens are tied to a user account and are available to all subcribers.
+Using this type of authentication requires the use of both the \texttt{api-auth} and
+\texttt{clone-auth} configuration elements.  The \texttt{password} configuration element
+is a secret containing the \textit{API Token} and is the same for both the \texttt{api-auth}
+and \texttt{clone-auth} configurations.
+
+In the \texttt{api-auth} configuration, the \texttt{username} secret must be the full email
+address of the user account that owns the token.  Authentication with the API will fail
+if the full email of the user account is not used.
+
+In the \texttt{clone-auth} configuration, the \texttt{username} secret is the BitBucket Cloud
+"public name" found on the account profile; this is not the full email address of the user account.
+The public name is what is displayed when viewing commit logs, clone URLs, and pull-request comments.  
+
+If not using \intlink{sec:scan-agents}{Scan Agents} with \cxoneflow, it is possible to use
+an \textit{Access Key} for SSH cloning.
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/bbc-api-access-token-config.png}
+    \caption{BitBucket Cloud API Token Configuration}
+    \label{fig:bbc-api-token-config}
+\end{figure}
 
 
-\section{SSH Keys}
+\section{SSH Configuration}
 
+Figure \ref{fig:bbc-ssh-config} shows an example of a \cxoneflow configuration
+that uses an \textit{API Token} for API authentication with an SSH private key
+for clone authentication.  This configuration can be used with an SSH key installed
+at the \textbf{Workspace} scope to allow cloning for all repositories in the workspace.
+SSH does not provide authentication for API access, so an \textit{API Token} must be used.
+
+This configuration is only suggested as an option for edge cases where an SSH key must be used
+for cloning.  The recommended method for both API access and cloning is to use
+an \textit{Access Token}.
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/bbc-ssh-config.png}
+    \caption{BitBucket Cloud API SSH Clone Configuration}
+    \label{fig:bbc-ssh-config}
+\end{figure}
 
 
 \section{Protected Branches}
+
+The \textit{Branching Model} is used by \cxoneflow to determine which branches
+should be treated as protected branches.  Figure \ref{fig:bbc-branch-model}
+shows an example of a \textit{Branching Model} with both a production and
+development branch.  Both the production and development branch are considered
+to be protected branches by \cxoneflow.
+
+A \textit{Branching Model} applied at the project level will make the branches used
+by all the repositories in the project use the same branch names for production and
+development.  The \textit{Branching Model} configuration can be overridden by
+a repository configuration; \cxoneflow allows BitBucket Cloud to apply overrides
+to provide the effective protected branches for each repository.
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/bbc-branch-model.png}
+    \caption{BitBucket Cloud Branching Model Configuration}
+    \label{fig:bbc-branch-model}
+\end{figure}
+
+\section{Policy Integration with Branch Restrictions}
+
+If the configuration element \texttt{feedback.pull-request.use-policies} is set to
+\textbf{true}, scan status is written to the pull request.  Figure \ref{fig:bbc-policy-check}
+shows an example of a status written to a pull request upon a successful scan that
+was evaluated with no policy violations. The name of the displayed check can be set to a
+custom value with the \texttt{bb-pr-opts.check-name} configuration element.
+
+Using \textit{Branch Restrictions}, this policy check can be used to block
+the merge of the pull-request until a successful scan has completed with no policy
+violations.  Figure \ref{fig:bbc-branch-restriction} shows an example of a
+\textit{Branch Restriction} that would prevent merging the pull request to a protected
+branch.  Without the use of \textit{Branch Restrictions}, the scan status update written
+to the pull-request is informational only.
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/bbc-policy-check.png}
+    \caption{BitBucket Cloud Policy Integration}
+    \label{fig:bbc-policy-check}
+\end{figure}
+
+
+\begin{figure}[ht]
+    \includegraphics[width=\textwidth]{graphics/bbc-branch-restriction.png}
+    \caption{BitBucket Cloud Branch Restrictions}
+    \label{fig:bbc-branch-restriction}
+\end{figure}
