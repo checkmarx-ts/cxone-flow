@@ -129,6 +129,11 @@ class BitBucketDataCenterOrchestrator(BitBucketAbstractOrchestrator):
         self.__populate_common_pr_data()
         return await BitBucketAbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
 
+    async def handle_delegated_pr_scan_hard_fail(self, services : CxOneFlowServices, fail_msg : str):
+        self.__populate_common_pr_data()
+        await services.scm.exec_pr_prescan_failure(await self._make_prdetails(services), fail_msg)
+    
+
     async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
         if self.__is_pr_draft():
             BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}")

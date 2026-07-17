@@ -212,6 +212,9 @@ class GitlabOrchestrator(AbstractOrchestrator):
         self.__populate_common_pr_data()
         return await AbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
 
+    async def handle_delegated_pr_scan_hard_fail(self, services : CxOneFlowServices, fail_msg : str):
+        self.__populate_common_pr_data()
+        await services.scm.exec_pr_prescan_failure(await self._make_prdetails(services), fail_msg)
 
     async def _execute_pr_scan_workflow(self, services : CxOneFlowServices, scan_tags : Dict[str, str]=None) -> ScanInspector:
         if await self.__is_pr_draft():

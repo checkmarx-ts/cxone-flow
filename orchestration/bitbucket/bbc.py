@@ -41,10 +41,10 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
     self.__route_urls = [url.value for url in BitBucketCloudOrchestrator.__route_urls_query.find(self.event_context.message)]
 
     if len(self.__route_urls) == 0:
-       raise OrchestrationException("Route URLs could not be found in the payload.")
+        raise OrchestrationException("Route URLs could not be found in the payload.")
 
   def __is_pr_draft(self) -> bool:
-      return bool(BitBucketCloudOrchestrator.__pr_draft_query.find(self.event_context.message).pop().value)
+    return bool(BitBucketCloudOrchestrator.__pr_draft_query.find(self.event_context.message).pop().value)
 
   @property
   def config_key(self):
@@ -52,20 +52,20 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
 
   @property
   def route_urls(self) -> list:
-      return self.__route_urls
+    return self.__route_urls
 
   @property
   def is_diagnostic(self) -> bool:
-      return False
+    return False
   
   def _repo_clone_url(self, cloner) -> str:
-      return self.__clone_urls[cloner.select_protocol_from_supported(self.__clone_urls.keys())]
+    return self.__clone_urls[cloner.select_protocol_from_supported(self.__clone_urls.keys())]
       
   async def _get_target_branch_and_hash(self) -> tuple:
-      return self.__target_branch, self.__target_hash
+    return self.__target_branch, self.__target_hash
 
   async def _get_source_branch_and_hash(self) -> tuple:
-      return self.__source_branch, self.__source_hash
+    return self.__source_branch, self.__source_hash
 
   async def _get_protected_branches(self, scm_service : SCMService) -> List:
     branchmodel_config = json_on_ok(await scm_service.exec("GET", f"/repositories/{self._repo_organization}/{self._repo_slug}/effective-branching-model"))
@@ -89,16 +89,21 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
           self.__clone_urls[name] = clone_entry.value.get("href")
 
   async def execute(self, services : CxOneFlowServices):
-      if self.event_name not in BitBucketCloudOrchestrator.__workflow_map.keys():
-          BitBucketCloudOrchestrator.log().error(f"Unhandled event type: {self.event_name}")
-          return 
-      else:
-          return await BitBucketCloudOrchestrator.__workflow_map[self.event_name](self, services)
+    if self.event_name not in BitBucketCloudOrchestrator.__workflow_map.keys():
+        BitBucketCloudOrchestrator.log().error(f"Unhandled event type: {self.event_name}")
+        return 
+    else:
+        return await BitBucketCloudOrchestrator.__workflow_map[self.event_name](self, services)
 
   async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
-    raise NotImplementedError("handle_delegated_scan")
-      # self.delegated_scan = True
-      # return await self.__delegated_dispatcher(BitBucketDataCenterOrchestrator.__delegate_scan_handler_map, services, scan_id)
+    if self.event_name not in BitBucketCloudOrchestrator.__delegate_scan_handler_map.keys():
+        BitBucketCloudOrchestrator.log().error(f"Unhandled delegated scan event type: {self.event_name}")
+        return 
+    return await BitBucketCloudOrchestrator.__delegate_scan_handler_map[self.event_name](self, services, scan_id)
+
+  async def handle_delegated_pr_scan_hard_fail(self, services : CxOneFlowServices, fail_msg : str):
+      await self.__populate_common_pr_data(services.scm)
+      await services.scm.exec_pr_prescan_failure(await self._make_prdetails(services), fail_msg)
 
   async def __populate_common_event_data(self, scm_service : SCMService):
     self._repo_project_key = BitBucketCloudOrchestrator.__repo_project_key_query.find(self.event_context.message).pop().value
@@ -111,24 +116,34 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
     self.__init_clone_urls(repo_data)
 
   async def __populate_common_push_data(self, commit_dict : Dict, scm_service : SCMService):
-      await self.__populate_common_event_data(scm_service)
+    await self.__populate_common_event_data(scm_service)
 
-      self.__source_branch = self.__target_branch = None
-      self.__source_hash = self.__target_hash = None
+    self.__source_branch = self.__target_branch = None
+    self.__source_hash = self.__target_hash = None
 
-      new_commit = commit_dict.get("new")
-      self.__source_branch = self.__target_branch = new_commit.get("name")
-      self.__source_hash = self.__target_hash = new_commit.get("target").get("hash")
+    new_commit = commit_dict.get("new")
+    self.__source_branch = self.__target_branch = new_commit.get("name")
+    self.__source_hash = self.__target_hash = new_commit.get("target").get("hash")
 
   async def _execute_push_scan_workflow(self, services : CxOneFlowServices):
-      found_first_commit = BitBucketCloudOrchestrator.__first_push_commit_query.find(self.event_context.message)
-      if len(found_first_commit) > 0:
-        first_commit = found_first_commit.pop().value
+    found_first_commit = BitBucketCloudOrchestrator.__first_push_commit_query.find(self.event_context.message)
+    if len(found_first_commit) > 0:
+      first_commit = found_first_commit.pop().value
 
-        await self.__populate_common_push_data(first_commit, services.scm)
-        return await BitBucketAbstractOrchestrator._execute_push_scan_workflow(self, services)
-      else:
-         BitBucketCloudOrchestrator.log().info("No commits found to handle.")
+      await self.__populate_common_push_data(first_commit, services.scm)
+      return await BitBucketAbstractOrchestrator._execute_push_scan_workflow(self, services)
+    else:
+        BitBucketCloudOrchestrator.log().info("No commits found to handle.")
+
+  async def _execute_delegated_push_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
+    found_first_commit = BitBucketCloudOrchestrator.__first_push_commit_query.find(self.event_context.message)
+    if len(found_first_commit) > 0:
+      first_commit = found_first_commit.pop().value
+
+      await self.__populate_common_push_data(first_commit, services.scm)
+      return await BitBucketAbstractOrchestrator._execute_delegated_push_scan_workflow(self, services, scan_id)
+    else:
+        BitBucketCloudOrchestrator.log().info("No commits found to handle.")
 
   async def __populate_common_pr_data(self, scm_service : SCMService):
     await self.__populate_common_event_data(scm_service)
@@ -163,32 +178,36 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
     return status
 
   async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
-      if self.__is_pr_draft():
-          BitBucketCloudOrchestrator.log().info(f"Skipping draft PR {BitBucketCloudOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}")
-          return
+    if self.__is_pr_draft():
+        BitBucketCloudOrchestrator.log().info(f"Skipping draft PR {BitBucketCloudOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}")
+        return
 
-      await self.__populate_common_pr_data(services.scm)
+    await self.__populate_common_pr_data(services.scm)
 
-      existing_scans = await services.cxone.find_pr_scans(await services.naming.get_project_name
-                                                          (await self.get_default_cxone_project_name(), self.event_context), 
-                                                          self._pr_id, self.__source_hash)
-      if len(existing_scans) > 0:
-         # This is a tag update, not a scan.
-         return await self._execute_pr_tag_update_workflow(services)
-      else:
-        return await BitBucketAbstractOrchestrator._execute_pr_scan_workflow(self, services)
+    existing_scans = await services.cxone.find_pr_scans(await services.naming.get_project_name
+                                                        (await self.get_default_cxone_project_name(), self.event_context), 
+                                                        self._pr_id, self.__source_hash)
+    if len(existing_scans) > 0:
+        # This is a tag update, not a scan.
+        return await self._execute_pr_tag_update_workflow(services)
+    else:
+      return await BitBucketAbstractOrchestrator._execute_pr_scan_workflow(self, services)
+
+  async def _execute_delegated_pr_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
+    await self.__populate_common_pr_data(services.scm)
+    return await BitBucketAbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
 
   async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices) -> ScanInspector:
-      if self.__is_pr_draft():
-          BitBucketCloudOrchestrator.log().info(f"Skipping draft PR {BitBucketCloudOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}")
-          return
+    if self.__is_pr_draft():
+        BitBucketCloudOrchestrator.log().info(f"Skipping draft PR {BitBucketCloudOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}")
+        return
 
-      await self.__populate_common_pr_data(services.scm)
+    await self.__populate_common_pr_data(services.scm)
 
-      return await BitBucketAbstractOrchestrator._execute_pr_tag_update_workflow(self, services)
+    return await BitBucketAbstractOrchestrator._execute_pr_tag_update_workflow(self, services)
 
   async def get_default_cxone_project_name(self) -> str:
-     return BitbucketCloudProjectNaming.create_project_name(self._repo_organization, self._repo_project_key, self._repo_project_name, self._repo_slug)
+    return BitbucketCloudProjectNaming.create_project_name(self._repo_organization, self._repo_project_key, self._repo_project_name, self._repo_slug)
   
   __workflow_map = {
     "repo:push" : _execute_push_scan_workflow,
@@ -202,4 +221,8 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
     "pullrequest:changes_request_removed" : _execute_pr_tag_update_workflow,
   }
 
-  __delegate_scan_handler_map = {}
+  __delegate_scan_handler_map = {
+     "repo:push" : _execute_delegated_push_scan_workflow,
+     "pullrequest:created" : _execute_delegated_pr_scan_workflow,
+     "pullrequest:updated" : _execute_delegated_pr_scan_workflow,
+  }
