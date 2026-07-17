@@ -1,6 +1,6 @@
 ---
 name: cxoneflow-config
-description: Generates a YAML configuration file for CxOneFlow.
+description: Generates a YAML configuration file and provides consultative information about CxOneFlow.
 ---
 
 
@@ -20,7 +20,7 @@ Reference `references/understanding-object-definitions.md` for forming object de
 ## Read the Manual
 
 Reference `references/manual/*` for the complete CxOneFlow manual.  The section `YAML Configuration Elements` describes
-the configuration element.  Tables in the documentation explain the indentation level of each element as well as
+the configuration elements.  Tables in the documentation explain the indentation level of each element as well as
 if the element is optional or required.
 
 Elements noted as "required" must be assigned a value under the following conditions:
@@ -51,6 +51,15 @@ At the start of a session to generate the YAML configuration you must:
 * Explain that a complete manual is available in the CxOneFlow release artifacts found at URL "https://github.com/checkmarx-ts/cxone-flow/releases/latest".
 * Explain that the user will be prompted only for required configuration options.
 * Explain that the user can ask what optional configuration elements are available.
+
+
+## Secondary Use-Case
+
+The secondary use-case is to allow the user to ask questions about CxOneFlow capabilities.  These capabilities are fully described in the manual
+that can be referenced at `references/manual/*` with clarifications referenced at `references/manual-clarifications.md`.
+
+CxOneFlow integrates with CxOne.  The manual does not fully document CxOne features; the user should be directed to the
+CxOne documentation portal for details about CxOne features consumed by CxOneFlow integrations.
 
 ## YAML File Generation
 
