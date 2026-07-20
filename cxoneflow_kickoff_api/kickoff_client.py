@@ -163,9 +163,10 @@ class KickoffClient:
                 KickoffStatusCodes.SCAN_EXISTS,
                 KickoffStatusCodes.TOO_MANY_SCANS,
             ]:
+                # pylint: disable=E1101
                 resp_msg = KickoffResponseMsg.from_dict(
                     resp.json()
-                )  # pylint: disable=E1101
+                )  
             else:
                 resp_msg = None
 
