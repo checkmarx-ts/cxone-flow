@@ -1,4 +1,4 @@
-from orchestration.kickoff import KickoffOrchestrator
+from orchestration.kickoff.ko_orch import KickoffOrchestrator
 
 class AbstractBitBucketKickoffOrchestrator(KickoffOrchestrator):
 

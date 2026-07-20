@@ -1,4 +1,4 @@
-from orchestration.kickoff import KickoffOrchestrator
+from orchestration.kickoff.ko_orch import KickoffOrchestrator
 from cxoneflow_kickoff_api import GithubKickoffMsg
 from orchestration.naming import GithubProjectNaming
 from scm_services import SCMService
