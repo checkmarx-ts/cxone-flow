@@ -36,11 +36,18 @@ class GitlabKickoffMsg(KickoffMsg):
 
 @dataclass_json
 @dataclass(frozen=True)
-class BitbucketKickoffMsg(KickoffMsg):
+class BitbucketDCKickoffMsg(KickoffMsg):
     repo_name : str
     project_key : str
     project_name : str
 
+@dataclass_json
+@dataclass(frozen=True)
+class BitbucketCloudKickoffMsg(KickoffMsg):
+    repo_name : str
+    project_key : str
+    project_name : str
+    workspace_name : str
 
 @dataclass_json
 @dataclass(frozen=True)

@@ -7,11 +7,12 @@ that is compatible with other methods of deployment.
 from _agent import __agent__
 from flask import Flask, request, Response, send_from_directory
 import json, logging, os, asyncio
-from orchestration.kickoff import KickoffOrchestrator
-from orchestration.kickoff.bbdc import BitBucketDataCenterKickoffOrchestrator
-from orchestration.kickoff.gh import GithubKickoffOrchestrator
-from orchestration.kickoff.adoe import AzureDevOpsKickoffOrchestrator
-from orchestration.kickoff.gl import GitlabKickoffOrchestrator
+from orchestration.kickoff import (KickoffOrchestrator,
+                                  BitBucketDataCenterKickoffOrchestrator,
+                                  BitBucketCloudKickoffOrchestrator,
+                                  GithubKickoffOrchestrator,
+                                  AzureDevOpsKickoffOrchestrator,
+                                  GitlabKickoffOrchestrator)
 from orchestration import  (OrchestrationDispatch,
                             BitBucketDataCenterOrchestrator,
                             BitBucketCloudOrchestrator,
@@ -94,9 +95,8 @@ async def bbc_webhook_endpoint():
 async def bbc_kickoff_endpoint():
     __log.info("Received kickoff request for BitBucket Cloud")
     __log.debug(f"bbc kickoff: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
-    # ec = EventContext(request.get_data(), dict(request.headers))
-    # return await TaskManager.in_foreground(__kickoff_impl(BitBucketDataCenterKickoffOrchestrator(ko.BitbucketKickoffMsg(**(ec.message)), ec)))
-    return Response(status=200)
+    ec = EventContext(request.get_data(), dict(request.headers))
+    return await TaskManager.in_foreground(__kickoff_impl(BitBucketCloudKickoffOrchestrator(ko.BitbucketCloudKickoffMsg(**(ec.message)), ec)))
 
 @app.post("/bbdc")
 async def bbdc_webhook_endpoint():
@@ -114,7 +114,7 @@ async def bbdc_kickoff_endpoint():
     __log.info("Received kickoff request for BitBucket Data Center")
     __log.debug(f"bbdc kickoff: headers: [{request.headers}] body: [{json.dumps(request.json)}]")
     ec = EventContext(request.get_data(), dict(request.headers))
-    return await TaskManager.in_foreground(__kickoff_impl(BitBucketDataCenterKickoffOrchestrator(ko.BitbucketKickoffMsg(**(ec.message)), ec)))
+    return await TaskManager.in_foreground(__kickoff_impl(BitBucketDataCenterKickoffOrchestrator(ko.BitbucketDCKickoffMsg(**(ec.message)), ec)))
 
 @app.post("/gh")
 async def github_webhook_endpoint():

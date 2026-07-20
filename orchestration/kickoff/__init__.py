@@ -6,6 +6,11 @@ from services import CxOneFlowServices
 from scm_services import SCMService
 from scm_services.cloner import Cloner
 import logging, re
+from .adoe import AzureDevOpsKickoffOrchestrator
+from .bitbucket import (BitBucketDataCenterKickoffOrchestrator, 
+                        BitBucketCloudKickoffOrchestrator)
+from .gh import GithubKickoffOrchestrator
+from .gl import GitlabKickoffOrchestrator
 
 
 
