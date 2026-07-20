@@ -9,7 +9,11 @@ from scm_services import SCMService
 from scm_services.cloner import Cloner
 from api_utils import auth_basic, auth_bearer
 from api_utils.apisession import APISession
-from api_utils.auth_factories import AuthFactory, GithubAppAuthFactory, ADOSPClientSecretAuthFactory
+from api_utils.auth_factories import (
+    AuthFactory,
+    GithubAppAuthFactory,
+    ADOSPClientSecretAuthFactory,
+)
 from cxone_service import CxOneService
 from cxone_service.grouping import GroupingService
 from workflows.feedback_services.pr import AbstractPRFeedbackService, PRFeedbackService
@@ -91,10 +95,14 @@ class CxOneFlowConfig(CommonConfig):
             )
 
             CommonConfig._secret_root = CxOneFlowConfig._get_value_for_key_or_fail(
-                "", "secret-root-path", raw_yaml)
+                "", "secret-root-path", raw_yaml
+            )
 
-            CxOneFlowConfig.__script_root = CxOneFlowConfig._get_value_for_key_or_default("script-path",
-                raw_yaml, None)
+            CxOneFlowConfig.__script_root = (
+                CxOneFlowConfig._get_value_for_key_or_default(
+                    "script-path", raw_yaml, None
+                )
+            )
 
             if CxOneFlowConfig.__script_root is not None:
                 sys.path.append(CxOneFlowConfig.__script_root)
@@ -113,9 +121,12 @@ class CxOneFlowConfig(CommonConfig):
                     for repo_config_dict in raw_yaml[scm]:
 
                         services = CxOneFlowConfig.__setup_scm(
-                            CxOneFlowConfig.__scm_service_factories[scm].factory(repo_config_dict, f"/{scm}[{index}]", 
-                                                                                 CxOneFlowConfig.__cloner_factories[scm], 
-                                                                                 CxOneFlowConfig.__api_auth_factories[scm]),
+                            CxOneFlowConfig.__scm_service_factories[scm].factory(
+                                repo_config_dict,
+                                f"/{scm}[{index}]",
+                                CxOneFlowConfig.__cloner_factories[scm],
+                                CxOneFlowConfig.__api_auth_factories[scm],
+                            ),
                             repo_config_dict,
                             f"/{scm}[{index}]",
                         )
@@ -223,9 +234,8 @@ class CxOneFlowConfig(CommonConfig):
 
     @staticmethod
     def __polling_service_factory(
-        config_path, services : List[CxOneFlowAbstractWorkflowService], **kwargs
+        config_path, services: List[CxOneFlowAbstractWorkflowService], **kwargs
     ) -> ScanPollingService:
-        
 
         if kwargs is None or len(kwargs.keys()) == 0:
             return ScanPollingService(
@@ -244,11 +254,18 @@ class CxOneFlowConfig(CommonConfig):
 
             return ScanPollingService(
                 services,
-                CxOneFlowConfig._get_value_for_key_or_default("poll-max-interval-seconds", scan_monitor_dict, CxOneFlowConfig.DEFAULT_MAX_POLL_INT_SECS),
-                CxOneFlowConfig._get_value_for_key_or_default("poll-backoff-multiplier", scan_monitor_dict, CxOneFlowConfig.DEFAULT_POLL_BACKOFF_SCALAR),
-                *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
-                )
-        
+                CxOneFlowConfig._get_value_for_key_or_default(
+                    "poll-max-interval-seconds",
+                    scan_monitor_dict,
+                    CxOneFlowConfig.DEFAULT_MAX_POLL_INT_SECS,
+                ),
+                CxOneFlowConfig._get_value_for_key_or_default(
+                    "poll-backoff-multiplier",
+                    scan_monitor_dict,
+                    CxOneFlowConfig.DEFAULT_POLL_BACKOFF_SCALAR,
+                ),
+                *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs),
+            )
 
     @staticmethod
     def __pr_feedback_service_factory(
@@ -256,7 +273,9 @@ class CxOneFlowConfig(CommonConfig):
     ) -> AbstractPRFeedbackService:
         if kwargs is None or len(kwargs.keys()) == 0:
             return PRFeedbackService(
-                moniker, CxOneFlowConfig.__server_base_url, PullRequestWorkflow(),
+                moniker,
+                CxOneFlowConfig.__server_base_url,
+                PullRequestWorkflow(),
                 CxOneFlowConfig._default_amqp_url,
                 None,
                 None,
@@ -308,127 +327,190 @@ class CxOneFlowConfig(CommonConfig):
                 ),
                 int(
                     CxOneFlowConfig._get_value_for_key_or_default(
-                        "poll-interval-seconds", scan_monitor_dict, CommonConfig.DEFAULT_POLL_INTERVAL_SECS
+                        "poll-interval-seconds",
+                        scan_monitor_dict,
+                        CommonConfig.DEFAULT_POLL_INTERVAL_SECS,
                     )
                 ),
                 int(
                     CxOneFlowConfig._get_value_for_key_or_default(
-                        "scan-timeout-hours", scan_monitor_dict, CommonConfig.DEFAULT_SCAN_TIMEOUT_HOURS
+                        "scan-timeout-hours",
+                        scan_monitor_dict,
+                        CommonConfig.DEFAULT_SCAN_TIMEOUT_HOURS,
                     )
                 ),
             )
 
             return PRFeedbackService(
-                moniker, CxOneFlowConfig.__server_base_url, pr_workflow,
-                *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
+                moniker,
+                CxOneFlowConfig.__server_base_url,
+                pr_workflow,
+                *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs),
             )
 
-
     @staticmethod
-    def __sarif_ReportOpts_factory(config_path : str, opts : dict) -> ReportOpts:
+    def __sarif_ReportOpts_factory(config_path: str, opts: dict) -> ReportOpts:
         if opts is None:
             return SARIF_DEFAULT_OPTS
+
         @dataclasses_json.dataclass_json
         class JsonSarifReportOpts(ReportOpts):
             @classmethod
-            def from_dict(clazz, json : dict):
+            def from_dict(clazz, json: dict):
                 return make_dataclass(clazz.__name__, json)
-        
+
         config = asdict(SARIF_DEFAULT_OPTS)
         config.update(opts)
         return JsonSarifReportOpts.from_dict(config)
-
-    
 
     @staticmethod
     def __push_feedback_service_factory(
         config_path, moniker, **kwargs
     ) -> PushFeedbackService:
         disabled_workflow = PushFeedbackService(
-                moniker, [], None, PushWorkflow(),
-                CxOneFlowConfig._default_amqp_url,
-                None,
-                None,
-                True,
-            )
-        
+            moniker,
+            [],
+            None,
+            PushWorkflow(),
+            CxOneFlowConfig._default_amqp_url,
+            None,
+            None,
+            True,
+        )
+
         if kwargs is None or len(kwargs.keys()) == 0:
             return disabled_workflow
         elif "push" not in kwargs.keys():
             return disabled_workflow
-        elif not CxOneFlowConfig._get_value_for_key_or_default("enabled", kwargs['push'], False):
+        elif not CxOneFlowConfig._get_value_for_key_or_default(
+            "enabled", kwargs["push"], False
+        ):
             return disabled_workflow
         else:
-            push_config_dict = CxOneFlowConfig._get_value_for_key_or_default("push", kwargs, {})
+            push_config_dict = CxOneFlowConfig._get_value_for_key_or_default(
+                "push", kwargs, {}
+            )
             scan_monitor_dict = CxOneFlowConfig._get_value_for_key_or_default(
                 "scan-monitor", kwargs, {}
             )
 
-            sarif_opts_dict = CxOneFlowConfig._get_value_for_key_or_default("sarif-opts", push_config_dict, None)
+            sarif_opts_dict = CxOneFlowConfig._get_value_for_key_or_default(
+                "sarif-opts", push_config_dict, None
+            )
 
-            amqp_delivery_dict = CxOneFlowConfig._get_value_for_key_or_default("via-amqp", push_config_dict, None)
-            http_delivery_list = CxOneFlowConfig._get_value_for_key_or_default("via-http-post", push_config_dict, None)
+            amqp_delivery_dict = CxOneFlowConfig._get_value_for_key_or_default(
+                "via-amqp", push_config_dict, None
+            )
+            http_delivery_list = CxOneFlowConfig._get_value_for_key_or_default(
+                "via-http-post", push_config_dict, None
+            )
 
             if amqp_delivery_dict is None and http_delivery_list is None:
-                raise ConfigurationException.missing_at_least_one_key_path(config_path, ["via-amqp", "via-http"])
+                raise ConfigurationException.missing_at_least_one_key_path(
+                    config_path, ["via-amqp", "via-http"]
+                )
 
             delivery_agents = []
 
-            if amqp_delivery_dict is not None and not 'amqp' in amqp_delivery_dict.keys():
-                raise ConfigurationException.missing_key_path(f"{config_path}/via-amqp/amqp")
+            if (
+                amqp_delivery_dict is not None
+                and not "amqp" in amqp_delivery_dict.keys()
+            ):
+                raise ConfigurationException.missing_key_path(
+                    f"{config_path}/via-amqp/amqp"
+                )
             elif amqp_delivery_dict is not None:
-                exchange = CxOneFlowConfig._get_value_for_key_or_fail(f"{config_path}/via-amqp", "exchange", amqp_delivery_dict)
-                prefix = CxOneFlowConfig._get_value_for_key_or_default("topic-prefix", amqp_delivery_dict, None)
-                suffix = CxOneFlowConfig._get_value_for_key_or_default("topic-suffix", amqp_delivery_dict, None)
+                exchange = CxOneFlowConfig._get_value_for_key_or_fail(
+                    f"{config_path}/via-amqp", "exchange", amqp_delivery_dict
+                )
+                prefix = CxOneFlowConfig._get_value_for_key_or_default(
+                    "topic-prefix", amqp_delivery_dict, None
+                )
+                suffix = CxOneFlowConfig._get_value_for_key_or_default(
+                    "topic-suffix", amqp_delivery_dict, None
+                )
 
-                delivery_agents.append(PushFeedbackService.AmqpDeliveryAgent
-                                       (moniker, 
-                                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail
-                                            (f"{config_path}/via-amqp", "shared-secret", amqp_delivery_dict),
-                                        exchange,
-                                        prefix,
-                                        suffix,
-                                        *CxOneFlowConfig._load_amqp_settings(config_path, **amqp_delivery_dict)))
+                delivery_agents.append(
+                    PushFeedbackService.AmqpDeliveryAgent(
+                        moniker,
+                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                            f"{config_path}/via-amqp",
+                            "shared-secret",
+                            amqp_delivery_dict,
+                        ),
+                        exchange,
+                        prefix,
+                        suffix,
+                        *CxOneFlowConfig._load_amqp_settings(
+                            config_path, **amqp_delivery_dict
+                        ),
+                    )
+                )
 
-            if http_delivery_list is not None and not isinstance(http_delivery_list, list):
-                raise ConfigurationException.invalid_value(f"{config_path}/via-http-post")
+            if http_delivery_list is not None and not isinstance(
+                http_delivery_list, list
+            ):
+                raise ConfigurationException.invalid_value(
+                    f"{config_path}/via-http-post"
+                )
             elif http_delivery_list is not None:
                 counter = 0
                 for http_delivery in http_delivery_list:
                     cur_path = f"{config_path}/via-http-post[{counter}]"
                     counter += 1
-                    delivery_agents.append(PushFeedbackService.HttpDeliveryAgent(
-                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(cur_path, "shared-secret", http_delivery),
-                        CxOneFlowConfig._get_value_for_key_or_fail(cur_path, "endpoint-url", http_delivery),
-                        CxOneFlowConfig._get_value_for_key_or_default("delivery-retries", http_delivery, 2),
-                        CxOneFlowConfig._get_value_for_key_or_default("delivery-retry-delay-seconds", http_delivery, 60),
-                        CxOneFlowConfig._get_value_for_key_or_default("proxies", http_delivery, None),
-                        CxOneFlowConfig._get_value_for_key_or_default("ssl-verify", http_delivery, True)))
+                    delivery_agents.append(
+                        PushFeedbackService.HttpDeliveryAgent(
+                            CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                                cur_path, "shared-secret", http_delivery
+                            ),
+                            CxOneFlowConfig._get_value_for_key_or_fail(
+                                cur_path, "endpoint-url", http_delivery
+                            ),
+                            CxOneFlowConfig._get_value_for_key_or_default(
+                                "delivery-retries", http_delivery, 2
+                            ),
+                            CxOneFlowConfig._get_value_for_key_or_default(
+                                "delivery-retry-delay-seconds", http_delivery, 60
+                            ),
+                            CxOneFlowConfig._get_value_for_key_or_default(
+                                "proxies", http_delivery, None
+                            ),
+                            CxOneFlowConfig._get_value_for_key_or_default(
+                                "ssl-verify", http_delivery, True
+                            ),
+                        )
+                    )
 
             return PushFeedbackService(
-                moniker, 
-                delivery_agents, 
-                CxOneFlowConfig.__sarif_ReportOpts_factory(f"{config_path}/push", sarif_opts_dict), 
+                moniker,
+                delivery_agents,
+                CxOneFlowConfig.__sarif_ReportOpts_factory(
+                    f"{config_path}/push", sarif_opts_dict
+                ),
                 PushWorkflow(
-                CxOneFlowConfig._get_value_for_key_or_default(
-                    "enabled", push_config_dict, False
-                ),
-                int(
                     CxOneFlowConfig._get_value_for_key_or_default(
-                        "poll-interval-seconds", scan_monitor_dict, CxOneFlowConfig.DEFAULT_POLL_INTERVAL_SECS
-                    )
+                        "enabled", push_config_dict, False
+                    ),
+                    int(
+                        CxOneFlowConfig._get_value_for_key_or_default(
+                            "poll-interval-seconds",
+                            scan_monitor_dict,
+                            CxOneFlowConfig.DEFAULT_POLL_INTERVAL_SECS,
+                        )
+                    ),
+                    int(
+                        CxOneFlowConfig._get_value_for_key_or_default(
+                            "scan-timeout-hours",
+                            scan_monitor_dict,
+                            CxOneFlowConfig.DEFAULT_SCAN_TIMEOUT_HOURS,
+                        )
+                    ),
                 ),
-                int(
-                    CxOneFlowConfig._get_value_for_key_or_default(
-                        "scan-timeout-hours", scan_monitor_dict, CxOneFlowConfig.DEFAULT_SCAN_TIMEOUT_HOURS
-                    )
-                )),
-                *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs)
+                *CxOneFlowConfig._load_amqp_settings(config_path, **kwargs),
             )
 
     __ordered_scm_services_config = {}
     __scm_services_config_by_service_moniker = {}
-
 
     @staticmethod
     def __kickoff_service_factory(cxone_client, config_dict, config_path, moniker):
@@ -436,45 +518,83 @@ class CxOneFlowConfig(CommonConfig):
             return DummyKickoffService()
 
         # Default 3 max concurrent scans with a max of 10
-        max_scans = min(10, int(CxOneFlowConfig._get_value_for_key_or_default("max-concurrent-scans", config_dict, 3)))
+        max_scans = min(
+            10,
+            int(
+                CxOneFlowConfig._get_value_for_key_or_default(
+                    "max-concurrent-scans", config_dict, 3
+                )
+            ),
+        )
         # Just in case someone gets funny and uses a 0 or negative number.
         max_scans = max(max_scans, 1)
 
-        return KickoffService(cxone_client,
-            CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path, "ssh-public-key", config_dict),
-            moniker, max_scans)
+        return KickoffService(
+            cxone_client,
+            CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                config_path, "ssh-public-key", config_dict
+            ),
+            moniker,
+            max_scans,
+        )
 
     @staticmethod
-    def __setup_naming(config_path :str, config_dict : Dict) -> Tuple[ProjectNamingService.CORO_SPEC, bool]:
+    def __setup_naming(
+        config_path: str, config_dict: Dict
+    ) -> Tuple[ProjectNamingService.CORO_SPEC, bool]:
         if config_dict is None:
             return None, False
 
-        module_name = CxOneFlowConfig._get_value_for_key_or_fail(config_path, "module", config_dict)
+        module_name = CxOneFlowConfig._get_value_for_key_or_fail(
+            config_path, "module", config_dict
+        )
         try:
-            return import_module(module_name).event_project_name_factory, \
-                CxOneFlowConfig._get_value_for_key_or_default("update-name", config_dict, False)
+            return import_module(
+                module_name
+            ).event_project_name_factory, CxOneFlowConfig._get_value_for_key_or_default(
+                "update-name", config_dict, False
+            )
         except ModuleNotFoundError as ex:
             raise ConfigurationException.module_load_error(config_path, module_name)
 
     @staticmethod
-    def __setup_grouping(config_path :str, config_dict : Dict, client : CxOneClient) -> Tuple[GroupingService, bool]:
+    def __setup_grouping(
+        config_path: str, config_dict: Dict, client: CxOneClient
+    ) -> Tuple[GroupingService, bool]:
         grouping = GroupingService(client)
         update_flag = False
 
         if config_dict is not None:
-            assignments = CxOneFlowConfig._get_value_for_key_or_default("group-assigments", config_dict, 
-                    CxOneFlowConfig._get_value_for_key_or_default("group-assignments", config_dict, None))
+            assignments = CxOneFlowConfig._get_value_for_key_or_default(
+                "group-assigments",
+                config_dict,
+                CxOneFlowConfig._get_value_for_key_or_default(
+                    "group-assignments", config_dict, None
+                ),
+            )
 
             if assignments is None:
-                raise ConfigurationException.missing_key_path(f"{config_path}/group-assignments")
+                raise ConfigurationException.missing_key_path(
+                    f"{config_path}/group-assignments"
+                )
 
-            update_flag = CxOneFlowConfig._get_value_for_key_or_default("update-groups", config_dict, False)
+            update_flag = CxOneFlowConfig._get_value_for_key_or_default(
+                "update-groups", config_dict, False
+            )
             assign_index = 0
             for assign in assignments:
-                grouping.add_assignment_rule(CxOneFlowConfig._get_value_for_key_or_fail(
-                                            f"{config_path}/group-assignments[{assign_index}]", "repo-match", assign),
-                                            CxOneFlowConfig._get_value_for_key_or_fail(
-                                            f"{config_path}/group-assignments[{assign_index}]", "groups", assign))
+                grouping.add_assignment_rule(
+                    CxOneFlowConfig._get_value_for_key_or_fail(
+                        f"{config_path}/group-assignments[{assign_index}]",
+                        "repo-match",
+                        assign,
+                    ),
+                    CxOneFlowConfig._get_value_for_key_or_fail(
+                        f"{config_path}/group-assignments[{assign_index}]",
+                        "groups",
+                        assign,
+                    ),
+                )
                 assign_index += 1
 
         return grouping, update_flag
@@ -526,7 +646,7 @@ class CxOneFlowConfig(CommonConfig):
 
         scan_polling_service = CxOneFlowConfig.__polling_service_factory(
             f"{config_path}/feedback",
-            [pr_feedback_service, push_feedback_service], 
+            [pr_feedback_service, push_feedback_service],
             **(
                 CxOneFlowConfig._get_value_for_key_or_default(
                     "feedback", config_dict, {}
@@ -538,18 +658,31 @@ class CxOneFlowConfig(CommonConfig):
             cxone_client,
             f"{config_path}/scan-agent",
             service_moniker,
-            **(CxOneFlowConfig._get_value_for_key_or_default_warn_deprecated("scan-agent", "resolver", config_path, config_dict, {})),
+            **(
+                CxOneFlowConfig._get_value_for_key_or_default_warn_deprecated(
+                    "scan-agent", "resolver", config_path, config_dict, {}
+                )
+            ),
         )
 
         scan_config_dict = CxOneFlowConfig._get_value_for_key_or_default(
             "scan-config", config_dict, {}
         )
 
-        naming_coro, naming_update_flag = CxOneFlowConfig.__setup_naming(f"{config_path}/project-naming",
-                CxOneFlowConfig._get_value_for_key_or_default("project-naming", config_dict, None))
+        naming_coro, naming_update_flag = CxOneFlowConfig.__setup_naming(
+            f"{config_path}/project-naming",
+            CxOneFlowConfig._get_value_for_key_or_default(
+                "project-naming", config_dict, None
+            ),
+        )
 
-        grouping_service, group_update_flag = CxOneFlowConfig.__setup_grouping(f"{config_path}/project-groups",
-                CxOneFlowConfig._get_value_for_key_or_default("project-groups", config_dict, None), cxone_client)
+        grouping_service, group_update_flag = CxOneFlowConfig.__setup_grouping(
+            f"{config_path}/project-groups",
+            CxOneFlowConfig._get_value_for_key_or_default(
+                "project-groups", config_dict, None
+            ),
+            cxone_client,
+        )
 
         cxone_service = CxOneService(
             service_moniker,
@@ -565,7 +698,7 @@ class CxOneFlowConfig(CommonConfig):
             ),
             naming_update_flag,
             group_update_flag,
-            grouping_service
+            grouping_service,
         )
 
         return CxOneFlowServices(
@@ -576,10 +709,15 @@ class CxOneFlowConfig(CommonConfig):
             scan_polling_service,
             push_feedback_service,
             resolver_service,
-            CxOneFlowConfig.__kickoff_service_factory(cxone_client,
-                CxOneFlowConfig._get_value_for_key_or_default("kickoff", config_dict, None), 
-                f"{config_path}/kickoff", service_moniker),
-            ProjectNamingService(naming_coro, scm_service)
+            CxOneFlowConfig.__kickoff_service_factory(
+                cxone_client,
+                CxOneFlowConfig._get_value_for_key_or_default(
+                    "kickoff", config_dict, None
+                ),
+                f"{config_path}/kickoff",
+                service_moniker,
+            ),
+            ProjectNamingService(naming_coro, scm_service),
         )
 
     @staticmethod
@@ -646,7 +784,6 @@ class CxOneFlowConfig(CommonConfig):
 
         return None
 
-
     @staticmethod
     def __bbc_cloner_factory(
         api_session: APISession,
@@ -667,7 +804,8 @@ class CxOneFlowConfig(CommonConfig):
             )
 
         if CxOneFlowConfig.__has_token_auth(config_dict):
-            return Cloner.using_basic_auth("x-token-auth",
+            return Cloner.using_basic_auth(
+                "x-token-auth",
                 CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
                     config_path, "token", config_dict
                 ),
@@ -732,14 +870,17 @@ class CxOneFlowConfig(CommonConfig):
             if config_dict.get("sp-client-secret") is not None:
                 return Cloner.using_ado_sp_client_secret_auth(
                     ADOSPClientSecretAuthFactory(
-                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path,
-                          "sp-tenant-id", config_dict),
-                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path,
-                          "sp-client-id", config_dict),
-                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(config_path,
-                          "sp-client-secret", config_dict)
+                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                            config_path, "sp-tenant-id", config_dict
                         ),
-                    ssl_no_verify
+                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                            config_path, "sp-client-id", config_dict
+                        ),
+                        CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
+                            config_path, "sp-client-secret", config_dict
+                        ),
+                    ),
+                    ssl_no_verify,
                 )
 
         return None
@@ -814,7 +955,8 @@ class CxOneFlowConfig(CommonConfig):
             )
 
         if CxOneFlowConfig.__has_token_auth(config_dict):
-            return Cloner.using_basic_auth("git", 
+            return Cloner.using_basic_auth(
+                "git",
                 CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
                     config_path, "token", config_dict
                 ),
@@ -858,13 +1000,19 @@ class CxOneFlowConfig(CommonConfig):
             if config_dict.get("sp-client-secret") is not None:
                 return ADOSPClientSecretAuthFactory(
                     CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
-                        config_path, "sp-tenant-id", config_dict), 
+                        config_path, "sp-tenant-id", config_dict
+                    ),
                     CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
-                        config_path, "sp-client-id", config_dict), 
+                        config_path, "sp-client-id", config_dict
+                    ),
                     CxOneFlowConfig._get_secret_from_value_of_key_or_fail(
-                        config_path,"sp-client-secret", config_dict))
+                        config_path, "sp-client-secret", config_dict
+                    ),
+                )
             else:
-                raise ConfigurationException.invalid_service_principal_config(config_path)
+                raise ConfigurationException.invalid_service_principal_config(
+                    config_path
+                )
 
         return None
 
@@ -890,12 +1038,13 @@ class CxOneFlowConfig(CommonConfig):
         else:
             return None
 
-
     @staticmethod
     def __github_api_auth_factory(
         api_url: str, config_path: str, config_dict: Dict
     ) -> AuthFactory:
-        common = CxOneFlowConfig.__common_api_auth_factory(api_url, config_path, config_dict)
+        common = CxOneFlowConfig.__common_api_auth_factory(
+            api_url, config_path, config_dict
+        )
 
         if (
             common is None
@@ -909,7 +1058,6 @@ class CxOneFlowConfig(CommonConfig):
                 api_url,
             )
         return common
-    
 
     __cloner_factories = {
         "bbdc": __bbdc_cloner_factory,
@@ -928,7 +1076,7 @@ class CxOneFlowConfig(CommonConfig):
     }
 
     __scm_service_factories = {
-        "gh" : GHSCMServiceFactory,
+        "gh": GHSCMServiceFactory,
         "bbdc": BBDCServiceFactory,
         "adoe": ADOEServiceFactory,
         "gl": GLServiceFactory,

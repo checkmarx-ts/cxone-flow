@@ -7,32 +7,48 @@ from cxone_service import CxOneService
 from cxone_api.exceptions import ResponseException
 from typing import List
 
+
 class ScanPollingService(CxOneFlowAbstractWorkflowService):
-    QUEUE_SCAN_POLLING = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}Polling Scans"
+    QUEUE_SCAN_POLLING = (
+        f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}Polling Scans"
+    )
     QUEUE_SCAN_WAIT = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}Awaited Scans"
 
-    ROUTEKEY_POLL_BINDING = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}*.{ScanStates.AWAIT}.*.*"
-
+    ROUTEKEY_POLL_BINDING = (
+        f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}*.{ScanStates.AWAIT}.*.*"
+    )
 
     @staticmethod
     def log():
         return logging.getLogger("ScanPollingService")
 
-    def __init__(self, services : List[CxOneFlowAbstractWorkflowService], max_interval_seconds : timedelta, backoff_scalar : int, 
-                 amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool):
+    def __init__(
+        self,
+        services: List[CxOneFlowAbstractWorkflowService],
+        max_interval_seconds: timedelta,
+        backoff_scalar: int,
+        amqp_url: str,
+        amqp_user: str,
+        amqp_password: str,
+        ssl_verify: bool,
+    ):
         super().__init__(amqp_url, amqp_user, amqp_password, ssl_verify)
         self.__max_interval = timedelta(seconds=max_interval_seconds)
         self.__backoff = backoff_scalar
         self.__services = services
 
-    async def execute_poll_scan_workflow(self, msg : aio_pika.abc.AbstractIncomingMessage, cxone_service : CxOneService):
+    async def execute_poll_scan_workflow(
+        self, msg: aio_pika.abc.AbstractIncomingMessage, cxone_service: CxOneService
+    ):
 
         requeue_on_finally = True
 
         swm = await self._safe_deserialize_body(msg, ScanAwaitMessage)
-    
+
         if swm.is_expired():
-            ScanPollingService.log().warning(f"Scan id {swm.scanid} polling timeout expired at {swm.drop_by}. Polling for this scan has been stopped.")
+            ScanPollingService.log().warning(
+                f"Scan id {swm.scanid} polling timeout expired at {swm.drop_by}. Polling for this scan has been stopped."
+            )
             await msg.ack()
         else:
             write_channel = None
@@ -42,21 +58,60 @@ class ScanPollingService(CxOneFlowAbstractWorkflowService):
 
                 if not scan_inspector.executing:
                     try:
-                        
-                        policy_inspector = cxone_service.get_policy_violation_inspector(scan_inspector.project_id, scan_inspector.scan_id)
 
-                        if scan_inspector.successful and not await policy_inspector.break_build:
-                            ScanPollingService.log().info(f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow.")
-                            await asyncio.gather(*[svc.handle_completed_scan(swm) for svc in self.__services])
+                        policy_inspector = cxone_service.get_policy_violation_inspector(
+                            scan_inspector.project_id, scan_inspector.scan_id
+                        )
+
+                        if (
+                            scan_inspector.successful
+                            and not await policy_inspector.break_build
+                        ):
+                            ScanPollingService.log().info(
+                                f"Scan success for scan id {swm.scanid}, enqueuing feedback workflow."
+                            )
+                            await asyncio.gather(
+                                *[
+                                    svc.handle_completed_scan(swm)
+                                    for svc in self.__services
+                                ]
+                            )
                         elif not scan_inspector.successful:
-                            ScanPollingService.log().info(f"Checkmarx One workflow failure for scan id {swm.scanid}, enqueuing feedback error workflow.")
-                            await asyncio.gather(*[svc.handle_awaited_scan_error(swm, "Scan workflow failure") for svc in self.__services])
+                            ScanPollingService.log().info(
+                                f"Checkmarx One workflow failure for scan id {swm.scanid}, enqueuing feedback error workflow."
+                            )
+                            await asyncio.gather(
+                                *[
+                                    svc.handle_awaited_scan_error(
+                                        swm, "Scan workflow failure"
+                                    )
+                                    for svc in self.__services
+                                ]
+                            )
                         elif await policy_inspector.break_build:
-                            ScanPollingService.log().info(f"Break build policy violation for scan id {swm.scanid}, enqueuing feedback error workflow.")
-                            await asyncio.gather(*[svc.handle_awaited_scan_error(swm, "Policy violation") for svc in self.__services])
+                            ScanPollingService.log().info(
+                                f"Break build policy violation for scan id {swm.scanid}, enqueuing feedback error workflow."
+                            )
+                            await asyncio.gather(
+                                *[
+                                    svc.handle_awaited_scan_error(
+                                        swm, "Policy violation"
+                                    )
+                                    for svc in self.__services
+                                ]
+                            )
                         else:
-                            ScanPollingService.log().info(f"Unspecified scan failure for scan id {swm.scanid}, enqueuing feedback error workflow.")
-                            await asyncio.gather(*[svc.handle_awaited_scan_error(swm, scan_inspector.state_msg) for svc in self.__services])
+                            ScanPollingService.log().info(
+                                f"Unspecified scan failure for scan id {swm.scanid}, enqueuing feedback error workflow."
+                            )
+                            await asyncio.gather(
+                                *[
+                                    svc.handle_awaited_scan_error(
+                                        swm, scan_inspector.state_msg
+                                    )
+                                    for svc in self.__services
+                                ]
+                            )
 
                         requeue_on_finally = False
                     except BaseException as bex:
@@ -67,29 +122,45 @@ class ScanPollingService(CxOneFlowAbstractWorkflowService):
 
             except ResponseException as ex:
                 ScanPollingService.log().exception(ex)
-                ScanPollingService.log().error(f"Polling for scan id {swm.scanid} stopped due to exception.")
+                ScanPollingService.log().error(
+                    f"Polling for scan id {swm.scanid} stopped due to exception."
+                )
                 requeue_on_finally = False
                 await msg.ack()
             finally:
                 if requeue_on_finally:
                     exchange = None
                     if write_channel:
-                        exchange = await write_channel.get_exchange(CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_INPUT)
+                        exchange = await write_channel.get_exchange(
+                            CxOneFlowAbstractWorkflowService.EXCHANGE_SCAN_INPUT
+                        )
 
                     if exchange:
-                        orig_exp = int(msg.headers['x-death'][0]['original-expiration'])
-                        backoff=min(timedelta(milliseconds=orig_exp * self.__backoff), self.__max_interval)
-                        new_msg = aio_pika.Message(swm.to_binary(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                                                    expiration=backoff)
+                        orig_exp = int(msg.headers["x-death"][0]["original-expiration"])
+                        backoff = min(
+                            timedelta(milliseconds=orig_exp * self.__backoff),
+                            self.__max_interval,
+                        )
+                        new_msg = aio_pika.Message(
+                            swm.to_binary(),
+                            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                            expiration=backoff,
+                        )
 
-                        result = await exchange.publish(new_msg, routing_key=msg.routing_key)
+                        result = await exchange.publish(
+                            new_msg, routing_key=msg.routing_key
+                        )
 
                         if type(result) == pamqp.commands.Basic.Ack:
-                            ScanPollingService.log().debug(f"Scan id {swm.scanid} poll message re-enqueued with delay {backoff.total_seconds()}s.")
+                            ScanPollingService.log().debug(
+                                f"Scan id {swm.scanid} poll message re-enqueued with delay {backoff.total_seconds()}s."
+                            )
                             await msg.ack()
                         else:
-                            ScanPollingService.log().debug(f"Scan id {swm.scanid} failed to re-enqueue new poll message.")
+                            ScanPollingService.log().debug(
+                                f"Scan id {swm.scanid} failed to re-enqueue new poll message."
+                            )
                             await msg.nack()
-                
+
                 if write_channel is not None:
                     await write_channel.close()

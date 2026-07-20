@@ -9,16 +9,15 @@ from workflows.resolver_scan_service import ResolverScanService
 from kickoff_services import KickoffService
 from naming_services import ProjectNamingService
 
+
 @dataclass(frozen=True)
 class CxOneFlowServices:
-    matcher : Pattern
-    cxone : CxOneService
-    scm : SCMService
-    pr : AbstractPRFeedbackService
-    poll : ScanPollingService
-    push : PushFeedbackService
-    resolver : ResolverScanService
-    kickoff : KickoffService
-    naming : ProjectNamingService
-
-
+    matcher: Pattern
+    cxone: CxOneService
+    scm: SCMService
+    pr: AbstractPRFeedbackService
+    poll: ScanPollingService
+    push: PushFeedbackService
+    resolver: ResolverScanService
+    kickoff: KickoffService
+    naming: ProjectNamingService

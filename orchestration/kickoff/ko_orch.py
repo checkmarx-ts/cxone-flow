@@ -9,91 +9,104 @@ from services import CxOneFlowServices
 
 
 class KickoffOrchestrator(AbstractOrchestrator):
-  class KickoffScanExistsException(BaseException):...
-  class TooManyRunningScansExeception(BaseException):...
+    class KickoffScanExistsException(BaseException): ...
 
-  __HTTP_CLONE_PATTERN = re.compile("^http.*")
+    class TooManyRunningScansExeception(BaseException): ...
 
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    self.__started_scan = None
-    self.__executing_scans = []
+    __HTTP_CLONE_PATTERN = re.compile("^http.*")
 
-    self.__clone_urls = {}
-    for url in self.kickoff_msg.clone_urls:
-      if KickoffOrchestrator.__HTTP_CLONE_PATTERN.match(url):
-        self.__clone_urls['http'] = url
-      else:
-         self.__clone_urls['ssh'] = url
-             
-  @classmethod
-  def log(clazz) -> logging.Logger:
-      return logging.getLogger(clazz.__name__)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__started_scan = None
+        self.__executing_scans = []
 
-  @staticmethod
-  def __get_auth_bearer_token(headers : Dict) -> Union[str,None]:
-      token = None
+        self.__clone_urls = {}
+        for url in self.kickoff_msg.clone_urls:
+            if KickoffOrchestrator.__HTTP_CLONE_PATTERN.match(url):
+                self.__clone_urls["http"] = url
+            else:
+                self.__clone_urls["ssh"] = url
 
-      if 'Authorization' in headers.keys():
-          content = headers['Authorization'].split(" ")
-          content.reverse()
+    @classmethod
+    def log(clazz) -> logging.Logger:
+        return logging.getLogger(clazz.__name__)
 
-          if content.pop().lower() == "bearer":
-              token = content.pop()
+    @staticmethod
+    def __get_auth_bearer_token(headers: Dict) -> Union[str, None]:
+        token = None
 
-      return token
-  
-  @property
-  def kickoff_msg(self) -> ko.KickoffMsg:
-     raise NotImplementedError("kickoff_msg")
+        if "Authorization" in headers.keys():
+            content = headers["Authorization"].split(" ")
+            content.reverse()
 
-  async def valid_bearer_token(self, ko_service : KickoffService) -> bool:
-     token = KickoffOrchestrator.__get_auth_bearer_token(self.event_context.headers)
-     return await ko_service.validate_jwt(token)
+            if content.pop().lower() == "bearer":
+                token = content.pop()
 
-  @property
-  def event_name(self) -> str:
-      return "kickoff"
+        return token
 
-  async def _get_target_branch_and_hash(self) -> tuple:
-      return await self._get_source_branch_and_hash()
+    @property
+    def kickoff_msg(self) -> ko.KickoffMsg:
+        raise NotImplementedError("kickoff_msg")
 
-  async def _get_source_branch_and_hash(self) -> tuple:
-      return self.kickoff_msg.branch_name, self.kickoff_msg.sha
+    async def valid_bearer_token(self, ko_service: KickoffService) -> bool:
+        token = KickoffOrchestrator.__get_auth_bearer_token(self.event_context.headers)
+        return await ko_service.validate_jwt(token)
 
-  async def _get_protected_branches(self, scm_service : SCMService) -> list:
-      return [KickoffOrchestrator.normalize_branch_name(self.kickoff_msg.branch_name)]
+    @property
+    def event_name(self) -> str:
+        return "kickoff"
 
-  def _repo_clone_url(self, cloner : Cloner) -> str:
-      return self.__clone_urls[cloner.select_protocol_from_supported(self.__clone_urls.keys())]
+    async def _get_target_branch_and_hash(self) -> tuple:
+        return await self._get_source_branch_and_hash()
 
-  @property
-  def started_scan(self) -> ko.ExecutingScan:
-     return self.__started_scan
+    async def _get_source_branch_and_hash(self) -> tuple:
+        return self.kickoff_msg.branch_name, self.kickoff_msg.sha
 
-  @property
-  def running_scans(self) -> List[ko.ExecutingScan]:
-     return self.__executing_scans
-  
-  async def execute(self, services : CxOneFlowServices) -> bool:
+    async def _get_protected_branches(self, scm_service: SCMService) -> list:
+        return [KickoffOrchestrator.normalize_branch_name(self.kickoff_msg.branch_name)]
 
-    self.__executing_scans = await services.kickoff.get_running_ko_scans()
+    def _repo_clone_url(self, cloner: Cloner) -> str:
+        return self.__clone_urls[
+            cloner.select_protocol_from_supported(self.__clone_urls.keys())
+        ]
 
-    target_branch, _ = await self._get_target_branch_and_hash()
-    project_name = await services.naming.get_project_name(await self.get_default_cxone_project_name(), self.event_context)
+    @property
+    def started_scan(self) -> ko.ExecutingScan:
+        return self.__started_scan
 
-    if await services.kickoff.one_scan_exists_on_branch(project_name, target_branch):
-       raise KickoffOrchestrator.KickoffScanExistsException()
+    @property
+    def running_scans(self) -> List[ko.ExecutingScan]:
+        return self.__executing_scans
 
-    if len(self.running_scans) >= services.kickoff.max_concurrent_scans:
-       raise KickoffOrchestrator.TooManyRunningScansExeception()
+    async def execute(self, services: CxOneFlowServices) -> bool:
 
-    completed = await services.kickoff.get_completed_ko_scans_by_project(project_name)
-    if len(completed) >= 1:
-       raise KickoffOrchestrator.KickoffScanExistsException()
+        self.__executing_scans = await services.kickoff.get_running_ko_scans()
 
-    inspector, action = await self._execute_push_scan_workflow(services, services.kickoff.scan_tag_dict)
+        target_branch, _ = await self._get_target_branch_and_hash()
+        project_name = await services.naming.get_project_name(
+            await self.get_default_cxone_project_name(), self.event_context
+        )
 
-    self.__started_scan = ko.ExecutingScan(project_name, inspector.project_id, inspector.scan_id, target_branch)
+        if await services.kickoff.one_scan_exists_on_branch(
+            project_name, target_branch
+        ):
+            raise KickoffOrchestrator.KickoffScanExistsException()
 
-    return action == AbstractOrchestrator.ScanAction.EXECUTING
+        if len(self.running_scans) >= services.kickoff.max_concurrent_scans:
+            raise KickoffOrchestrator.TooManyRunningScansExeception()
+
+        completed = await services.kickoff.get_completed_ko_scans_by_project(
+            project_name
+        )
+        if len(completed) >= 1:
+            raise KickoffOrchestrator.KickoffScanExistsException()
+
+        inspector, action = await self._execute_push_scan_workflow(
+            services, services.kickoff.scan_tag_dict
+        )
+
+        self.__started_scan = ko.ExecutingScan(
+            project_name, inspector.project_id, inspector.scan_id, target_branch
+        )
+
+        return action == AbstractOrchestrator.ScanAction.EXECUTING

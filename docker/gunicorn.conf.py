@@ -5,7 +5,7 @@ from config import get_workers_count, get_log_level
 workers = get_workers_count()
 
 timeout = 90
-graceful_timeout=600
+graceful_timeout = 600
 
 max_requests = 500
 
@@ -16,4 +16,3 @@ logLevel = get_log_level()
 
 def worker_exit(server, worker):
     TaskManager.wait_for_exit()
-

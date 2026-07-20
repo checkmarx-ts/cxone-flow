@@ -7,6 +7,7 @@ from scm_services import SCMService
 from cxone_api.high.scans import ScanInspector
 from services import CxOneFlowServices
 
+
 class BitBucketDataCenterOrchestrator(BitBucketAbstractOrchestrator):
 
     __push_route_urls_query = parse("$.repository.links.clone[*]")
@@ -16,7 +17,7 @@ class BitBucketDataCenterOrchestrator(BitBucketAbstractOrchestrator):
     __push_repo_name_query = parse("$.repository.name")
     __push_changes_extract_query = parse("$.changes[*]")
     __push_change_types_query = parse("$.changes[*].type")
-    __push_scannable_change_types = ['ADD', 'UPDATE']
+    __push_scannable_change_types = ["ADD", "UPDATE"]
 
     __pr_route_urls_query = parse("$.pullRequest.fromRef.repository.links.clone[*]")
     __pr_draft_query = parse("$.pullRequest.draft")
@@ -31,23 +32,30 @@ class BitBucketDataCenterOrchestrator(BitBucketAbstractOrchestrator):
     __pr_reviewer_status_query = parse("$.pullRequest.reviewers[*].status")
     __pr_state_query = parse("$.pullRequest.state")
 
-
     @property
     def config_key(self):
         return "bbdc"
-    
 
-    def __init__(self, event_context : EventContext):
+    def __init__(self, event_context: EventContext):
         BitBucketAbstractOrchestrator.__init__(self, event_context)
-        
+
         self.__isdiagnostic = False
 
         if not self.event_name is None and self.event_name == "diagnostics:ping":
             self.__isdiagnostic = True
             return
 
-        self.__clone_urls = {x.value['name']:x.value['href'] for x in BitBucketDataCenterOrchestrator.__push_route_urls_query.find(self.event_context.message) } | \
-            {x.value['name']:x.value['href'] for x in BitBucketDataCenterOrchestrator.__pr_route_urls_query.find(self.event_context.message) }
+        self.__clone_urls = {
+            x.value["name"]: x.value["href"]
+            for x in BitBucketDataCenterOrchestrator.__push_route_urls_query.find(
+                self.event_context.message
+            )
+        } | {
+            x.value["name"]: x.value["href"]
+            for x in BitBucketDataCenterOrchestrator.__pr_route_urls_query.find(
+                self.event_context.message
+            )
+        }
 
         self.__route_urls = list(self.__clone_urls.values())
 
@@ -55,101 +63,201 @@ class BitBucketDataCenterOrchestrator(BitBucketAbstractOrchestrator):
     def route_urls(self) -> list:
         return self.__route_urls
 
-    async def __delegated_dispatcher(self, dispatch_map : dict, services : CxOneFlowServices, scan_id : str):
+    async def __delegated_dispatcher(
+        self, dispatch_map: dict, services: CxOneFlowServices, scan_id: str
+    ):
         if self.event_name not in dispatch_map.keys():
-            BitBucketDataCenterOrchestrator.log().error(f"Unhandled delegated scan event type: {self.event_name}")
-            return 
+            BitBucketDataCenterOrchestrator.log().error(
+                f"Unhandled delegated scan event type: {self.event_name}"
+            )
+            return
         return await dispatch_map[self.event_name](self, services, scan_id)
 
-    async def execute(self, services : CxOneFlowServices):
+    async def execute(self, services: CxOneFlowServices):
         if self.event_name not in BitBucketDataCenterOrchestrator.__workflow_map.keys():
-            BitBucketDataCenterOrchestrator.log().error(f"Unhandled event type: {self.event_name}")
-            return 
+            BitBucketDataCenterOrchestrator.log().error(
+                f"Unhandled event type: {self.event_name}"
+            )
+            return
         else:
-            return await BitBucketDataCenterOrchestrator.__workflow_map[self.event_name](self, services)
+            return await BitBucketDataCenterOrchestrator.__workflow_map[
+                self.event_name
+            ](self, services)
 
-    async def handle_delegated_scan(self, services : CxOneFlowServices, scan_id : str):
+    async def handle_delegated_scan(self, services: CxOneFlowServices, scan_id: str):
         self.delegated_scan = True
-        return await self.__delegated_dispatcher(BitBucketDataCenterOrchestrator.__delegate_scan_handler_map, services, scan_id)
-
+        return await self.__delegated_dispatcher(
+            BitBucketDataCenterOrchestrator.__delegate_scan_handler_map,
+            services,
+            scan_id,
+        )
 
     def __populate_common_push_data(self):
         self.__source_branch = self.__target_branch = None
         self.__source_hash = self.__target_hash = None
 
-        if len([x.value for x in BitBucketDataCenterOrchestrator.__push_change_types_query.find(self.event_context.message) \
-                if x.value in BitBucketDataCenterOrchestrator.__push_scannable_change_types]) > 0:
-            
-            first_change = BitBucketDataCenterOrchestrator.__push_changes_extract_query.find(self.event_context.message)[0].value
+        if (
+            len(
+                [
+                    x.value
+                    for x in BitBucketDataCenterOrchestrator.__push_change_types_query.find(
+                        self.event_context.message
+                    )
+                    if x.value
+                    in BitBucketDataCenterOrchestrator.__push_scannable_change_types
+                ]
+            )
+            > 0
+        ):
 
-            self.__source_branch = self.__target_branch = first_change['ref']['displayId']
-            self.__source_hash = self.__target_hash = first_change['toHash']
+            first_change = (
+                BitBucketDataCenterOrchestrator.__push_changes_extract_query.find(
+                    self.event_context.message
+                )[0].value
+            )
 
-        self._repo_project_key = BitBucketDataCenterOrchestrator.__push_repo_project_key_query.find(self.event_context.message)[0].value
-        self._repo_project_name = BitBucketDataCenterOrchestrator.__push_repo_project_name_query.find(self.event_context.message)[0].value
-        self._repo_slug = BitBucketDataCenterOrchestrator.__push_repo_slug_query.find(self.event_context.message)[0].value
-        self._repo_name = BitBucketDataCenterOrchestrator.__push_repo_name_query.find(self.event_context.message)[0].value
+            self.__source_branch = self.__target_branch = first_change["ref"][
+                "displayId"
+            ]
+            self.__source_hash = self.__target_hash = first_change["toHash"]
 
-    async def _execute_delegated_push_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
+        self._repo_project_key = (
+            BitBucketDataCenterOrchestrator.__push_repo_project_key_query.find(
+                self.event_context.message
+            )[0].value
+        )
+        self._repo_project_name = (
+            BitBucketDataCenterOrchestrator.__push_repo_project_name_query.find(
+                self.event_context.message
+            )[0].value
+        )
+        self._repo_slug = BitBucketDataCenterOrchestrator.__push_repo_slug_query.find(
+            self.event_context.message
+        )[0].value
+        self._repo_name = BitBucketDataCenterOrchestrator.__push_repo_name_query.find(
+            self.event_context.message
+        )[0].value
+
+    async def _execute_delegated_push_scan_workflow(
+        self, services: CxOneFlowServices, scan_id: str
+    ):
         self.__populate_common_push_data()
-        return await BitBucketAbstractOrchestrator._execute_delegated_push_scan_workflow(self, services, scan_id)
+        return (
+            await BitBucketAbstractOrchestrator._execute_delegated_push_scan_workflow(
+                self, services, scan_id
+            )
+        )
 
-    async def _execute_push_scan_workflow(self, services : CxOneFlowServices):
+    async def _execute_push_scan_workflow(self, services: CxOneFlowServices):
         self.__populate_common_push_data()
-        return await BitBucketAbstractOrchestrator._execute_push_scan_workflow(self, services)
+        return await BitBucketAbstractOrchestrator._execute_push_scan_workflow(
+            self, services
+        )
 
     def __is_pr_draft(self) -> bool:
-        return bool(BitBucketDataCenterOrchestrator.__pr_draft_query.find(self.event_context.message).pop().value)
-    
+        return bool(
+            BitBucketDataCenterOrchestrator.__pr_draft_query.find(
+                self.event_context.message
+            )
+            .pop()
+            .value
+        )
+
     def __populate_common_pr_data(self):
-        toref = BitBucketDataCenterOrchestrator.__pr_toref_extract_query.find(self.event_context.message)[0].value
-        self.__target_branch = toref['displayId']
-        self.__target_hash = toref['latestCommit']
+        toref = BitBucketDataCenterOrchestrator.__pr_toref_extract_query.find(
+            self.event_context.message
+        )[0].value
+        self.__target_branch = toref["displayId"]
+        self.__target_hash = toref["latestCommit"]
 
+        fromref = BitBucketDataCenterOrchestrator.__pr_fromref_extract_query.find(
+            self.event_context.message
+        )[0].value
+        self.__source_branch = fromref["displayId"]
+        self.__source_hash = fromref["latestCommit"]
 
-        fromref = BitBucketDataCenterOrchestrator.__pr_fromref_extract_query.find(self.event_context.message)[0].value
-        self.__source_branch = fromref['displayId']
-        self.__source_hash = fromref['latestCommit']
+        self._repo_project_key = (
+            BitBucketDataCenterOrchestrator.__pr_repo_project_key_query.find(
+                self.event_context.message
+            )[0].value
+        )
+        self._repo_project_name = (
+            BitBucketDataCenterOrchestrator.__pr_repo_project_name_query.find(
+                self.event_context.message
+            )[0].value
+        )
+        self._repo_slug = BitBucketDataCenterOrchestrator.__pr_repo_slug_query.find(
+            self.event_context.message
+        )[0].value
+        self._repo_name = BitBucketDataCenterOrchestrator.__pr_repo_name_query.find(
+            self.event_context.message
+        )[0].value
+        self._pr_id = str(
+            BitBucketDataCenterOrchestrator.__pr_id_query.find(
+                self.event_context.message
+            )[0].value
+        )
+        self._pr_state = BitBucketDataCenterOrchestrator.__pr_state_query.find(
+            self.event_context.message
+        )[0].value
 
-        self._repo_project_key = BitBucketDataCenterOrchestrator.__pr_repo_project_key_query.find(self.event_context.message)[0].value
-        self._repo_project_name = BitBucketDataCenterOrchestrator.__pr_repo_project_name_query.find(self.event_context.message)[0].value
-        self._repo_slug = BitBucketDataCenterOrchestrator.__pr_repo_slug_query.find(self.event_context.message)[0].value
-        self._repo_name = BitBucketDataCenterOrchestrator.__pr_repo_name_query.find(self.event_context.message)[0].value
-        self._pr_id = str(BitBucketDataCenterOrchestrator.__pr_id_query.find(self.event_context.message)[0].value)
-        self._pr_state = BitBucketDataCenterOrchestrator.__pr_state_query.find(self.event_context.message)[0].value
-
-        statuses = list(set([x.value for x in BitBucketDataCenterOrchestrator.__pr_reviewer_status_query.find(self.event_context.message)]))
+        statuses = list(
+            set(
+                [
+                    x.value
+                    for x in BitBucketDataCenterOrchestrator.__pr_reviewer_status_query.find(
+                        self.event_context.message
+                    )
+                ]
+            )
+        )
 
         if not len(statuses) > 0:
             self._pr_status = "NO_REVIEWERS"
         else:
             self._pr_status = "/".join(statuses)
 
-    async def _execute_delegated_pr_scan_workflow(self, services : CxOneFlowServices, scan_id : str):
+    async def _execute_delegated_pr_scan_workflow(
+        self, services: CxOneFlowServices, scan_id: str
+    ):
         self.__populate_common_pr_data()
-        return await BitBucketAbstractOrchestrator._execute_delegated_pr_scan_workflow(self, services, scan_id)
+        return await BitBucketAbstractOrchestrator._execute_delegated_pr_scan_workflow(
+            self, services, scan_id
+        )
 
-    async def handle_delegated_pr_scan_hard_fail(self, services : CxOneFlowServices, fail_msg : str):
+    async def handle_delegated_pr_scan_hard_fail(
+        self, services: CxOneFlowServices, fail_msg: str
+    ):
         self.__populate_common_pr_data()
-        await services.scm.exec_pr_prescan_failure(await self._make_prdetails(services), fail_msg)
-    
+        await services.scm.exec_pr_prescan_failure(
+            await self._make_prdetails(services), fail_msg
+        )
 
-    async def _execute_pr_scan_workflow(self, services : CxOneFlowServices) -> ScanInspector:
+    async def _execute_pr_scan_workflow(
+        self, services: CxOneFlowServices
+    ) -> ScanInspector:
         if self.__is_pr_draft():
-            BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}")
+            BitBucketDataCenterOrchestrator.log().info(
+                f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}"
+            )
             return
         self.__populate_common_pr_data()
-        return await BitBucketAbstractOrchestrator._execute_pr_scan_workflow(self, services)
+        return await BitBucketAbstractOrchestrator._execute_pr_scan_workflow(
+            self, services
+        )
 
-    async def _execute_pr_tag_update_workflow(self, services : CxOneFlowServices):
+    async def _execute_pr_tag_update_workflow(self, services: CxOneFlowServices):
         if self.__is_pr_draft():
-            BitBucketDataCenterOrchestrator.log().info(f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}")
+            BitBucketDataCenterOrchestrator.log().info(
+                f"Skipping draft PR {BitBucketDataCenterOrchestrator.__pr_self_link_query.find(self.event_context.message).pop().value}"
+            )
             return
 
         self.__populate_common_pr_data()
 
-        return await BitBucketAbstractOrchestrator._execute_pr_tag_update_workflow(self, services)
-
+        return await BitBucketAbstractOrchestrator._execute_pr_tag_update_workflow(
+            self, services
+        )
 
     async def _get_target_branch_and_hash(self) -> tuple:
         return self.__target_branch, self.__target_hash
@@ -157,21 +265,24 @@ class BitBucketDataCenterOrchestrator(BitBucketAbstractOrchestrator):
     async def _get_source_branch_and_hash(self) -> tuple:
         return self.__source_branch, self.__source_hash
 
-    async def _get_protected_branches(self, scm_service : SCMService) -> list:
+    async def _get_protected_branches(self, scm_service: SCMService) -> list:
         retBranches = []
-        model_resp = await scm_service.exec("GET", f"/rest/branch-utils/latest/projects/{self._repo_project_key}/repos/{self._repo_slug}/branchmodel")
+        model_resp = await scm_service.exec(
+            "GET",
+            f"/rest/branch-utils/latest/projects/{self._repo_project_key}/repos/{self._repo_slug}/branchmodel",
+        )
 
         if not model_resp.ok:
             raise OrchestrationException.from_response(model_resp)
 
         json = model_resp.json()
-        
-        if 'development' in json.keys() and 'displayId' in json['development'].keys():
-            retBranches.append(json['development']['displayId'])
-        
-        if 'production' in json.keys() and 'displayId' in json['production'].keys():
-            retBranches.append(json['production']['displayId'])
-        
+
+        if "development" in json.keys() and "displayId" in json["development"].keys():
+            retBranches.append(json["development"]["displayId"])
+
+        if "production" in json.keys() and "displayId" in json["production"].keys():
+            retBranches.append(json["production"]["displayId"])
+
         return list(set(retBranches))
 
     @property
@@ -179,33 +290,36 @@ class BitBucketDataCenterOrchestrator(BitBucketAbstractOrchestrator):
         return ""
 
     def _repo_clone_url(self, cloner) -> str:
-        return self.__clone_urls[cloner.select_protocol_from_supported(self.__clone_urls.keys())]
+        return self.__clone_urls[
+            cloner.select_protocol_from_supported(self.__clone_urls.keys())
+        ]
 
     async def get_default_cxone_project_name(self) -> str:
-      return BitbucketDCProjectNaming.create_project_name(self._repo_project_key, self._repo_project_name, self._repo_name)
-      
+        return BitbucketDCProjectNaming.create_project_name(
+            self._repo_project_key, self._repo_project_name, self._repo_name
+        )
+
     @property
     def is_diagnostic(self) -> bool:
         return self.__isdiagnostic
 
     __workflow_map = {
-        "repo:refs_changed" : _execute_push_scan_workflow,
-        "pr:opened" : _execute_pr_scan_workflow,
-        "pr:modified" : _execute_pr_scan_workflow,
-        "pr:from_ref_updated" : _execute_pr_scan_workflow,
-        "pr:merged" : _execute_pr_tag_update_workflow,
-        "pr:declined" : _execute_pr_tag_update_workflow,
-        "pr:deleted" : _execute_pr_tag_update_workflow,
-        "pr:reviewer:unapproved" : _execute_pr_tag_update_workflow,
-        "pr:reviewer:updated" : _execute_pr_tag_update_workflow,
-        "pr:reviewer:approved" : _execute_pr_tag_update_workflow,
-        "pr:reviewer:needs_work" : _execute_pr_tag_update_workflow,
+        "repo:refs_changed": _execute_push_scan_workflow,
+        "pr:opened": _execute_pr_scan_workflow,
+        "pr:modified": _execute_pr_scan_workflow,
+        "pr:from_ref_updated": _execute_pr_scan_workflow,
+        "pr:merged": _execute_pr_tag_update_workflow,
+        "pr:declined": _execute_pr_tag_update_workflow,
+        "pr:deleted": _execute_pr_tag_update_workflow,
+        "pr:reviewer:unapproved": _execute_pr_tag_update_workflow,
+        "pr:reviewer:updated": _execute_pr_tag_update_workflow,
+        "pr:reviewer:approved": _execute_pr_tag_update_workflow,
+        "pr:reviewer:needs_work": _execute_pr_tag_update_workflow,
     }
 
-
     __delegate_scan_handler_map = {
-        "repo:refs_changed" : _execute_delegated_push_scan_workflow,
-        "pr:opened" : _execute_delegated_pr_scan_workflow,
-        "pr:modified" : _execute_delegated_pr_scan_workflow,
-        "pr:from_ref_updated" : _execute_delegated_pr_scan_workflow,
+        "repo:refs_changed": _execute_delegated_push_scan_workflow,
+        "pr:opened": _execute_delegated_pr_scan_workflow,
+        "pr:modified": _execute_delegated_pr_scan_workflow,
+        "pr:from_ref_updated": _execute_delegated_pr_scan_workflow,
     }

@@ -9,4 +9,3 @@ class ScanAwaitMessage(ScanMessage):
 
     def is_expired(self):
         return is_expired(self.drop_by)
-

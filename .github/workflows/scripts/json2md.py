@@ -8,32 +8,33 @@ from typing import List, Dict
 # The last argument can optionally match a key value and limit the output
 # to content in that key value.
 
-def output_items(items : List[str], prefix="") -> None:
-  for item in items:
-    sys.stdout.write(f"{prefix}* {item}\n")
 
-def output_dict(d : Dict) -> None:
-  for version in d:
-    sys.stdout.write(f"**{version}**\n")
-    output_items(d[version], "  ")
+def output_items(items: List[str], prefix="") -> None:
+    for item in items:
+        sys.stdout.write(f"{prefix}* {item}\n")
+
+
+def output_dict(d: Dict) -> None:
+    for version in d:
+        sys.stdout.write(f"**{version}**\n")
+        output_items(d[version], "  ")
+
 
 if __name__ == "__main__":
-  json_file_path = sys.argv[1]
+    json_file_path = sys.argv[1]
 
-  with open(json_file_path, "rt", encoding="UTF-8") as json_in:
-    rn_json = json.load(json_in)
+    with open(json_file_path, "rt", encoding="UTF-8") as json_in:
+        rn_json = json.load(json_in)
 
-  if len(sys.argv) > 2:
-    found = False
-    for k in rn_json.keys():
-      if sys.argv[2].startswith(k):
-        found = True 
-        output_items(rn_json[k])
-        break
-  
-    if not found:
-      sys.stdout.write("**No release notes available**")
-  else:
-    output_dict(rn_json)
+    if len(sys.argv) > 2:
+        found = False
+        for k in rn_json.keys():
+            if sys.argv[2].startswith(k):
+                found = True
+                output_items(rn_json[k])
+                break
 
-
+        if not found:
+            sys.stdout.write("**No release notes available**")
+    else:
+        output_dict(rn_json)

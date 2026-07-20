@@ -31,17 +31,13 @@ class ResolverScanService(CxOneFlowAbstractWorkflowService):
     QUEUE_RESOLVER_COMPLETE = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Finished Resolver Scans"
     ROUTEKEY_EXEC_SCA_SCAN_COMPLETE = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN_COMPLETE}.#"
 
-    EXCHANGE_RESOLVER_SCAN_DLX = (
-        f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}SCA Resolver DLX"
+    EXCHANGE_RESOLVER_SCAN_DLX = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}SCA Resolver DLX"
+    ROUTEKEY_DLX = (
+        f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}#"
     )
-    ROUTEKEY_DLX = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}#"
-    QUEUE_RESOLVER_TIMEOUT = (
-        f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Resolver Timeout"
-    )
+    QUEUE_RESOLVER_TIMEOUT = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Resolver Timeout"
 
-    QUEUE_RESOLVER_EXEC_STUB = (
-        f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Resolver Req"
-    )
+    QUEUE_RESOLVER_EXEC_STUB = f"{CxOneFlowAbstractWorkflowService.ELEMENT_PREFIX}{RESOLVER_ELEMENT_PREFIX}Resolver Req"
     ROUTEKEY_EXEC_SCA_SCAN_STUB = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}{ScanStates.EXECUTE}.{ExecTypes.RESOLVER}.{ResolverOps.SCAN}"
 
     ROUTEKEY_RESOLVER_RESULT_STUB = f"{CxOneFlowAbstractWorkflowService.TOPIC_PREFIX}{RESOLVER_TOPIC_PREFIX}exec.sca-resolver.scan-complete"
@@ -131,9 +127,11 @@ class ResolverScanService(CxOneFlowAbstractWorkflowService):
         requeue_msg = await self._safe_deserialize_body(msg, DelegatedScanMessage)
         msg_identifier = f"{requeue_msg.moniker}:{requeue_msg.workflow}:{requeue_msg.details.clone_url}@{requeue_msg.details.commit_hash}:{requeue_msg.correlation_id}"
 
-        if 'x-death' in msg.headers.keys() and \
-            'reason' in msg.headers['x-death'][0].keys() and \
-            msg.headers['x-death'][0]['reason'] == 'expired':
+        if (
+            "x-death" in msg.headers.keys()
+            and "reason" in msg.headers["x-death"][0].keys()
+            and msg.headers["x-death"][0]["reason"] == "expired"
+        ):
 
             resub_count = await self.__workflow.get_delegated_scan_resubmit_count(
                 await self.mq_client(), requeue_msg, msg.headers
@@ -166,24 +164,25 @@ class ResolverScanService(CxOneFlowAbstractWorkflowService):
                         state=ScanStates.FAILURE,
                         workflow=requeue_msg.workflow,
                         correlation_id=requeue_msg.correlation_id,
-                        logs=None
+                        logs=None,
                     ),
                     ResolverScanService.EXCHANGE_RESOLVER_SCAN,
                 )
         else:
-            ResolverScanService.log().debug(f"[{msg_identifier}] was not an expired message, gracefully rejecting.")
-
+            ResolverScanService.log().debug(
+                f"[{msg_identifier}] was not an expired message, gracefully rejecting."
+            )
 
     async def request_resolver_scan(
         self,
         scanner_tag: str,
         project_config: ProjectRepoConfig,
         scm_service: SCMService,
-        cxone_service : CxOneService,
+        cxone_service: CxOneService,
         clone_url: str,
         commit_hash: str,
-        scan_branch : str,
-        scan_tags : Dict[str, str],
+        scan_branch: str,
+        scan_tags: Dict[str, str],
         scan_workflow: ScanWorkflow,
         event_context: EventContext,
         orchestrator: str,
@@ -206,8 +205,12 @@ class ResolverScanService(CxOneFlowAbstractWorkflowService):
             scan_tags=scan_tags,
             file_filters=filters,
             project_id=project_config.id,
-            pickled_scm_service=pickle.dumps(scm_service, protocol=pickle.HIGHEST_PROTOCOL),
-            pickled_cxone_service=pickle.dumps(cxone_service, protocol=pickle.HIGHEST_PROTOCOL),
+            pickled_scm_service=pickle.dumps(
+                scm_service, protocol=pickle.HIGHEST_PROTOCOL
+            ),
+            pickled_cxone_service=pickle.dumps(
+                cxone_service, protocol=pickle.HIGHEST_PROTOCOL
+            ),
             event_context=event_context,
             orchestrator=orchestrator,
         )

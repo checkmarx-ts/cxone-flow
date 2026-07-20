@@ -63,15 +63,16 @@ class ResolverRunnerAgent(CxOneFlowAbstractWorkflowService):
             ResolverScanService.EXCHANGE_RESOLVER_SCAN,
         )
 
-    def __msg_should_process(self, msg : DelegatedScanMessage, runner : ResolverExecutionContext) -> bool:
-            if not runner.can_execute:
-                ResolverRunnerAgent.log().error(
-                    "The runner instance indicates it can't run."
-                )
-                return False
-            
-            return True
+    def __msg_should_process(
+        self, msg: DelegatedScanMessage, runner: ResolverExecutionContext
+    ) -> bool:
+        if not runner.can_execute:
+            ResolverRunnerAgent.log().error(
+                "The runner instance indicates it can't run."
+            )
+            return False
 
+        return True
 
     async def __call__(self, msg: aio_pika.abc.AbstractIncomingMessage):
         scan_msg = await self._safe_deserialize_body(msg, DelegatedScanMessage)
@@ -97,19 +98,26 @@ class ResolverRunnerAgent(CxOneFlowAbstractWorkflowService):
                     # Unpickle the SCMService instance and clone
                     scm_service = pickle.loads(scan_msg.details.pickled_scm_service)
                     if not isinstance(scm_service, SCMService):
-                        raise ResolverAgentException.type_mismatch_exception(SCMService, type(scm_service))
-                    
+                        raise ResolverAgentException.type_mismatch_exception(
+                            SCMService, type(scm_service)
+                        )
+
                     # Unpickle CxOneService
                     cxone_service = pickle.loads(scan_msg.details.pickled_cxone_service)
                     if not isinstance(cxone_service, CxOneService):
-                        raise ResolverAgentException.type_mismatch_exception(CxOneService, type(cxone_service))
+                        raise ResolverAgentException.type_mismatch_exception(
+                            CxOneService, type(cxone_service)
+                        )
 
-                    project_config = await cxone_service.load_project_config_by_id(scan_msg.details.project_id)
+                    project_config = await cxone_service.load_project_config_by_id(
+                        scan_msg.details.project_id
+                    )
 
-
-                    ResolverRunnerAgent.log().info(f"Agent processing: Project: [{project_config.name}]" + 
-                                                    f" From: [{scan_msg.moniker}] Workflow: [{str(scan_msg.workflow)}]" + 
-                                                    f" Clone: [{scan_msg.details.clone_url}@{scan_msg.details.commit_hash}] CorId: [{scan_msg.correlation_id}]")
+                    ResolverRunnerAgent.log().info(
+                        f"Agent processing: Project: [{project_config.name}]"
+                        + f" From: [{scan_msg.moniker}] Workflow: [{str(scan_msg.workflow)}]"
+                        + f" Clone: [{scan_msg.details.clone_url}@{scan_msg.details.commit_hash}] CorId: [{scan_msg.correlation_id}]"
+                    )
 
                     async with await scm_service.cloner.clone(
                         scan_msg.details.clone_url,
@@ -123,35 +131,53 @@ class ResolverRunnerAgent(CxOneFlowAbstractWorkflowService):
                             cloned_repo_loc, scan_msg.details.commit_hash
                         )
 
-                        resolver_exec_result = await runner.execute_resolver(project_config.name, scan_msg.details.file_filters)
+                        resolver_exec_result = await runner.execute_resolver(
+                            project_config.name, scan_msg.details.file_filters
+                        )
 
                         resolver_res_path = Path(runner.result_resolver_out_file_path)
                         if resolver_res_path.exists() and resolver_res_path.is_file():
-                            shutil.copyfile(resolver_res_path, cloned_repo_loc / ".cxsca-results.json" )
+                            shutil.copyfile(
+                                resolver_res_path,
+                                cloned_repo_loc / ".cxsca-results.json",
+                            )
 
                         container_res_path = Path(runner.result_container_out_file_path)
                         if container_res_path.exists() and container_res_path.is_file():
-                            shutil.copyfile(container_res_path, cloned_repo_loc / ".cxsca-container-results.json" )
+                            shutil.copyfile(
+                                container_res_path,
+                                cloned_repo_loc / ".cxsca-container-results.json",
+                            )
 
                         resolver_run_logs = resolver_exec_result.stdout
                         return_code = resolver_exec_result.returncode
 
-
                         # Scan the resulting repo.
                         inspector, _ = await AbstractOrchestrator.exec_local_scan(
-                            cloned_repo_loc, cxone_service, 
+                            cloned_repo_loc,
+                            cxone_service,
                             f"{scan_msg.details.clone_url}|{scan_msg.details.scan_branch}|{scan_msg.details.commit_hash}|CorId:{scan_msg.correlation_id}",
-                            scan_msg.details.scan_branch, project_config, scan_msg.details.scan_tags | {"resolver" : "success" if return_code == 0 else "failure"})
+                            scan_msg.details.scan_branch,
+                            project_config,
+                            scan_msg.details.scan_tags
+                            | {
+                                "resolver": "success" if return_code == 0 else "failure"
+                            },
+                        )
 
                         result_msg = DelegatedScanResultMessage.factory(
                             moniker=scan_msg.moniker,
-                            state=ScanStates.DONE if return_code == 0 else ScanStates.FAILURE,
+                            state=(
+                                ScanStates.DONE
+                                if return_code == 0
+                                else ScanStates.FAILURE
+                            ),
                             workflow=scan_msg.workflow,
                             details=scan_msg.details,
                             details_signature=scan_msg.details_signature,
                             logs=resolver_run_logs,
                             scan_id=inspector.scan_id,
-                            resolver_exit_code = return_code
+                            resolver_exit_code=return_code,
                         )
 
                         await workflow.deliver_delegated_scan_outcome(
@@ -161,16 +187,22 @@ class ResolverRunnerAgent(CxOneFlowAbstractWorkflowService):
                             ResolverScanService.EXCHANGE_RESOLVER_SCAN,
                         )
         except subprocess.CalledProcessError as cpex:
-            ResolverRunnerAgent.log().error(f"Resolver workflow failure for CorId: [{scan_msg.correlation_id}]")
+            ResolverRunnerAgent.log().error(
+                f"Resolver workflow failure for CorId: [{scan_msg.correlation_id}]"
+            )
             ResolverRunnerAgent.log().exception(cpex)
             await self.__send_failure_response(
                 workflow, scan_msg, cpex.returncode, cpex.output
             )
             await msg.nack(requeue=False)
         except BaseException as ex:
-            ResolverRunnerAgent.log().exception(f"Resolver workflow failure for CorId: [{scan_msg.correlation_id}]", ex)
+            ResolverRunnerAgent.log().exception(
+                f"Resolver workflow failure for CorId: [{scan_msg.correlation_id}]", ex
+            )
             await self.__send_failure_response(workflow, scan_msg)
             await msg.nack(requeue=False)
         else:
-            ResolverRunnerAgent.log().info(f"Resolver workflow completed successfully for CorId: [{scan_msg.correlation_id}]")
+            ResolverRunnerAgent.log().info(
+                f"Resolver workflow completed successfully for CorId: [{scan_msg.correlation_id}]"
+            )
             await msg.ack()

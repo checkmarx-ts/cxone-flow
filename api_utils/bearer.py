@@ -1,5 +1,6 @@
 from requests.auth import AuthBase
 
+
 class HTTPBearerAuth(AuthBase):
     def __init__(self, token):
         AuthBase.__init__(self)

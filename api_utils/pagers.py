@@ -2,9 +2,11 @@ from typing import Callable, Awaitable, List, Any, Dict
 from requests import Response
 
 
-async def async_api_page_generator(coro : Awaitable[Response], 
-                                   data_extractor : Callable[[Response], List], kwargs_gen : Callable[[int], Dict]) -> Any:
-    
+async def async_api_page_generator(
+    coro: Awaitable[Response],
+    data_extractor: Callable[[Response], List],
+    kwargs_gen: Callable[[int], Dict],
+) -> Any:
     """_summary_
 
     A generator for paging API calls.
@@ -30,7 +32,7 @@ async def async_api_page_generator(coro : Awaitable[Response],
     while True:
         if len(buf) == 0 and not last_page:
             buf, last_page = data_extractor(await coro(**(kwargs_gen(offset))))
-            
+
             if buf is None or len(buf) == 0:
                 return
             offset = offset + 1
@@ -38,4 +40,3 @@ async def async_api_page_generator(coro : Awaitable[Response],
             return
 
         yield buf.pop()
-

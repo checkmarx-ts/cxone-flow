@@ -4,10 +4,13 @@ from typing import List
 from pathlib import Path
 import os, subprocess
 
+
 class ResolverShellExecutionContext(ResolverExecutionContext):
     __resolver_name = "ScaResolver"
 
-    def __init__(self, workpath: str, opts: ResolverOpts, resolver_path: str, runas_user : str):
+    def __init__(
+        self, workpath: str, opts: ResolverOpts, resolver_path: str, runas_user: str
+    ):
         super().__init__(workpath, opts)
         self.__resolver_path = resolver_path
         self.__runas = runas_user
@@ -27,14 +30,14 @@ class ResolverShellExecutionContext(ResolverExecutionContext):
             cmd = [self.__resolver_path]
         elif os.path.exists(ResolverShellExecutionContext.__resolver_name):
             cmd = [ResolverShellExecutionContext.__resolver_name]
-        
+
         exec_cmd = runas + cmd
 
         self.log().debug(f"Resolver exec cmd: {exec_cmd}")
 
         return exec_cmd
-    
-    async def __recurse_chmod(self, path : Path) -> None:
+
+    async def __recurse_chmod(self, path: Path) -> None:
         # This will chmod the files recursively to ExecutionContext._reqd_permissions
         os.chmod(path, ResolverExecutionContext._reqd_permissions)
 
@@ -49,17 +52,22 @@ class ResolverShellExecutionContext(ResolverExecutionContext):
     ) -> subprocess.CompletedProcess:
         if self.__runas is not None:
             # Some tools, like npm, need to have read/write access to the code
-            # for the dependency resolution.  
+            # for the dependency resolution.
             await self.__recurse_chmod(Path(self.clone_path))
-        
+
         return await super().execute_resolver(project_name, exclusions)
+
 
 class ResolverShellRunner(ResolverRunner):
 
-    def __init__(self, workpath: str, opts: ResolverOpts, resolver_path: str, runas_user : str):
+    def __init__(
+        self, workpath: str, opts: ResolverOpts, resolver_path: str, runas_user: str
+    ):
         super().__init__(workpath, opts)
         self.__resolver_path = resolver_path
         self.__runas = runas_user
 
     async def executor(self):
-        return ResolverShellExecutionContext(self.work_path, self.resolver_opts, self.__resolver_path, self.__runas)
+        return ResolverShellExecutionContext(
+            self.work_path, self.resolver_opts, self.__resolver_path, self.__runas
+        )

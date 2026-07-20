@@ -10,8 +10,6 @@ from workflows.resolver_scan_service import ResolverScanService
 from workflows.scan_polling_service import ScanPollingService
 from workflows.base_service import CxOneFlowAbstractWorkflowService
 
-
-
 cof_logging.bootstrap()
 
 __log = logging.getLogger("RabbitSetup")
@@ -45,7 +43,7 @@ async def setup() -> None:
                 aio_pika.ExchangeType.FANOUT,
                 durable=True,
             )
-            
+
             scan_await_exchange_legacy = await channel.declare_exchange(
                 PRQueueConstants.EXCHANGE_SCAN_WAIT_LEGACY,
                 aio_pika.ExchangeType.TOPIC,
@@ -85,7 +83,6 @@ async def setup() -> None:
                 internal=True,
             )
 
-
             # Bind "Scan In" Exchange to all the routing exchanges
             await scan_await_exchange_legacy.bind(scan_in_exchange_legacy)
             await scan_await_exchange.bind(scan_in_exchange)
@@ -115,7 +112,6 @@ async def setup() -> None:
                 internal=True,
             )
 
-
             awaited_scans_queue_legacy = await channel.declare_queue(
                 PRQueueConstants.QUEUE_SCAN_WAIT_LEGACY,
                 durable=True,
@@ -137,15 +133,13 @@ async def setup() -> None:
                 },
             )
 
-
             await awaited_scans_queue_legacy.bind(
-                scan_await_exchange_legacy, PRQueueConstants.ROUTEKEY_POLL_BINDING_LEGACY
+                scan_await_exchange_legacy,
+                PRQueueConstants.ROUTEKEY_POLL_BINDING_LEGACY,
             )
             await awaited_scans_queue.bind(
                 scan_await_exchange, ScanPollingService.ROUTEKEY_POLL_BINDING
             )
-
-
 
             polling_scans_queue_legacy = await channel.declare_queue(
                 PRQueueConstants.QUEUE_SCAN_POLLING_LEGACY,
@@ -157,7 +151,6 @@ async def setup() -> None:
                 durable=True,
                 arguments={"x-queue-type": "quorum"},
             )
-
 
             await polling_scans_queue_legacy.bind(
                 polling_delivery_exchange_legacy,
@@ -196,7 +189,8 @@ async def setup() -> None:
                 arguments={"x-queue-type": "quorum"},
             )
             await prescan_pr_annotate_queue.bind(
-                prescan_annotate_exchange_pr, PRQueueConstants.ROUTEKEY_PRESCAN_ANNOTATE_PR
+                prescan_annotate_exchange_pr,
+                PRQueueConstants.ROUTEKEY_PRESCAN_ANNOTATE_PR,
             )
             pr_annotate_queue = await channel.declare_queue(
                 PRQueueConstants.QUEUE_ANNOTATE_PR,
@@ -216,7 +210,6 @@ async def setup() -> None:
             await pr_failure_queue.bind(
                 scan_feedback_exchange_pr, PRQueueConstants.ROUTEKEY_FAILURE_PR
             )
-
 
         resolver_rmq = await services.resolver.mq_client()
         async with resolver_rmq.channel() as channel:

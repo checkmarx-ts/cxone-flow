@@ -4,8 +4,9 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class ScanAnnotationMessage(ScanMessage):
-    annotation : str
+    annotation: str
+
 
 @dataclass(frozen=True)
 class PreScanAnnotationMessage(ScanWorkflowHeader):
-    annotation : str
+    annotation: str
