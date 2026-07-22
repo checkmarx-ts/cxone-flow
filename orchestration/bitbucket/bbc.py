@@ -1,4 +1,3 @@
-import urllib3
 from jsonpath_ng.ext.parser import parse
 from typing import Dict, List
 from cxone_api.high.scans import ScanInspector
@@ -8,7 +7,7 @@ from orchestration.exceptions import OrchestrationException
 from .bbbase import BitBucketAbstractOrchestrator
 from api_utils.auth_factories import EventContext
 from services import CxOneFlowServices, SCMService
-from workflows.messaging import PRDetails
+from .bbc_util import remove_auth_from_url
 
 
 class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
@@ -110,16 +109,8 @@ class BitBucketCloudOrchestrator(BitBucketAbstractOrchestrator):
                 if name.lower().startswith("http"):
                     # Normalize by removing the auth part since that is provided in the config and reformed
                     # for clone/api requests.
-                    href = urllib3.util.parse_url(clone_entry.value.get("href"))
-                    self.__clone_urls[name] = str(
-                        urllib3.util.Url(
-                            scheme=href.scheme,
-                            host=href.host,
-                            port=href.port,
-                            path=href.path,
-                            query=href.query,
-                            fragment=href.fragment,
-                        )
+                    self.__clone_urls[name] = remove_auth_from_url(
+                        clone_entry.value.get("href")
                     )
                 else:
                     self.__clone_urls[name] = clone_entry.value.get("href")

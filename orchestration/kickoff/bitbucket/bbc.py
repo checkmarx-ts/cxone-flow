@@ -1,6 +1,7 @@
 from .bb_base import AbstractBitBucketKickoffOrchestrator
 from orchestration.naming import BitbucketCloudProjectNaming
 from cxoneflow_kickoff_api import BitbucketCloudKickoffMsg
+from orchestration.bitbucket.bbc_util import remove_auth_from_url
 
 
 class BitBucketCloudKickoffOrchestrator(AbstractBitBucketKickoffOrchestrator):
@@ -8,6 +9,9 @@ class BitBucketCloudKickoffOrchestrator(AbstractBitBucketKickoffOrchestrator):
     def __init__(self, msg: BitbucketCloudKickoffMsg, *args, **kwargs):
         self.__msg = msg
         super().__init__(*args, **kwargs)
+
+    def _normalize_http_clone_url(self, url: str) -> str:
+        return remove_auth_from_url(url)
 
     @property
     def config_key(self):

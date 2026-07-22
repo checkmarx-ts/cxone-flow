@@ -23,10 +23,14 @@ class KickoffOrchestrator(AbstractOrchestrator):
         self.__clone_urls = {}
         for url in self.kickoff_msg.clone_urls:
             if KickoffOrchestrator.__HTTP_CLONE_PATTERN.match(url):
-                self.__clone_urls["http"] = url
+                self.__clone_urls["http"] = self._normalize_http_clone_url(url)
             else:
                 self.__clone_urls["ssh"] = url
 
+
+    def _normalize_http_clone_url(self, url : str) -> str:
+        return url
+    
     @classmethod
     def log(clazz) -> logging.Logger:
         return logging.getLogger(clazz.__name__)
