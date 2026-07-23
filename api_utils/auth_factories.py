@@ -124,6 +124,10 @@ class GithubAppAuthFactory(AuthFactory):
         install_id = self.__find_install_id(event_context)
         app_id = self.__find_app_id(event_context)
 
+        if install_id is None or app_id is None:
+          raise AuthFactoryException("Install Id and/or App Id is not in event payload, aborting.")
+            
+
         token_tuple = None
 
         async with GithubAppAuthFactory.__lock:
