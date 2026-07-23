@@ -9,3 +9,7 @@ class KickoffStatusCodes(Enum):
     NO_ROUTE = 403
     TOO_MANY_SCANS = 429
     SERVER_ERROR = 500
+
+    @classmethod
+    def _missing_(cls, value):
+        return KickoffStatusCodes.SERVER_ERROR
