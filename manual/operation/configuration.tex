@@ -134,7 +134,7 @@ Parts of the YAML tree have been split into individual trees to allow related el
     .2 \intlink{sec:yaml-script-path}{script-path} \DTcomment{[Optional]}.
     .2 \intlink{sec:yaml-secret-root-path}{secret-root-path} \DTcomment{[Required]}.
     .2 \intlink{sec:yaml-server-base-url}{server-base-url} \DTcomment{[Required]}.
-    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[At least 1 required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[At least 1 required: \textbf{bbc}, \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:moniker-elements}{...see "YAML SCM Moniker Elements"}.
 }
 
@@ -148,7 +148,7 @@ elsewhere in this document.\\\\
 
 \dirtree{%
     .1 <root>.
-    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Limited to: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Limited to: \textbf{bbc}, \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-connection}{connection} \DTcomment{[Required]}.
     .4 \intlink{sec:connection-elements}{...see "YAML \texttt{connection} Elements"}.
     .3 \intlink{sec:yaml-moniker-cxone}{cxone} \DTcomment{[Required]}.
@@ -175,7 +175,7 @@ elsewhere in this document.\\\\
 
 \dirtree{%
     .1 <root>.
-    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbc}, \textbf{bbdc}, \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-connection}{connection} \DTcomment{[Required]}.
     .4 \intlink{sec:yaml-connection-api-auth}{api-auth} \DTcomment{[Required]}.
     .5 \intlink{sec:yaml-api-auth-app-private-key}{app-private-key} \DTcomment{[See element documentation]}.
@@ -208,7 +208,7 @@ elsewhere in this document.\\\\
 
 \dirtree{%
     .1 <root>.
-    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbc}, \textbf{bbdc}, \textbf{bbdc}, \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-cxone}{cxone} \DTcomment{[Required]}.
     .4 \intlink{sec:yaml-cxone-api-endpoint}{api-endpoint} \DTcomment{[Required]}.
     .4 \intlink{sec:yaml-cxone-api-key}{api-key} \DTcomment{[Required without oauth]}.
@@ -230,7 +230,7 @@ elsewhere in this document.\\\\
 
 \dirtree{%
     .1 <root>.
-    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbc}, \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-feedback}{feedback} \DTcomment{[Optional]}.
     .4 \intlink{sec:yaml-generic-amqp}{amqp} \DTcomment{[Optional] Default: container instance}.
     .5 \intlink{sec:yaml-generic-amqp-amqp-password}{amqp-password} \DTcomment{[Optional]}.
@@ -280,7 +280,7 @@ elsewhere in this document.\\\\
 
 \dirtree{%
     .1 <root>.
-    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbc}, \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-kickoff}{kickoff} \DTcomment{[Optional]}.
     .4 \intlink{sec:yaml-kickoff-max-concurrent-scans}{max-concurrent-scans} \DTcomment{[Optional] Default: 3}.
     .4 \intlink{sec:yaml-kickoff-ssh-public-key}{ssh-public-key} \DTcomment{[Required]}.
@@ -297,7 +297,7 @@ is assigned.\\
 
 \dirtree{%
     .1 <root>.
-    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbc}, \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-project-groups}{project-groups} \DTcomment{[Optional]}.
     .4 \intlink{sec:yaml-project-groups-group-assignments}{group-assignments} \DTcomment{[Required]}.
     .5 \intlink{sec:yaml-project-groups-group-assignments-groups}{groups}.
@@ -312,7 +312,7 @@ is assigned.\\
 
 \dirtree{%
     .1 <root>.
-    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbc}, \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-project-naming}{project-naming} \DTcomment{[Optional]}.
     .4 \intlink{sec:yaml-project-naming-module}{module} \DTcomment{[Optional]}.
     .4 \intlink{sec:yaml-project-naming-update-name}{update-name} \DTcomment{[Optional] Default: False}.
@@ -324,13 +324,15 @@ is assigned.\\
 
 \dirtree{%
     .1 <root>.
-    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbc}, \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-feedback}{feedback} \DTcomment{[Optional]}.
     .4 \intlink{sec:yaml-feedback-pull-request}{pull-request} \DTcomment{[Optional]}.
     .5 \intlink{sec:yaml-pull-request-enabled}{enabled} \DTcomment{[Optional] Default: False}.
     .5 \intlink{sec:yaml-pull-request-use-policies}{use-policies} \DTcomment{[Optional] Default: False}.
     .5 \intlink{sec:yaml-pull-request-gh-pr-opts}{gh-pr-opts} \DTcomment{[Optional]}.
     .6 \intlink{sec:yaml-pull-request-gh-pr-opts-check-name}{check-name} \DTcomment{[Optional] Default: CheckmarxOne Scan}.
+    .5 \intlink{sec:yaml-pull-request-bb-pr-opts}{bb-pr-opts} \DTcomment{[Optional]}.
+    .6 \intlink{sec:yaml-pull-request-bb-pr-opts-check-name}{check-name} \DTcomment{[Optional] Default: CheckmarxOne Scan}.
     .5 \intlink{sec:yaml-pull-request-adoe-pr-opts}{adoe-pr-opts} \DTcomment{[Required for ADOE if \texttt{use-policies} is \textbf{true}.]}.
     .6 \intlink{sec:yaml-pull-request-adoe-pr-opts-check-name}{check-name} \DTcomment{[Required]}.
     .6 \intlink{sec:yaml-pull-request-adoe-pr-opts-check-genre}{check-genre} \DTcomment{[Optional]}.
@@ -342,7 +344,7 @@ is assigned.\\
 
 \dirtree{%
     .1 <root>.
-    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbc}, \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-scan-agent}{scan-agent} \DTcomment{[Optional]}.
     .4 \intlink{sec:yaml-generic-amqp}{amqp} \DTcomment{[Optional] Default: container instance}.
     .5 \intlink{sec:yaml-generic-amqp-amqp-password}{amqp-password} \DTcomment{[Optional]}.
@@ -365,7 +367,7 @@ is assigned.\\
 
 \dirtree{%
     .1 <root>.
-    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
+    .2 \intlink{sec:yaml-scm-monikers}{<scm moniker>} \DTcomment{[Required: \textbf{bbc}, \textbf{bbdc}, \textbf{adoe}, \textbf{gh}, \textbf{gl}]}.
     .3 \intlink{sec:yaml-moniker-scan-config}{scan-config} \DTcomment{[Optional]}.
     .4 \intlink{sec:yaml-scan-config-default-scan-engines}{default-scan-engines} \DTcomment{[Optional]}.
     .4 \intlink{sec:yaml-scan-config-default-project-tags}{default-project-tags} \DTcomment{[Optional]}.

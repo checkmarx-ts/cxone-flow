@@ -2,7 +2,7 @@ from .. import DictCmdLineOpts
 
 
 class ResolverOpts(DictCmdLineOpts):
-      
+
     __forbidden_opts = [
         "logs-path",
         "a",
@@ -41,9 +41,9 @@ class ResolverOpts(DictCmdLineOpts):
         "cxuser",
         "cxprojectid",
         "cxprojectname",
-        "cxserver"
+        "cxserver",
     ]
 
     def _validate_arg(self, arg_name: str, arg_value: str) -> bool:
-        
+
         return not arg_name in ResolverOpts.__forbidden_opts

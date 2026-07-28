@@ -7,7 +7,9 @@ import logging
 #############################################
 
 
-async def event_project_name_factory(context: EventContext, scm_service: BasicSCMService) -> str:
+async def event_project_name_factory(
+    context: EventContext, scm_service: BasicSCMService
+) -> str:
     # Get an instance of the logger
     log = logging.getLogger(__name__)
 
@@ -18,7 +20,9 @@ async def event_project_name_factory(context: EventContext, scm_service: BasicSC
         project_name = context.message["project"]["name"]
 
         # Get the full proper name of the repository from the project configuration.
-        resp = await scm_service.exec("GET", f"/projects/{context.message['project']['id']}")
+        resp = await scm_service.exec(
+            "GET", f"/projects/{context.message['project']['id']}"
+        )
         if resp.ok:
             full_name = resp.json()["name_with_namespace"]
 
@@ -28,12 +32,10 @@ async def event_project_name_factory(context: EventContext, scm_service: BasicSC
             revised_components = []
             for component in path_components[:-1]:
                 revised_components.append("".join(c for c in component if c.isupper()))
-            
+
             revised_components.append(project_name)
 
             return "/".join(revised_components)
 
-
     # Failure causes the default project name to be used
     return None
-

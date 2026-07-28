@@ -1,19 +1,21 @@
-
 from enum import Enum
 from aenum import MultiValueEnum
 
+
 class __base_enum(Enum):
     def __str__(self):
-        return str(self.value)   
+        return str(self.value)
 
 
 class ScanWorkflow(__base_enum):
     PR = "pull-request"
     PUSH = "push"
-    
+
+
 class FeedbackWorkflow(__base_enum):
     PR = "pull-request"
     PUSH_GEN = "push-gen-sarif"
+
 
 class ScanStates(__base_enum):
     AWAIT = "await"
@@ -24,12 +26,15 @@ class ScanStates(__base_enum):
     FAILURE = "failed"
     PRESCAN = "prescan"
 
+
 class ExecTypes(__base_enum):
     RESOLVER = "sca-resolver"
+
 
 class ResolverOps(__base_enum):
     SCAN = "run-scan"
     SCAN_COMPLETE = "scan-complete"
+
 
 class GoofyEnum(MultiValueEnum):
     def __repr__(self):
@@ -40,6 +45,7 @@ class GoofyEnum(MultiValueEnum):
     def names(clazz):
         # pylint: disable=E1101
         return list(clazz._member_map_.values())
+
 
 class ResultStates(GoofyEnum):
     TO_VERIFY = "To Verify"
@@ -58,8 +64,4 @@ class ResultSeverity(GoofyEnum):
 
     @property
     def rank(self):
-        return self.values[-1:][0] # pylint: disable=E1101
-
-
-
-
+        return self.values[-1:][0]  # pylint: disable=E1101

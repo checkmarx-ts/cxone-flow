@@ -3,9 +3,10 @@ from .resolver_opts import ResolverOpts
 import subprocess, logging, asyncio, tempfile, os, stat
 from .exceptions import ResolverAgentException
 
+
 class AbstractExecutionContext:
     def __init__(self, workpath: str):
-        
+
         if workpath is not None:
             self.__workpath = workpath.rstrip("/") + "/"
         else:
@@ -23,7 +24,7 @@ class AbstractExecutionContext:
             raise ResolverAgentException("Not executing in 'with' scope.")
 
         return self.__work_root
-    
+
     @work_root.setter
     def work_root(self, value):
         self.__work_root = value
@@ -62,7 +63,14 @@ class AbstractExecutionContext:
 
 class ResolverExecutionContext(AbstractExecutionContext):
 
-    _reqd_permissions = stat.S_IRUSR + stat.S_IWUSR + stat.S_IXUSR + stat.S_IRGRP + stat.S_IWGRP + stat.S_IXGRP
+    _reqd_permissions = (
+        stat.S_IRUSR
+        + stat.S_IWUSR
+        + stat.S_IXUSR
+        + stat.S_IRGRP
+        + stat.S_IWGRP
+        + stat.S_IXGRP
+    )
 
     def __init__(self, workpath: str, opts: ResolverOpts):
         super().__init__(workpath)
@@ -153,10 +161,14 @@ class ResolverExecutionContext(AbstractExecutionContext):
         self.log().debug(f"Running resolver: {cmd + exec_opts}")
 
         try:
-            resolver_exec_result = await ResolverRunner.execute_cmd_async(cmd + exec_opts, {"HOME" : self.home})
+            resolver_exec_result = await ResolverRunner.execute_cmd_async(
+                cmd + exec_opts, {"HOME": self.home}
+            )
         except subprocess.CalledProcessError as cpex:
             ResolverExecutionContext.log().exception(cpex)
-            resolver_exec_result = subprocess.CompletedProcess(cpex.cmd, cpex.returncode, cpex.stdout, cpex.stderr)
+            resolver_exec_result = subprocess.CompletedProcess(
+                cpex.cmd, cpex.returncode, cpex.stdout, cpex.stderr
+            )
 
         self.log().debug(f"Resolver finished: {resolver_exec_result}")
 
@@ -177,6 +189,7 @@ class ResolverExecutionContext(AbstractExecutionContext):
         os.chmod(self._container_loc, ResolverExecutionContext._reqd_permissions)
 
         return self
+
 
 class AbstractRunner:
 
@@ -231,4 +244,3 @@ class ResolverRunner(AbstractRunner):
     @property
     def resolver_opts(self) -> ResolverOpts:
         return self.__opts
-

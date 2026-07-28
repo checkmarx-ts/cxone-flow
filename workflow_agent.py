@@ -9,7 +9,7 @@ from workflows.messaging import (
     ScanAwaitMessage,
     ScanAnnotationMessage,
     ScanFeedbackMessage,
-    PreScanAnnotationMessage
+    PreScanAnnotationMessage,
 )
 from agent.resolver import ResolverResultsAgent, ResolverTimeoutAgent
 from agent import mq_agent
@@ -46,14 +46,19 @@ async def process_poll(msg: aio_pika.abc.AbstractIncomingMessage) -> None:
         __log.exception(ex)
         await msg.nack(requeue=False)
 
-async def process_prescan_pr_annotate(msg: aio_pika.abc.AbstractIncomingMessage) -> None:
+
+async def process_prescan_pr_annotate(
+    msg: aio_pika.abc.AbstractIncomingMessage,
+) -> None:
     try:
         __log.debug(
             f"Received prescan PR annotation message on channel {msg.channel.number}: {msg.info()}"
         )
         sm = PreScanAnnotationMessage.from_binary(msg.body)
         services = CxOneFlowConfig.retrieve_services_by_moniker(sm.moniker)
-        if await services.pr.process_prescan_pr_notice(sm, services.cxone, services.scm):
+        if await services.pr.process_prescan_pr_notice(
+            sm, services.cxone, services.scm
+        ):
             await msg.ack()
         else:
             await msg.nack(requeue=False)
@@ -93,6 +98,7 @@ async def process_pr_feedback(msg: aio_pika.abc.AbstractIncomingMessage) -> None
         __log.exception(ex)
         await msg.nack(requeue=False)
 
+
 async def process_pr_feedback_error(msg: aio_pika.abc.AbstractIncomingMessage) -> None:
     try:
         __log.debug(
@@ -107,7 +113,6 @@ async def process_pr_feedback_error(msg: aio_pika.abc.AbstractIncomingMessage) -
     except BaseException as ex:
         __log.exception(ex)
         await msg.nack(requeue=False)
-
 
 
 async def spawn_agents():

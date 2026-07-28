@@ -30,3 +30,29 @@ The `<scm moniker>.feedback.pull-request.adoe-pr-opts` is listed as required whe
 requirement for `<scm moniker>.feedback.pull-request.adoe-pr-opts` is only when the
 `<scm moniker>` is `adoe`.  For other SCM monikers, `adoe-pr-opts` is ignored and
 thus not required.
+
+## Feedback
+
+CxOneFlow supports feedback upon a push to a protected branch or when a pull-request is opened that targets a protected branch.
+
+### `pull-request` Feedback
+
+Feedback for `pull-requests` is typically emitted in comment threads that are associated with the pull-request.  Some SCMs may
+vary how this is presented to the user and is documented in the CxOneFlow manual.
+
+An integration with policy checks in CxOne is available for some SCMs.  This is not to be confused with policy configurations
+in the SCM.  The CxOne policy checks are used to evaluate scan results and, using SCM-defined policies, optionally block
+the merge of the pull-request of a policy violation is detected when CxOne evaluates the scan results.
+
+### Protected Branch Feedback
+
+Feedback for protected branch updates typically means that vulnerabilities found during a scan are used to open tickets in a bug tracker
+such as Jira.  CxOneFlow does not integrate with any bug trackers for this purpose.  CxOneFlow does have the ability to optionally push a list
+of vulnerabilities found in the scan in the form of a Sarif log.  The push delivery methods are found described in the manual.  The
+intention is that the receiver of the Sarif log will integrate with the bug tracker.
+
+This should not be confused with CxOne feedback apps that can be configured to update bug trackers directly from CxOne.  In this case, the
+operation is performed entirely by CxOne.
+
+Sarif feedback by CxOneFlow and feedback apps in CxOne have no dependencies on each other.  They are both optional and do not conflict in
+operation.

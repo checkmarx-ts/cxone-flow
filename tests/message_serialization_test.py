@@ -14,7 +14,5 @@ class TestMessageSerialization(unittest.TestCase):
         self.assertEqual(deserialized.timestamp, msg.timestamp)
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
-

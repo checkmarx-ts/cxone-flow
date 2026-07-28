@@ -1,45 +1,45 @@
-from orchestration.kickoff import KickoffOrchestrator
+from orchestration.kickoff.ko_orch import KickoffOrchestrator
 from cxoneflow_kickoff_api import GithubKickoffMsg
-from orchestration.naming.gh import GithubProjectNaming
+from orchestration.naming import GithubProjectNaming
 from scm_services import SCMService
 from scm_services.cloner import CloneWorker
 
+
 class GithubKickoffOrchestrator(KickoffOrchestrator):
 
-   def __init__(self, msg : GithubKickoffMsg, *args, **kwargs):
-      self.__msg = msg
-      super().__init__(*args, **kwargs)
+    def __init__(self, msg: GithubKickoffMsg, *args, **kwargs):
+        self.__msg = msg
+        super().__init__(*args, **kwargs)
 
-   @property
-   def config_key(self):
-      return "gh"
+    @property
+    def config_key(self):
+        return "gh"
 
-   @property
-   def route_urls(self) -> list:
-      return self.kickoff_msg.clone_urls
+    @property
+    def route_urls(self) -> list:
+        return self.kickoff_msg.clone_urls
 
-   @property
-   def kickoff_msg(self) -> GithubKickoffMsg:
-      return self.__msg
+    @property
+    def kickoff_msg(self) -> GithubKickoffMsg:
+        return self.__msg
 
-   @property
-   def _repo_project_key(self) -> str:
-      return self.__msg.repo_name
+    @property
+    def _repo_project_key(self) -> str:
+        return self.__msg.repo_name
 
-   @property
-   def _repo_organization(self) -> str:
-      return self.__msg.repo_organization_name
+    @property
+    def _repo_organization(self) -> str:
+        return self.__msg.repo_organization_name
 
-   @property
-   def _repo_slug(self) -> str:
-      return self._repo_project_key
+    @property
+    def _repo_slug(self) -> str:
+        return self._repo_project_key
 
-   @property
-   def _repo_name(self) -> str:
-      return self._repo_project_key  
+    @property
+    def _repo_name(self) -> str:
+        return self._repo_project_key
 
-   async def get_default_cxone_project_name(self) -> str:
-      return GithubProjectNaming.create_project_name(
-         self.kickoff_msg.repo_organization_name, self.kickoff_msg.repo_name)
-
-
+    async def get_default_cxone_project_name(self) -> str:
+        return GithubProjectNaming.create_project_name(
+            self.kickoff_msg.repo_organization_name, self.kickoff_msg.repo_name
+        )

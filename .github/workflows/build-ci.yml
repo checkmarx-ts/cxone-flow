@@ -123,3 +123,14 @@ jobs:
       - name: Execute Unit Tests
         run: python -m unittest discover -v -p *_test.py -s ${{ github.workspace }}/tests
 
+  check-format:
+    runs-on: cx-public-ubuntu-x64
+    steps:
+      - name: Fetch Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Check formatting
+        run: |
+          pip config set global.index-url https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple
+          pip install . black==26.5.1
+          black --check .

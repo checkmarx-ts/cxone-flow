@@ -12,7 +12,7 @@ class TaskManager:
     @staticmethod
     def log():
         return logging.getLogger("TaskManager")
-    
+
     @staticmethod
     def __thread_proc():
         asyncio.set_event_loop(TaskManager.__bgloop)
@@ -23,7 +23,6 @@ class TaskManager:
         TaskManager.__bgloop = asyncio.new_event_loop()
         TaskManager.__thread = Thread(target=TaskManager.__thread_proc, daemon=True)
         TaskManager.__thread.start()
-   
 
     @staticmethod
     def loop():
@@ -44,11 +43,12 @@ class TaskManager:
     def __log_future_result(future):
         if future.exception() is not None:
             TaskManager.log().exception(future.exception())
-            TaskManager.log().error("".join(TracebackException.from_exception(future.exception()).format()))
+            TaskManager.log().error(
+                "".join(TracebackException.from_exception(future.exception()).format())
+            )
         else:
             if future.result() is not None:
                 TaskManager.log().debug(future.result())
-
 
     @staticmethod
     def in_background(coro):
@@ -66,13 +66,10 @@ class TaskManager:
         TaskManager.log().info("Gracefully shutting down...")
         while True:
             with TaskManager.__monitor_lock:
-                TaskManager.log().debug(f"TaskManager.__monitored: {len(TaskManager.__monitored)}")
-                
+                TaskManager.log().debug(
+                    f"TaskManager.__monitored: {len(TaskManager.__monitored)}"
+                )
+
                 if len(TaskManager.__monitored) == 0:
                     break
             time.sleep(1.0)
-            
-
-
-            
-

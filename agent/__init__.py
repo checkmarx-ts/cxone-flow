@@ -39,7 +39,9 @@ class DictCmdLineOpts:
     def __init__(self, opts_dict: Dict[str, str]):
         self.__opts_dict = opts_dict
 
-    def _compile(self, opt_processor : Dict[str, Callable[[str], str]]=None) -> List[str]:
+    def _compile(
+        self, opt_processor: Dict[str, Callable[[str], str]] = None
+    ) -> List[str]:
         ret_val = []
 
         proc = lambda x: x
@@ -50,11 +52,13 @@ class DictCmdLineOpts:
                 value = self.__opts_dict[k]
                 if opt_processor is not None and k in opt_processor.keys():
                     proc = opt_processor[k]
-                
+
                 if len(k) == 0 or not self._validate_arg(k, value):
-                    self.log().warning(f"Command line option [{k}] is invalid, omitting.")
+                    self.log().warning(
+                        f"Command line option [{k}] is invalid, omitting."
+                    )
                     continue
-                
+
                 if value is not None and not isinstance(value, str):
                     continue
 
@@ -68,17 +72,19 @@ class DictCmdLineOpts:
 
         return ret_val
 
-    def _validate_arg(self, arg_name : str, arg_value : str) -> bool:
+    def _validate_arg(self, arg_name: str, arg_value: str) -> bool:
         return True
-    
-    def has_one_of(self, arg_keys : List[str]) -> bool:
+
+    def has_one_of(self, arg_keys: List[str]) -> bool:
         if self.__opts_dict is None:
             return False
-        
+
         return len([x for x in arg_keys if x in self.__opts_dict.keys()]) > 0
 
-    def as_string(self, opt_processor : Dict[str, Callable[[str], str]]=None) -> str:
+    def as_string(self, opt_processor: Dict[str, Callable[[str], str]] = None) -> str:
         return " ".join(self._compile(opt_processor))
 
-    def as_args(self, opt_processor : Dict[str, Callable[[str], str]]=None) -> List[str]:
+    def as_args(
+        self, opt_processor: Dict[str, Callable[[str], str]] = None
+    ) -> List[str]:
         return self._compile(opt_processor)

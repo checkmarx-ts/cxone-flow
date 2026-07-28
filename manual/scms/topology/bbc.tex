@@ -1,0 +1,17 @@
+BitBucket Cloud uses the top-level concept of a \textbf{Workspace} to logically group multiple
+related repositories.  A BitBucket tenant with a premium subscription may have multiple workspaces
+but a non-premium tenant will have at most one workspace.
+
+A workspace contains one or more \textbf{Project} configuration.  Creating a \textbf{Repository}
+requires that it is assigned to a project.  The names of created repositories must be unique
+in the workspace regardless of project assignment.
+
+Webhooks can be deployed at either the \textbf{Workspace} or individual \textbf{Repository} scope.
+Deploying webhooks at the \textbf{Workspace} scope sends events to \cxoneflow for all repositories
+in the workspace.  While there is a guided UI for deploying repository webhooks, deploying webhooks
+at the workspace scope is available only by using the BitBucket Cloud REST API.  The \cxoneflowaudit
+tool can be used to deploy the webhook configuration at the workspace scope.
+
+Webhooks can be deployed at the scope of each \textbf{Repository} if desired.  The number of repositories
+in a large enterprise generally makes deployment at the \textbf{Repository} scope useful
+only for testing purposes.

@@ -1,5 +1,7 @@
 {
   "2.4.0" : [
+    "BitBucket Cloud is now supported.  It also supports merge checks for integration with CxOne policies.",
+    "Atlassian has announced BitBucket Data Center EOL.  Future work for BitBucket Data Center will be done on an as-needed basis only.",
     "Azure DevOps Entra ID Service Principal authentication is now supported.",
     "CxOne policy integration now works with Azure DevOps \"Required Checks\" policies."
   ],

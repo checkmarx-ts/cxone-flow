@@ -1,10 +1,11 @@
-from orchestration.kickoff import KickoffOrchestrator
+from orchestration.kickoff.ko_orch import KickoffOrchestrator
 from cxoneflow_kickoff_api import AdoKickoffMsg
-from orchestration.naming.adoe import AzureDevOpsProjectNaming
+from orchestration.naming import AzureDevOpsProjectNaming
+
 
 class AzureDevOpsKickoffOrchestrator(KickoffOrchestrator):
 
-    def __init__(self, msg : AdoKickoffMsg, *args, **kwargs):
+    def __init__(self, msg: AdoKickoffMsg, *args, **kwargs):
         self.__msg = msg
         super().__init__(*args, **kwargs)
 
@@ -37,6 +38,8 @@ class AzureDevOpsKickoffOrchestrator(KickoffOrchestrator):
         return self.__msg.repo_name
 
     async def get_default_cxone_project_name(self) -> str:
-        return AzureDevOpsProjectNaming.create_project_name(self.kickoff_msg.collection_name,
-                                                        self.kickoff_msg.project_name, self.kickoff_msg.repo_name)
-
+        return AzureDevOpsProjectNaming.create_project_name(
+            self.kickoff_msg.collection_name,
+            self.kickoff_msg.project_name,
+            self.kickoff_msg.repo_name,
+        )

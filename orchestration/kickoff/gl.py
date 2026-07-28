@@ -1,10 +1,11 @@
-from orchestration.kickoff import KickoffOrchestrator
+from orchestration.kickoff.ko_orch import KickoffOrchestrator
 from cxoneflow_kickoff_api import GitlabKickoffMsg
-from orchestration.naming.gl import GitlabProjectNaming
+from orchestration.naming import GitlabProjectNaming
+
 
 class GitlabKickoffOrchestrator(KickoffOrchestrator):
 
-    def __init__(self, msg : GitlabKickoffMsg, *args, **kwargs):
+    def __init__(self, msg: GitlabKickoffMsg, *args, **kwargs):
         self.__msg = msg
         super().__init__(*args, **kwargs)
 
@@ -19,7 +20,7 @@ class GitlabKickoffOrchestrator(KickoffOrchestrator):
     @property
     def kickoff_msg(self) -> GitlabKickoffMsg:
         return self.__msg
-    
+
     @property
     def _repo_project_key(self) -> str:
         return self.__msg.repo_path_with_namespace
@@ -37,4 +38,6 @@ class GitlabKickoffOrchestrator(KickoffOrchestrator):
         return self._repo_project_key.split("/")[-1:].pop()
 
     async def get_default_cxone_project_name(self) -> str:
-        return GitlabProjectNaming.create_project_name(self.kickoff_msg.repo_path_with_namespace)
+        return GitlabProjectNaming.create_project_name(
+            self.kickoff_msg.repo_path_with_namespace
+        )

@@ -8,7 +8,9 @@ from typing import Any
 
 class AMQPClient:
 
-    def __init__(self, amqp_url : str, amqp_user : str, amqp_password : str, ssl_verify : bool):
+    def __init__(
+        self, amqp_url: str, amqp_user: str, amqp_password: str, ssl_verify: bool
+    ):
         self.__lock = asyncio.Lock()
 
         self.__amqp_url = amqp_url
@@ -19,7 +21,7 @@ class AMQPClient:
 
         netloc = urllib.parse.urlparse(self.__amqp_url).netloc
 
-        if '@' in netloc:
+        if "@" in netloc:
             SecretRegistry.register(netloc.split("@")[0])
 
     @classmethod
@@ -34,7 +36,9 @@ class AMQPClient:
         async with self.__lock:
 
             if self.__client is None:
-                AMQPClient.log().debug(f"Creating AMQP connection to: {self.__amqp_url}")
+                AMQPClient.log().debug(
+                    f"Creating AMQP connection to: {self.__amqp_url}"
+                )
                 ctx = None
 
                 if isinstance(self.__ssl_verify, bool):
@@ -48,11 +52,12 @@ class AMQPClient:
                     elif os.path.isdir(self.__ssl_verify):
                         ctx = create_default_context(capath=self.__ssl_verify)
 
-
-                self.__client = await aio_pika.connect_robust(self.__amqp_url, \
-                                                    login=self.__amqp_user, \
-                                                    password=self.__amqp_password, \
-                                                    ssl_context=ctx)
+                self.__client = await aio_pika.connect_robust(
+                    self.__amqp_url,
+                    login=self.__amqp_user,
+                    password=self.__amqp_password,
+                    ssl_context=ctx,
+                )
         return self.__client
 
 
@@ -64,7 +69,9 @@ class CxOneFlowAbstractWorkflowService(AMQPClient):
     EXCHANGE_SCAN_WAIT = f"{ELEMENT_PREFIX}Scan Await"
     EXCHANGE_SCAN_POLLING = f"{ELEMENT_PREFIX}Scan Polling Delivery"
 
-    async def _safe_deserialize_body(self, msg : aio_pika.abc.AbstractIncomingMessage, msg_class : BaseMessage) -> Any:
+    async def _safe_deserialize_body(
+        self, msg: aio_pika.abc.AbstractIncomingMessage, msg_class: BaseMessage
+    ) -> Any:
         try:
             ret_val = msg_class.from_binary(msg.body)
             return ret_val
@@ -73,8 +80,10 @@ class CxOneFlowAbstractWorkflowService(AMQPClient):
             await msg.nack(requeue=False)
             raise
 
-    async def handle_completed_scan(self, msg : ScanAwaitMessage) -> None:
+    async def handle_completed_scan(self, msg: ScanAwaitMessage) -> None:
         raise NotImplementedError("handle_awaited_scan")
-    
-    async def handle_awaited_scan_error(self, msg : ScanAwaitMessage, error_msg : str) -> None:
-        raise NotImplementedError("handle_awaited_scan_error")    
+
+    async def handle_awaited_scan_error(
+        self, msg: ScanAwaitMessage, error_msg: str
+    ) -> None:
+        raise NotImplementedError("handle_awaited_scan_error")
