@@ -27,10 +27,9 @@ class KickoffOrchestrator(AbstractOrchestrator):
             else:
                 self.__clone_urls["ssh"] = url
 
-
-    def _normalize_http_clone_url(self, url : str) -> str:
+    def _normalize_http_clone_url(self, url: str) -> str:
         return url
-    
+
     @classmethod
     def log(clazz) -> logging.Logger:
         return logging.getLogger(clazz.__name__)
