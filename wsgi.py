@@ -232,6 +232,10 @@ async def adoe_webhook_endpoint():
             for service in CxOneFlowConfig.retrieve_scm_services(orch.config_key):
                 if await orch.is_signature_valid(service.shared_secret):
                     return Response(status=200)
+
+            __log.error(
+                "Signature verification failed for Azure DevOps Enterprise payload."
+            )
             return Response(status=401)
     except Exception as ex:
         __log.exception(ex)
