@@ -11,9 +11,15 @@ on:
       buildonly:
         type: boolean
         default: false
+      indexurl:
+        type: string
+        required: true
 
 permissions:
   contents: read
+
+env:
+  INDEX_URL: ${{ inputs.indexurl }}
 
 jobs:
   compile-manual:
@@ -87,13 +93,13 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Configure Pip index
+      - name: Configure packages
         run: |
-          pip config set global.index-url https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple
+          pip config set global.index-url $INDEX_URL
+          pip install --no-cache-dir requests>=2.33.0
       
       - name: Add OpenAPI YAML
         run: |
-          pip install --no-cache-dir requests>=2.33.0
           python ./.github/workflows/scripts/yamlspecs.py $SKILLROOT/references
 
       - name: Make AI config skill zip
