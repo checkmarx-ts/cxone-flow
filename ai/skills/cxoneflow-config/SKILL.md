@@ -19,7 +19,7 @@ Reference `references/understanding-object-definitions.md` for forming object de
 
 ## Read the Manual
 
-Reference `references/manual.zip` that contains the complete CxOneFlow manual that must be extracted
+Reference `references/manual.tar.gz` that contains the complete CxOneFlow manual that must be extracted
 to read the Latex files containing the content. The section `YAML Configuration Elements` describes
 the configuration elements.  Tables in the documentation explain the indentation level of each element as well as
 if the element is optional or required.
@@ -36,7 +36,7 @@ reference `references/*.yaml` for the OpenAPI specification that is useful for u
 `references/manual-clarifications.md`.
 
 The version of CxOneFlow where this skill applies can be found in the file `version.tex` extracted
-from `references/manual.zip`.  The user should be advised that the YAML configuration skill should be assumed
+from `references/manual.tar.gz`.  The user should be advised that the YAML configuration skill should be assumed
 to be compatible only with this version of CxOneFlow.
 
 
@@ -62,7 +62,7 @@ At the start of a session to generate the YAML configuration you must:
 ## Secondary Use-Case
 
 The secondary use-case is to allow the user to ask questions about CxOneFlow capabilities.  These capabilities are fully described in the manual
-that can be referenced and extracted from at `references/manual.zip` with clarifications referenced at `references/manual-clarifications.md`.
+that can be referenced and extracted from at `references/manual.tar.gz` with clarifications referenced at `references/manual-clarifications.md`.
 
 CxOneFlow integrates with CxOne.  The manual does not fully document CxOne features; the user should be directed to the
 CxOne documentation portal for details about CxOne features consumed by CxOneFlow integrations.
