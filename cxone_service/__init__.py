@@ -208,6 +208,7 @@ class CxOneService:
                 origin=__agent__,
                 tags=self.__default_project_tags
                 | {"cxone-flow": __version__, "service": self.moniker},
+                repoUrl=clone_url,
             )
 
             # 400 = project exists
@@ -274,6 +275,18 @@ class CxOneService:
                 if len([x for x in new_list if x not in project_orig_groups]) > 0:
                     project_json["groups"] = new_list
                     exec_update = True
+
+            if (
+                project_json.get("repoId") is not None
+                and "repoUrl" in project_json.keys()
+            ):
+                del project_json["repoUrl"]
+            elif (
+                project_json.get("repoUrl") is None
+                or len(project_json.get("repoUrl")) == 0
+            ):
+                project_json["repoUrl"] = clone_url
+                exec_update = True
 
             if exec_update:
                 retried = False
