@@ -235,6 +235,7 @@ jobs:
   build-manual:
     needs: [tag-repo]
     uses: ./.github/workflows/build-manual.yml
+    secrets: inherit
     with:
       tag: ${{ needs.tag-repo.outputs.tag }}
       version: ${{ inputs.version }}
