@@ -69,6 +69,33 @@ jobs:
           name: release-notes-${{ github.run_number }}
           path: release_notes/release_notes.pdf
 
+  compile-ai-skill:
+    runs-on: cx-public-ubuntu-x64
+    env:
+      SKILLROOT: ai/skills/cxoneflow-config
+    steps:
+      - name: Fetch Code @ tag ${{ inputs.tag }}
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ inputs.tag }}
+        
+      - name: Edit manual's version stamp
+        if: ${{ ! inputs.buildonly }}
+        run: echo ${{ inputs.tag }} > manual/version.tex
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
+
+      - name: Configure Pip index
+        run: |
+          pip config set global.index-url https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple
+      
+      - name: Add OpenAPI YAML
+        run: |
+          pip install --no-cache-dir requests>=2.33.0
+          python ./.github/workflows/scripts/yamlspecs.py $SKILLROOT/references
+
       - name: Make AI config skill zip
         run: |
           pushd ai/skills/cxoneflow-config

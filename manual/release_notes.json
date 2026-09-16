@@ -1,4 +1,7 @@
 {
+  "2.4.1" : [
+    "Update AI skill to allow more accurate configuration for scan options."
+  ],
   "2.4.0" : [
     "BitBucket Cloud is now supported.  It also supports merge checks for integration with CxOne policies.",
     "Atlassian has announced BitBucket Data Center EOL.  Future work for BitBucket Data Center will be done on an as-needed basis only.",

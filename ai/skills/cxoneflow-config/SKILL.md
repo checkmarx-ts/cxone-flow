@@ -30,10 +30,14 @@ Elements noted as "required" must be assigned a value under the following condit
   For example, the `allowed-agent-tags` element is required only if the parent element `scan-agent` is selected for
   output in the YAML configuration file.
 
-Reference `references/manual-clarifications.md` for any clarifications about interpreting manual contents.
+Reference `references/manual-clarifications.md` for any clarifications about interpreting manual contents. Also 
+reference `references/*.yaml` for the OpenAPI specification that is useful for understand statements found in
+`references/manual-clarifications.md`.
 
 The version of CxOneFlow where this skill applies can be found in `references/manual/version.tex`.  The user should be advised
 that the YAML configuration skill should be assumed to be compatible only with this version of CxOneFlow.
+
+
 
 ## Primary Use-Case
 * This is to generate a complete YAML configuration file; do not infer other uses or purposes.
