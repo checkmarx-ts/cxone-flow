@@ -1,6 +1,7 @@
 {
   "2.4.1" : [
-    "Update AI skill to allow more accurate configuration for scan options."
+    "Update AI skill to allow more accurate configuration for scan options.",
+    "Resolved issue #44: Feedback fails with policy management and no policies applied to project"
   ],
   "2.4.0" : [
     "BitBucket Cloud is now supported.  It also supports merge checks for integration with CxOne policies.",
