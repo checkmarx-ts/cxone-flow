@@ -103,6 +103,10 @@ jobs:
         run: |
           pushd ai/skills/cxoneflow-config
           cp -r $GITHUB_WORKSPACE/manual ./references
+          pushd references/manual
+          zip -r ../manual.zip .
+          popd
+          rm -rf references/manual
           zip -r cxoneflow-config-skill.zip .
           popd
 
