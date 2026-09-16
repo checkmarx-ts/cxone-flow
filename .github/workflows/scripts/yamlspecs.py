@@ -21,7 +21,6 @@ def main():
         print(f"YAML index response: {spec_index}")
         exit(1)
 
-
     regex = re.compile("urls.+(\\[.*\\])")
     urls = regex.findall(spec_index.text)
     for found in urls:
@@ -38,6 +37,6 @@ def main():
                 with open(out_path / yaml_path.name, "wt") as yaml_file:
                     yaml_file.write(spec.text)
 
+
 if __name__ == "__main__":
     main()
-
