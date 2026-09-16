@@ -11,15 +11,12 @@ on:
       buildonly:
         type: boolean
         default: false
-      indexurl:
-        type: string
-        required: true
 
 permissions:
   contents: read
 
 env:
-  INDEX_URL: ${{ inputs.indexurl }}
+  INDEX_URL: https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple
 
 jobs:
   compile-manual:
