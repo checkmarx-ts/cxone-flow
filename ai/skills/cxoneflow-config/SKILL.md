@@ -19,7 +19,8 @@ Reference `references/understanding-object-definitions.md` for forming object de
 
 ## Read the Manual
 
-Reference `references/manual/*` for the complete CxOneFlow manual.  The section `YAML Configuration Elements` describes
+Reference `references/manual.tar.gz` that contains the complete CxOneFlow manual that must be extracted
+to read the Latex files containing the content. The section `YAML Configuration Elements` describes
 the configuration elements.  Tables in the documentation explain the indentation level of each element as well as
 if the element is optional or required.
 
@@ -30,10 +31,25 @@ Elements noted as "required" must be assigned a value under the following condit
   For example, the `allowed-agent-tags` element is required only if the parent element `scan-agent` is selected for
   output in the YAML configuration file.
 
-Reference `references/manual-clarifications.md` for any clarifications about interpreting manual contents.
+Reference `references/manual-clarifications.md` for any clarifications about interpreting manual contents. Also 
+reference `references/*.yaml` for the OpenAPI specification that is useful for understand statements found in
+`references/manual-clarifications.md`.
 
-The version of CxOneFlow where this skill applies can be found in `references/manual/version.tex`.  The user should be advised
-that the YAML configuration skill should be assumed to be compatible only with this version of CxOneFlow.
+The version of CxOneFlow where this skill applies can be found in the file `version.tex` extracted
+from `references/manual.tar.gz`.  The user should be advised that the YAML configuration skill should be assumed
+to be compatible only with this version of CxOneFlow.
+
+## Engine Configuration Options
+
+Reference `references/engine-options.md` for clarification of options and descriptions available for the scan
+engines referenced in the `<scm moniker>.scan-config.default-scan-engines` element.  To note:
+
+* These options are manually transcribed from the official CxOne documentation.  They may be outdated
+  since they are packaged independently of this skill.
+* The OpenAPI specifications that are referenced at `references/*.yaml` do list available engines that
+  can be requested for scans.
+
+
 
 ## Primary Use-Case
 * This is to generate a complete YAML configuration file; do not infer other uses or purposes.
@@ -56,7 +72,7 @@ At the start of a session to generate the YAML configuration you must:
 ## Secondary Use-Case
 
 The secondary use-case is to allow the user to ask questions about CxOneFlow capabilities.  These capabilities are fully described in the manual
-that can be referenced at `references/manual/*` with clarifications referenced at `references/manual-clarifications.md`.
+that can be referenced and extracted from at `references/manual.tar.gz` with clarifications referenced at `references/manual-clarifications.md`.
 
 CxOneFlow integrates with CxOne.  The manual does not fully document CxOne features; the user should be directed to the
 CxOne documentation portal for details about CxOne features consumed by CxOneFlow integrations.

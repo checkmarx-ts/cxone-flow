@@ -17,11 +17,15 @@
 * The configuration options for the engines have some examples in the manual.  The manual contents does not show examples
   of all possible parameters.
 
-* A complete this of parameters is in the `/api/scans` documentation.  The root of the API documentation can be found
+* A complete list of currently supported parameters is in the `/api/scans` documentation.  The root of the API documentation can be found
   [at this link](https://checkmarx.stoplight.io/docs/checkmarx-one-api-reference-guide).
 
 * The links to the `/api/scans` documentation in the manual may have changed.  The user should be referred to the URL
-  listed in the previous bullet if they need details about scan engine configuration parameters.
+  listed in the previous bullet for the most accurate details about scan engine configuration parameters.  The skill
+  includes the OpenAPI specification for `/api/scans` that will have the configuration values available for each engine
+  type.  Examples of the CxOneFlow configurations provided in this skill are the accurate method of defining engine
+  configuration options. The YAML configuration data is transformed to correctly reflect the OpenAPI specification's
+  submission format.
 
 ## The `<scm moniker>.feedback.pull-request.adoe-pr-opts` Element
 
