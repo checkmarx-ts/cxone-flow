@@ -39,6 +39,16 @@ The version of CxOneFlow where this skill applies can be found in the file `vers
 from `references/manual.tar.gz`.  The user should be advised that the YAML configuration skill should be assumed
 to be compatible only with this version of CxOneFlow.
 
+## Engine Configuration Options
+
+Reference `references/engine-options.md` for clarification of options and descriptions available for the scan
+engines referenced in the `<scm moniker>.scan-config.default-scan-engines` element.  To note:
+
+* These options are manually transcribed from the official CxOne documentation.  They may be outdated
+  since they are packaged independently of this skill.
+* The OpenAPI specifications that are referenced at `references/*.yaml` do list available engines that
+  can be requested for scans.
+
 
 
 ## Primary Use-Case
