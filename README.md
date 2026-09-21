@@ -1,13 +1,7 @@
 # CxOne Flow
 
-If you are familiar with [CxFlow](https://github.com/checkmarx-ltd/cx-flow) for Checkmarx SAST, you will be familiar with the role of CxOneFlow.  
-
-For those that have not used CxFlow with Checkmarx SAST, CxOneFlow is a scan orchestrator that executes multiple source code analysis scans.  It is driven by web hook events coming from a source control system.
-
-## CxOneFlow vs CxFlow
-
-CxOneFlow is not intended to ever reach feature parity with CxFlow.  Many CxFlow features will not apply to Checkmarx One scanning.  CxOneFlow currently orchestrates scans via webhook events for push and pull-requests involving protected branches.  CxOneFlow
-itself does not create results in feedback applications.
+CxOneFlow is a scan orchestrator that executes multiple source code analysis scans using Checkmarx One.
+It is driven by web hook events emitted by a source control system.
 
 # Quickstart and Documentation
 
