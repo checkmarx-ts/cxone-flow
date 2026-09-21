@@ -21,13 +21,13 @@ Using AI to guide setup and configuration will be the most rapid method of start
 # Feature Summary
 
 * Supported SCMs
-    * BitBucket Data Center[^1] and Cloud
-    * Azure DevOps Enterprise Self-Hosted and Cloud
-      * New extended token lengths supported
-      * Service Principal authentication supported with Entra
-    * GitHub Enterprise Self-Hosted and Cloud
-      * GitHub app authentication supported
-    * GitLab Self-Hosted and Cloud
+    * BitBucket Data Center[^1] and Cloud.
+    * Azure DevOps Enterprise Self-Hosted and Cloud.
+      * New extended token lengths supported.
+      * Service Principal authentication supported with Entra.
+    * GitHub Enterprise Self-Hosted and Cloud.
+      * GitHub app authentication supported.
+    * GitLab Self-Hosted and Cloud.
 * Scans are invoked by Push events when code is pushed to protected branches.
   * A SARIF log of the completed scan can be optionally pushed to an HTTPS or AQMP endpoint. See [cxone-sarif](https://github.com/checkmarx-ts/cxone-sarif).
 * Scans are invoked on Pull-Requests that target a protected branch.
