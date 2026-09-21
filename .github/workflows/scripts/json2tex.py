@@ -9,7 +9,7 @@ from typing import List
 
 def format_latex(text: str):
     # Escape underscores
-    fixed = text.replace("_", "\\_")
+    fixed = text.replace("_", "\\_").replace("#", "\\#")
 
     # Backticks => \texttt
     converted = ""

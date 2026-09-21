@@ -1,4 +1,10 @@
 {
+  "2.4.1" : [
+    "Update AI skill to allow more accurate configuration for scan options.",
+    "Resolved issue #44: Feedback fails with policy management and no policies applied to project.",
+    "Repository URLs are updated in project settings if not already set.",
+    "Resolved issue #43: Cannot update repoUrl for an imported project."
+  ],
   "2.4.0" : [
     "BitBucket Cloud is now supported.  It also supports merge checks for integration with CxOne policies.",
     "Atlassian has announced BitBucket Data Center EOL.  Future work for BitBucket Data Center will be done on an as-needed basis only.",

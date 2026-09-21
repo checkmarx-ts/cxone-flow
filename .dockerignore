@@ -8,6 +8,7 @@
 **/*.yaml
 **/*.yml
 
+ai
 agent_packages
 manual
 secrets

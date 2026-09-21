@@ -9,6 +9,10 @@
 *.zip
 *.tgz
 ai/**/manual
+ai/**/*.zip
+ai/**/*.tgz
+ai/**/*.tar.gz
+ai/**/*.yaml
 
 # Dynamic scripts
 scripts
