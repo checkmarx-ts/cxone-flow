@@ -29,14 +29,16 @@ Using AI to guide setup and configuration will be the most rapid method of start
       * GitHub app authentication supported
     * GitLab Self-Hosted and Cloud
 * Scans are invoked by Push events when code is pushed to protected branches.
+  * A SARIF log of the completed scan can be optionally pushed to an HTTPS or AQMP endpoint. See [cxone-sarif](https://github.com/checkmarx-ts/cxone-sarif).
 * Scans are invoked on Pull-Requests that target a protected branch.
 * Scan results for Pull-Request scans are summarized in a pull-request comment.
 * Pull-Request state is reflected in scan tags as the pull request is under review.
+* Pull-Request merges can be blocked[^2] in these scenarios:
+  * Waiting for scan to complete (via "required checks").
+  * Break-build Checkmarx One policy violations.
 * Scans are tagged with the Git commit hash.
 * Pre-scan execution of SCA Resolver and/or shell script.
-* SARIF logs for a scan can be pushed to an AMQP or HTTPS endpoint
-  when a scan is completed for a protected branch.
-
 
 [^1]: Atlassian has announced EOL for BitBucket Data Center.  Further development of features for BitBucket
     Data Center is no longer possible.  New releases are no longer tested against BitBucket Data Center.
+[^2]: Not currently supported for GitLab.
