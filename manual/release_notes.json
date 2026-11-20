@@ -1,4 +1,12 @@
 {
+  "2.4.2" : [
+    "Update nginx to 1.31.9 to address CVE-2026-123007",
+    "Update nginx to 1.31.9 to address CVE-2026-123633",
+    "Update nginx to 1.31.9 to address CVE-2026-121810",
+    "Update nginx to 1.31.9 to address CVE-2026-123634",
+    "Update nginx to 1.31.9 to address CVE-2026-113425",
+    "Improvements to the security posture of the running container"
+  ],
   "2.4.1" : [
     "Update AI skill to allow more accurate configuration for scan options.",
     "Resolved issue #44: Feedback fails with policy management and no policies applied to project.",

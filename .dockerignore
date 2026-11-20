@@ -14,5 +14,6 @@ manual
 secrets
 tests
 test_data
+examples
 **/*.md
 LICENSE
