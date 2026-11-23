@@ -15,6 +15,7 @@ from workflows.pr_content import (
     PrescanPullRequestMarkdownAnnotation,
 )
 from workflows.feedback_services.pr.abstract_pr_service import AbstractPRFeedbackService
+from cxone_api.high.policies import PolicyEvaluationIncomplete
 
 
 class PRFeedbackService(AbstractPRFeedbackService):
@@ -90,6 +91,10 @@ class PRFeedbackService(AbstractPRFeedbackService):
 
         try:
             if await self.workflow.is_enabled():
+                violations = await cxone_service.get_policy_violation_inspector(
+                    msg.projectid, msg.scanid
+                ).policy_violations
+
                 report = await cxone_service.retrieve_report(msg.projectid, msg.scanid)
                 if report is None:
                     raise WorkflowException.missing_report(msg.projectid, msg.scanid)
@@ -107,9 +112,7 @@ class PRFeedbackService(AbstractPRFeedbackService):
                         report,
                         scm_service.create_code_permalink,
                         pr_details,
-                        await cxone_service.get_policy_violation_inspector(
-                            msg.projectid, msg.scanid
-                        ).policy_violations,
+                        violations,
                         self.server_base_url,
                         status_msg,
                     )
@@ -127,6 +130,16 @@ class PRFeedbackService(AbstractPRFeedbackService):
                         f"{msg.moniker}: PR {pr_details.pr_id}@{pr_details.clone_url}: Feedback complete"
                     )
 
+            return True
+        except PolicyEvaluationIncomplete as peval:
+            # Re-wait for the scan to "complete" to move this out of the queue
+            self.log().warning(peval)
+            from config.server import CxOneFlowConfig
+
+            services = CxOneFlowConfig.retrieve_services_by_moniker(msg.moniker)
+            await services.pr.start_pr_scan_workflow(
+                msg.projectid, msg.scanid, pr_details, cxone_service, scm_service
+            )
             return True
         except CxOneException as ex:
             PRFeedbackService.log().exception(ex)

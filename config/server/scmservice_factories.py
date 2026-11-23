@@ -304,6 +304,7 @@ class GHSCMServiceFactory(AbstractSCMServiceFactory):
                 props.clone_config_path,
                 props.ssl_no_verify_git,
             ),
+            use_policies=AbstractSCMServiceFactory.use_policies(repo_config),
         )
 
 
@@ -331,6 +332,7 @@ class BBDCServiceFactory(AbstractSCMServiceFactory):
                 props.clone_config_path,
                 props.ssl_no_verify_git,
             ),
+            use_policies=AbstractSCMServiceFactory.use_policies(repo_config),
         )
 
 
@@ -384,6 +386,7 @@ class BBCServiceFactory(AbstractSCMServiceFactory):
                 props.clone_config_path,
                 props.ssl_no_verify_git,
             ),
+            use_policies=AbstractSCMServiceFactory.use_policies(repo_config),
         )
 
 
@@ -411,6 +414,7 @@ class GLServiceFactory(AbstractSCMServiceFactory):
                 props.clone_config_path,
                 props.ssl_no_verify_git,
             ),
+            use_policies=AbstractSCMServiceFactory.use_policies(repo_config),
         )
 
 
@@ -458,5 +462,6 @@ class ADOEServiceFactory(AbstractSCMServiceFactory):
                 props.clone_config_path,
                 props.ssl_no_verify_git,
             ),
+            use_policies=AbstractSCMServiceFactory.use_policies(repo_config),
             **additional_args,
         )
