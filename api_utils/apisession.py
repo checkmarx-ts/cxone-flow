@@ -2,7 +2,7 @@ from _agent import __agent__
 from requests import Response
 from requests import request
 from typing import Dict, Union, Any
-import logging, asyncio
+import logging, asyncio, random
 from api_utils import AuthFactory
 from api_utils.auth_factories import EventContext
 from . import form_url
@@ -28,6 +28,7 @@ class APISession:
         auth: AuthFactory,
         timeout: int = 60,
         retries: int = 3,
+        retry_delay: int = 30,
         proxies: Dict = None,
         ssl_verify: Union[bool, str] = True,
     ):
@@ -37,6 +38,7 @@ class APISession:
         self.__api_endpoint = api_endpoint
         self.__timeout = timeout
         self.__retries = retries
+        self.__retry_delay = retry_delay
 
         self.__verify = ssl_verify
         self.__proxies = proxies
@@ -104,7 +106,7 @@ class APISession:
                     raise SCMAuthException(logStr)
                 else:
                     APISession.log().error(f"{logStr} : Attempt {tryCount}")
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(random.randint(1, self.__retry_delay))
             else:
                 return response
 
