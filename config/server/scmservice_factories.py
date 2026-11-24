@@ -156,7 +156,9 @@ class AbstractSCMServiceFactory(ConfigDictionaryReader):
 
         @property
         def retry_delay(self) -> int:
-            return self._get_value_for_key_or_default("retry-delay", self.__con_cfg_dict, 30)
+            return self._get_value_for_key_or_default(
+                "retry-delay", self.__con_cfg_dict, 30
+            )
 
         @property
         def proxies(self) -> Dict:
