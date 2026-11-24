@@ -1,4 +1,9 @@
 {
+  "2.4.2" : [
+    "Better handling of cases where policy evaluations are delayed.",
+    "Better handling of error condition when trying to create a project that already exists.",
+    "Request throttling responses from the SCM API are now handled properly."
+  ],
   "2.4.1" : [
     "Update AI skill to allow more accurate configuration for scan options.",
     "Resolved issue #44: Feedback fails with policy management and no policies applied to project.",
