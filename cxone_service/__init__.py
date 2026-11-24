@@ -227,9 +227,7 @@ class CxOneService:
                     "Response indicates the Checkmarx One account does not have permission to create a project."
                 )
             elif create_response.status_code == 400:
-                raise CxOneException(
-                    f"Project {dynamic_project_name} exists."
-                )
+                raise CxOneException(f"Project {dynamic_project_name} exists.")
             elif retry:
                 return await self.__create_or_retrieve_project(
                     default_project_name, dynamic_project_name, clone_url, False
