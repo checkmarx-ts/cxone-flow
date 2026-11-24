@@ -155,6 +155,12 @@ class AbstractSCMServiceFactory(ConfigDictionaryReader):
             return self._get_value_for_key_or_default("retries", self.__con_cfg_dict, 3)
 
         @property
+        def retry_delay(self) -> int:
+            return self._get_value_for_key_or_default(
+                "retry-delay", self.__con_cfg_dict, 30
+            )
+
+        @property
         def proxies(self) -> Dict:
             return self._get_value_for_key_or_default(
                 "proxies", self.__con_cfg_dict, None
@@ -174,6 +180,7 @@ class AbstractSCMServiceFactory(ConfigDictionaryReader):
             ),
             config_props.timeout_seconds,
             config_props.retries,
+            config_props.retry_delay,
             config_props.proxies,
             config_props.ssl_verify,
         )
@@ -304,6 +311,7 @@ class GHSCMServiceFactory(AbstractSCMServiceFactory):
                 props.clone_config_path,
                 props.ssl_no_verify_git,
             ),
+            use_policies=AbstractSCMServiceFactory.use_policies(repo_config),
         )
 
 
@@ -331,6 +339,7 @@ class BBDCServiceFactory(AbstractSCMServiceFactory):
                 props.clone_config_path,
                 props.ssl_no_verify_git,
             ),
+            use_policies=AbstractSCMServiceFactory.use_policies(repo_config),
         )
 
 
@@ -384,6 +393,7 @@ class BBCServiceFactory(AbstractSCMServiceFactory):
                 props.clone_config_path,
                 props.ssl_no_verify_git,
             ),
+            use_policies=AbstractSCMServiceFactory.use_policies(repo_config),
         )
 
 
@@ -411,6 +421,7 @@ class GLServiceFactory(AbstractSCMServiceFactory):
                 props.clone_config_path,
                 props.ssl_no_verify_git,
             ),
+            use_policies=AbstractSCMServiceFactory.use_policies(repo_config),
         )
 
 
@@ -458,5 +469,6 @@ class ADOEServiceFactory(AbstractSCMServiceFactory):
                 props.clone_config_path,
                 props.ssl_no_verify_git,
             ),
+            use_policies=AbstractSCMServiceFactory.use_policies(repo_config),
             **additional_args,
         )
