@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "cxoneflow_kickoff_api"
 dynamic = ["version"]
 dependencies = [
-    "PyJWT==2.14.0",
+    "PyJWT==2.15.1",
     "dataclasses-json==0.6.7",
     "cryptography==50.0.2",
     "requests>=2.33.0",

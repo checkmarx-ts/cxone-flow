@@ -5,7 +5,7 @@ gunicorn==27.0.1
 aio-pika==10.2.3
 dataclasses-json==0.6.7
 aenum==3.1.17
-PyJWT==2.14.0
+PyJWT==2.15.1
 cryptography==50.0.2
 aiofiles==25.1.0
 sortedcontainers==2.4.0
