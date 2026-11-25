@@ -74,7 +74,6 @@ COPY docker/etc /etc
 RUN useradd -M -s /usr/sbin/nologin cxoneflow && \
     chown -R root:cxoneflow /var/log/nginx && \
     chmod 775 -R /var/log/nginx && \
-    grep -v "^user" /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp && \
     chown -R root:cxoneflow /var/cache/nginx && \
     chmod 775 -R /var/cache/nginx && \
     chown root:cxoneflow /var/log/rabbitmq && \
