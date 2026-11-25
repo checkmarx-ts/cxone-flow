@@ -12,6 +12,8 @@ ENV LC_ALL="en_US.UTF-8"
 ENV UBUNTU_SNAPSHOT=20260921T000000Z
 ENV DEBIAN_FRONTEND=noninteractive
 
+COPY docker/etc/apt /etc/apt
+
 RUN apt-get update && \
     apt-get install --no-install-recommends -y ca-certificates && \
     apt-get update --snapshot $UBUNTU_SNAPSHOT && \
