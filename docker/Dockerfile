@@ -5,22 +5,10 @@ RUN openssl genrsa -out /tmp/key.private.pem 2048 && \
     openssl req -new -key /tmp/key.private.pem -out /tmp/ssl.cert.pem -x509 -days 365 -subj "/CN=localhost/O=Checkmarx/OU=Professional Services"
 
 
-
-FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64 AS cxoneflow_package
-LABEL org.opencontainers.image.source="https://github.com/checkmarx-ts/cxone-flow"
-LABEL org.opencontainers.image.vendor="Checkmarx Professional Services"
-LABEL org.opencontainers.image.title="Checkmarx One Flow (CxOneFlow)"
-LABEL org.opencontainers.image.description="CxOneFlow orchestrates scanning of Git repositories with Checkmarx One"
-
-WORKDIR /opt/cxone
-
-COPY ./ /opt/cxone/
-COPY docker/etc /etc
+FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64 AS cxoneflow_os
 
 ENV LANG="en_US.UTF-8"
-ENV SSL_CERT_PATH=/opt/cxone/ssl/default/ssl.cert.pem
-ENV SSL_CERT_KEY_PATH=/opt/cxone/ssl/default/key.private.pem
-ENV CXONEFLOW_HOSTNAME=localhost
+ENV LC_ALL="en_US.UTF-8"
 ENV UBUNTU_SNAPSHOT=20260921T000000Z
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -46,20 +34,69 @@ RUN apt-get update && \
       apt-transport-https=3.2.0 && \
     locale-gen "en_US.UTF-8" && update-locale && \
     apt-get install rabbitmq-server=4.0.5-10ubuntu5 -y --no-install-recommends --snapshot $UBUNTU_SNAPSHOT && \
-    useradd -M -s /usr/sbin/nologin cxoneflow && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+FROM cxoneflow_os AS nginx_config
+
+RUN curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
+      | tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null && \
+    echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
+    https://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
+      | tee /etc/apt/sources.list.d/nginx.list && \
+    apt-get update && \
+    apt-get install --no-install-recommends nginx=1.31.9-1~$(lsb_release -cs) && \
+    rm /etc/nginx/conf.d/default.conf && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY docker/nginx /opt/cxone/nginx
+
+
+
+FROM nginx_config AS cxoneflow_package
+
+LABEL org.opencontainers.image.source="https://github.com/checkmarx-ts/cxone-flow"
+LABEL org.opencontainers.image.vendor="Checkmarx Professional Services"
+LABEL org.opencontainers.image.title="Checkmarx One Flow (CxOneFlow)"
+LABEL org.opencontainers.image.description="CxOneFlow orchestrates scanning of Git repositories with Checkmarx One"
+
+ENV SSL_CERT_PATH=/opt/cxone/ssl/default/ssl.cert.pem
+ENV SSL_CERT_KEY_PATH=/opt/cxone/ssl/default/key.private.pem
+ENV CXONEFLOW_HOSTNAME=localhost
+
+WORKDIR /opt/cxone
+COPY ./ /opt/cxone/
+COPY docker/etc /etc
+
+RUN useradd -M -s /usr/sbin/nologin cxoneflow && \
+    chown -R root:cxoneflow /var/log/nginx && \
+    chmod 775 -R /var/log/nginx && \
+    grep -v "^user" /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp && \
+    chown -R root:cxoneflow /var/cache/nginx && \
+    chmod 775 -R /var/cache/nginx && \
+    chown root:cxoneflow /var/log/rabbitmq && \
+    chmod 775 /var/log/rabbitmq && \
+    chown -R root:cxoneflow /var/lib/rabbitmq && \
+    chmod 775 /var/lib/rabbitmq && \
+    chown root:cxoneflow /etc/nginx/conf.d && \
+    chmod 775 /etc/nginx/conf.d && \
+    chown rabbitmq:cxoneflow /var/lib/rabbitmq/mnesia && \
+    chmod 770 /var/lib/rabbitmq/mnesia && \
     mkdir -p /var/log/gunicorn && \
     chown root:cxoneflow /var/log/gunicorn && \
     chmod 775 /var/log/gunicorn && \
     mkdir -p /var/log/cxoneflow && \
     chown root:cxoneflow /var/log/cxoneflow && \
     chmod 775 /var/log/cxoneflow && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    chown root:cxoneflow /etc/ssl/certs && \
+    chmod 775 /etc/ssl/certs
 
 RUN --mount=type=secret,id=PACKAGE_INDEX \
     pip install -r requirements.txt \
-      --no-cache-dir --break-system-packages \
+      --no-cache-dir --break-system-packages --root-user-action ignore \
       $([ -f "/run/secrets/PACKAGE_INDEX" ] && printf -- "--index-url $(cat /run/secrets/PACKAGE_INDEX)" ) && \
       rm requirements.txt
 
@@ -73,30 +110,10 @@ COPY docker/entrypoint.sh /opt/cxone
 
 RUN rm -rf /opt/cxone/docker
 
-FROM cxoneflow_package AS nginx_config
 
-RUN curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
-      | tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null && \
-    echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
-    https://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
-      | tee /etc/apt/sources.list.d/nginx.list && \
-    apt-get update && \
-    apt-get install --no-install-recommends nginx=1.31.9-1~$(lsb_release -cs) && \
-    rm /etc/nginx/conf.d/default.conf && \
-    mkdir -p /var/log/nginx && \
-    chown root:cxoneflow /var/log/nginx && \
-    chmod 775 /var/log/nginx && \
-    chown root:cxoneflow /etc/nginx/conf.d && \
-    chmod 775 /etc/nginx/conf.d && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+FROM cxoneflow_package AS release
 
-COPY docker/nginx /opt/cxone/nginx
-
-FROM nginx_config AS release
-
-HEALTHCHECK --start-period=2m CMD (rabbitmqctl await_startup && curl -f http://localhost:8000/ping) || exit 1
+HEALTHCHECK --start-period=2m CMD (/usr/lib/rabbitmq/bin/rabbitmqctl await_startup && curl -f http://localhost:8000/ping) || exit 1
 
 USER cxoneflow
 
