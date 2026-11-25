@@ -25,7 +25,7 @@ ENV UBUNTU_SNAPSHOT=20260921T000000Z
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates && \
+    apt-get install --no-install-recommends -y ca-certificates && \
     apt-get update --snapshot $UBUNTU_SNAPSHOT && \
     apt-get install -y --no-install-recommends --snapshot $UBUNTU_SNAPSHOT \
       tzdata=2026c-0ubuntu0.26.04.1 \
@@ -93,7 +93,6 @@ RUN curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
     rm -rf /var/lib/apt/lists/*
 
 COPY docker/nginx /opt/cxone/nginx
-
 
 FROM nginx_config AS release
 
