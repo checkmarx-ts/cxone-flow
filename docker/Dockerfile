@@ -24,8 +24,6 @@ ENV CXONEFLOW_HOSTNAME=localhost
 ENV UBUNTU_SNAPSHOT=20260921T000000Z
 ENV DEBIAN_FRONTEND=noninteractive
 
-#       nginx=1.28.3-2ubuntu1.11 \
-
 RUN apt-get update && \
     apt-get install -y ca-certificates && \
     apt-get update --snapshot $UBUNTU_SNAPSHOT && \
@@ -47,14 +45,17 @@ RUN apt-get update && \
       ubuntu-keyring=2023.11.28.1build1 \
       apt-transport-https=3.2.0 && \
     locale-gen "en_US.UTF-8" && update-locale && \
-    apt-get install rabbitmq-server=4.0.5-10ubuntu5 -y --snapshot $UBUNTU_SNAPSHOT && \
+    apt-get install rabbitmq-server=4.0.5-10ubuntu5 -y --no-install-recommends --snapshot $UBUNTU_SNAPSHOT && \
     useradd -M -s /usr/sbin/nologin cxoneflow && \
     mkdir -p /var/log/gunicorn && \
     chown root:cxoneflow /var/log/gunicorn && \
     chmod 775 /var/log/gunicorn && \
     mkdir -p /var/log/cxoneflow && \
     chown root:cxoneflow /var/log/cxoneflow && \
-    chmod 775 /var/log/cxoneflow
+    chmod 775 /var/log/cxoneflow && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=secret,id=PACKAGE_INDEX \
     pip install -r requirements.txt \
@@ -79,21 +80,22 @@ RUN curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
     echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
     https://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
       | tee /etc/apt/sources.list.d/nginx.list && \
-    apt update && \
-    apt install nginx=1.31.9-1~$(lsb_release -cs) && \
+    apt-get update && \
+    apt-get install --no-install-recommends nginx=1.31.9-1~$(lsb_release -cs) && \
     rm /etc/nginx/conf.d/default.conf && \
     mkdir -p /var/log/nginx && \
     chown root:cxoneflow /var/log/nginx && \
     chmod 775 /var/log/nginx && \
     chown root:cxoneflow /etc/nginx/conf.d && \
-    chmod 775 /etc/nginx/conf.d 
+    chmod 775 /etc/nginx/conf.d && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY docker/nginx /opt/cxone/nginx
 
-FROM nginx_config AS release
 
-RUN apt-get autoremove -y && \
-    apt-get clean
+FROM nginx_config AS release
 
 HEALTHCHECK --start-period=2m CMD (rabbitmqctl await_startup && curl -f http://localhost:8000/ping) || exit 1
 
