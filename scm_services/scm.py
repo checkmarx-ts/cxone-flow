@@ -45,6 +45,7 @@ class SCMService(BasicSCMService):
         api_session: APISession,
         shared_secret: str,
         cloner: Cloner,
+        use_policies: bool,
         **kwargs,
     ):
         super().__init__(api_session=api_session, **kwargs)
@@ -52,6 +53,11 @@ class SCMService(BasicSCMService):
         self.__cloner = cloner
         self.__moniker = moniker
         self.__display_url = display_url
+        self.__use_policies = use_policies
+
+    @property
+    def use_policies(self) -> bool:
+        return self.__use_policies
 
     @property
     def display_url(self) -> str:

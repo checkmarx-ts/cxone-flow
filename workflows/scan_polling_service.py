@@ -5,6 +5,7 @@ from workflows.base_service import CxOneFlowAbstractWorkflowService
 from workflows.enums import ScanStates
 from cxone_service import CxOneService
 from cxone_api.exceptions import ResponseException
+from cxone_api.high.policies import PolicyEvaluationIncomplete
 from typing import List
 
 
@@ -114,6 +115,8 @@ class ScanPollingService(CxOneFlowAbstractWorkflowService):
                             )
 
                         requeue_on_finally = False
+                    except PolicyEvaluationIncomplete as peval:
+                        ScanPollingService.log().warning(peval)
                     except BaseException as bex:
                         ScanPollingService.log().exception(bex)
                     finally:

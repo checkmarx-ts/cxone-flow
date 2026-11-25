@@ -6,9 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "cxoneflow_kickoff_api"
 dynamic = ["version"]
 dependencies = [
-    "PyJWT==2.13.0",
+    "PyJWT==2.15.1",
     "dataclasses-json==0.6.7",
-    "cryptography==50.0.0",
+    "cryptography==50.0.2",
     "requests>=2.33.0",
     "cxone-api@https://github.com/checkmarx-ts/cxone-async-api/releases/download/1.1.5/cxone_api-1.1.5-py3-none-any.whl"
     ] 

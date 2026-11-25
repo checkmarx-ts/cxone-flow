@@ -5,14 +5,23 @@
 **/.vscode
 **/.git
 **/.gitignore
+**/.gitleaksignore
 **/*.yaml
 **/*.yml
+**/.github
 
 ai
 agent_packages
 manual
+release_notes
 secrets
+scripts
 tests
 test_data
+examples
 **/*.md
 LICENSE
+README.md
+pyproject.toml
+docker/Dockerfile
+

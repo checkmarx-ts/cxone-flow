@@ -7,6 +7,7 @@ from cxone_api.high.scans import (
     ScanFilterConfig,
 )
 from cxone_api.high.policies import PolicyViolationInspector
+from .nobreak_inspector import NoBreakPolicyViolationInspector
 from cxone_api.high.projects import ProjectRepoConfig
 from cxone_api.low.projects import (
     retrieve_list_of_projects,
@@ -66,6 +67,7 @@ class CxOneService:
         rename_legacy_projects: bool,
         update_groups: bool,
         grouping_service: GroupingService,
+        use_policies: bool,
     ):
         self.__rename_legacy = rename_legacy_projects
         self.__client = cxone_client
@@ -79,6 +81,11 @@ class CxOneService:
         self.__default_engine_config = default_engines
         self.__update_groups = update_groups
         self.__group_service = grouping_service
+        self.__policy_inspector_clazz = (
+            PolicyViolationInspector
+            if use_policies
+            else NoBreakPolicyViolationInspector
+        )
 
     @property
     def moniker(self) -> str:
@@ -219,6 +226,8 @@ class CxOneService:
                 raise CxOnePermissionException(
                     "Response indicates the Checkmarx One account does not have permission to create a project."
                 )
+            elif create_response.status_code == 400:
+                raise CxOneException(f"Project {dynamic_project_name} exists.")
             elif retry:
                 return await self.__create_or_retrieve_project(
                     default_project_name, dynamic_project_name, clone_url, False
@@ -411,7 +420,7 @@ class CxOneService:
     def get_policy_violation_inspector(
         self, projectid: str, scanid: str
     ) -> PolicyViolationInspector:
-        return PolicyViolationInspector.from_project_and_scan_ids(
+        return self.__policy_inspector_clazz.from_project_and_scan_ids(
             self.__client, projectid, scanid
         )
 

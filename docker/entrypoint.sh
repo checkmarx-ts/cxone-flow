@@ -6,27 +6,27 @@ export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 for f in $(ls /opt/cxone/nginx);
 do
-    cat /opt/cxone/nginx/$f | envsubst '$SSL_CERT_PATH $SSL_CERT_KEY_PATH $CXONEFLOW_HOSTNAME' > /etc/nginx/sites-enabled/$f
+    cat /opt/cxone/nginx/$f | envsubst '$SSL_CERT_PATH $SSL_CERT_KEY_PATH $CXONEFLOW_HOSTNAME' > /etc/nginx/conf.d/$f
 done
 
 echo Starting RabbitMQ...
-rabbitmq-server -detached
+/usr/lib/rabbitmq/bin/rabbitmq-server -detached
 
 LOOP=1
 echo Waiting for RabbitMQ to start...
 while [ $LOOP -eq 1 ]
 do
-    rabbitmqctl await_startup 2> /dev/null && LOOP=0 || : 
+    /usr/lib/rabbitmq/bin/rabbitmqctl await_startup 2> /dev/null && LOOP=0 || : 
     sleep 1
 done
 
 echo Configuring RabbitMQ...
-runuser -u cxoneflow -- python rabbit_config.py
+python rabbit_config.py
 
 echo Spawning workflow agents...
-runuser -u cxoneflow -- python workflow_agent.py | tee -a /var/log/cxoneflow/workflow.log 2>&1 &
+python workflow_agent.py | tee -a /var/log/cxoneflow/workflow.log 2>&1 &
 
 echo Launching Nginx...
 nginx
 
-runuser -u cxoneflow -- gunicorn --bind=127.0.0.1:5000 --name=CxOneFlow wsgi:app
+gunicorn --bind=127.0.0.1:5000 --name=CxOneFlow wsgi:app

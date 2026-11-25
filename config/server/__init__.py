@@ -699,6 +699,7 @@ class CxOneFlowConfig(CommonConfig):
             naming_update_flag,
             group_update_flag,
             grouping_service,
+            scm_service.use_policies,
         )
 
         return CxOneFlowServices(
